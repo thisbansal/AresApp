@@ -22,7 +22,7 @@
         nodejsLatest = pkgs-latest.nodejs;
 
       in {
-        devShells.default = pkgs.mkShell {
+        devShells.vite = pkgs.mkShell {
           buildInputs = [
             nodejsLatest
           ];
