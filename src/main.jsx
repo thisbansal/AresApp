@@ -74,7 +74,7 @@ function App() {
                       id={item.id}
                       rowIndex={row.id}
                       colIndex={colIndex}
-                      onClick={() => console.log('Clicked:', item.title)}
+                      onClick={() => ('Clicked:', item.title)}
                       className="item"
                     >
                       <img

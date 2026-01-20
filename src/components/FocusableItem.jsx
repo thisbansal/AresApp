@@ -1,5 +1,6 @@
+// FocusableItem.jsx - Add lock on hover
 import { useEffect, useRef } from 'react';
-import { useFocus } from '../services/navigation/focusManager';
+import { useFocus } from '../services/navigation/FocusManager';
 
 export function FocusableItem({ id, rowIndex, colIndex, children, onClick, className = '' }) {
   const elementRef = useRef(null);
@@ -14,6 +15,10 @@ export function FocusableItem({ id, rowIndex, colIndex, children, onClick, class
   }, [id, rowIndex, colIndex, registerItem, unregisterItem]);
 
   const handleMouseEnter = () => {
+    // Lock vertical scroll when hovering thumbnail
+    if (window.lockVerticalScroll) {
+      window.lockVerticalScroll();
+    }
     focusItem(id);
   };
 

@@ -6,9 +6,9 @@ const WebOSInputContext = createContext();
 export function WebOSInputProvider({ children }) {
   const targetScroll = useRef(0);
   const animationFrame = useRef(null);
+  const isVerticalScrollLocked = useRef(false);
 
   useEffect(() => {
-    // Initialize target to current scroll position
     const scrollTarget = document.scrollingElement || document.documentElement;
     targetScroll.current = scrollTarget.scrollTop;
 
@@ -27,6 +27,9 @@ export function WebOSInputProvider({ children }) {
     };
 
     const handleWheel = (e) => {
+      // Unlock scroll when wheel is used
+      isVerticalScrollLocked.current = false;
+
       const scrollTarget = document.scrollingElement || document.documentElement;
 
       targetScroll.current = Math.max(
@@ -42,19 +45,40 @@ export function WebOSInputProvider({ children }) {
       }
     };
 
-    // Expose a method to set scroll target from outside
+    const handleKeyDown = (e) => {
+      // Unlock scroll when D-pad is used
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        isVerticalScrollLocked.current = false;
+      }
+    };
+
+    // Expose methods for focus manager
     window.setScrollTarget = (target) => {
+      if (isVerticalScrollLocked.current) return; // Don't scroll if locked
+
       targetScroll.current = target;
       if (!animationFrame.current) {
         animationFrame.current = requestAnimationFrame(animate);
       }
     };
 
+    window.lockVerticalScroll = () => {
+      isVerticalScrollLocked.current = true;
+    };
+
+    window.unlockVerticalScroll = () => {
+      isVerticalScrollLocked.current = false;
+    };
+
     window.addEventListener('wheel', handleWheel);
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('keydown', handleKeyDown);
       delete window.setScrollTarget;
+      delete window.lockVerticalScroll;
+      delete window.unlockVerticalScroll;
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
       }
