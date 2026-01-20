@@ -5,10 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "move": "rm -rf ./webos-meta/dist && mv ./dist/ ./webos-meta/",
+    "preview": "vite preview",
+    "start-remote": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp --open",
+    "start":"ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
     "vite": "^7.2.4"
+  },
+  "dependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   }
 }
