@@ -19,50 +19,50 @@ export function FocusProvider({ children }) {
     itemsRef.current.delete(id);
   }, []);
 
-const focusItem = useCallback((id) => {
-  const item = itemsRef.current.get(id);
+  const focusItem = useCallback((id) => {
+    const item = itemsRef.current.get(id);
 
-  if (item) {
-    setFocusedId(id);
+    if (item) {
+      setFocusedId(id);
 
-    requestAnimationFrame(() => {
-      // Vertical scroll (page)
-      const rowElement = item.element.closest('.row');
+      requestAnimationFrame(() => {
+        // Vertical scroll (page)
+        const rowElement = item.element.closest('.row');
 
-      if (rowElement) {
-        const rowRect = rowElement.getBoundingClientRect();
-        const isRowVisible = rowRect.top >= -100 && rowRect.bottom <= window.innerHeight + 100;
+        if (rowElement) {
+          const rowRect = rowElement.getBoundingClientRect();
+          const isRowVisible = rowRect.top >= -100 && rowRect.bottom <= window.innerHeight + 100;
 
-        if (!isRowVisible) {
-          const scrollTarget = document.scrollingElement || document.documentElement;
-          const targetScrollTop = scrollTarget.scrollTop + rowRect.top - (window.innerHeight / 3);
+          if (!isRowVisible) {
+            const scrollTarget = document.scrollingElement || document.documentElement;
+            const targetScrollTop = scrollTarget.scrollTop + rowRect.top - (window.innerHeight / 3);
 
-          if (window.setScrollTarget) {
-            window.setScrollTarget(targetScrollTop);
+            if (window.setScrollTarget) {
+              window.setScrollTarget(targetScrollTop);
+            }
           }
         }
-      }
 
-      // Horizontal scroll (within row)
-      const rowContainer = item.element.closest('.row-items');
-      if (rowContainer) {
-        const itemRect = item.element.getBoundingClientRect();
-        const containerRect = rowContainer.getBoundingClientRect();
+        // Horizontal scroll (within row)
+        const rowContainer = item.element.closest('.row-items');
+        if (rowContainer) {
+          const itemRect = item.element.getBoundingClientRect();
+          const containerRect = rowContainer.getBoundingClientRect();
 
-        // Check if item is off-screen horizontally
-        if (itemRect.left < containerRect.left) {
-          // Scroll left
-          const scrollAmount = itemRect.left - containerRect.left - 20;
-          rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-        } else if (itemRect.right > containerRect.right) {
-          // Scroll right
-          const scrollAmount = itemRect.right - containerRect.right + 20;
-          rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+          // Check if item is off-screen horizontally
+          if (itemRect.left < containerRect.left) {
+            // Scroll left
+            const scrollAmount = itemRect.left - containerRect.left - 20;
+            rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+          } else if (itemRect.right > containerRect.right) {
+            // Scroll right
+            const scrollAmount = itemRect.right - containerRect.right + 20;
+            rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+          }
         }
-      }
-    });
-  }
-}, []);
+      });
+    }
+  }, []);
 
   const scrollOneItem = useCallback((direction) => {
     ('scrollOneItem called:', direction, 'focusedId:', focusedId);
@@ -203,42 +203,72 @@ case 'up':
   }
 }, [focusedId, focusItem]);
 
-  // Edge detection for pointer
-  useEffect(() => {
-    const handlePointerMove = (e) => {
-      const EDGE_THRESHOLD = 50;
-      const isLeftEdge = e.clientX < EDGE_THRESHOLD;
-      const isRightEdge = e.clientX > window.innerWidth - EDGE_THRESHOLD;
+// Edge detection for pointer
+// useEffect(() => {
+//   const hasScrolledRef = { current: false };
+//   const isScrollingRef = { current: false };
+//   const wasAtEdge = { current: false };
 
-  ('Screen width:', window.innerWidth, 'Pointer at:', e.clientX, 'Right threshold:', window.innerWidth - EDGE_THRESHOLD, 'Left edge:', isLeftEdge, 'Right edge:', isRightEdge);
+//   const handlePointerMove = (e) => {
+//     if (isScrollingRef.current) return;
 
-      // Clear existing timeout
-      if (edgeScrollTimeout.current) {
-        clearTimeout(edgeScrollTimeout.current);
-        edgeScrollTimeout.current = null;
-      }
+//     const EDGE_THRESHOLD = 50;
+//     const isLeftEdge = e.clientX < EDGE_THRESHOLD;
+//     const isRightEdge = e.clientX > window.innerWidth - EDGE_THRESHOLD;
+//     const isAtEdge = isLeftEdge || isRightEdge;
 
-      // If at edge, wait a bit then scroll
-      if (isLeftEdge || isRightEdge) {
-        edgeScrollTimeout.current = setTimeout(() => {
-          if (isLeftEdge) {
-            scrollOneItem('left');
-          } else if (isRightEdge) {
-            scrollOneItem('right');
-          }
-        }, 300); // 300ms delay before scrolling
-      }
-    };
+//     // Reset flag when transitioning from edge to non-edge
+//     if (wasAtEdge.current && !isAtEdge) {
+//       hasScrolledRef.current = false;
+//       console.log('Left edge, reset flag');
+//     }
 
-    window.addEventListener('pointermove', handlePointerMove);
+//     wasAtEdge.current = isAtEdge;
 
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      if (edgeScrollTimeout.current) {
-        clearTimeout(edgeScrollTimeout.current);
-      }
-    };
-  }, [scrollOneItem]);
+//     if (isAtEdge && !hasScrolledRef.current) {
+//       console.log('At edge, scrolling!');
+//       const direction = isLeftEdge ? 'left' : 'right';
+//       isScrollingRef.current = true;
+
+//       if (!focusedId) return;
+
+//       const currentItem = itemsRef.current.get(focusedId);
+//       if (!currentItem) return;
+
+//       const { rowIndex, colIndex } = currentItem;
+//       const items = Array.from(itemsRef.current.entries());
+
+//       let targetId = null;
+
+//       if (direction === 'left') {
+//         targetId = items
+//           .filter(([_, item]) => item.rowIndex === rowIndex && item.colIndex < colIndex)
+//           .sort((a, b) => b[1].colIndex - a[1].colIndex)[0]?.[0];
+//       } else if (direction === 'right') {
+//         targetId = items
+//           .filter(([_, item]) => item.rowIndex === rowIndex && item.colIndex > colIndex)
+//           .sort((a, b) => a[1].colIndex - b[1].colIndex)[0]?.[0];
+//       }
+
+//       if (targetId) {
+//         focusItem(targetId);
+//       }
+
+//       hasScrolledRef.current = true;
+
+//       setTimeout(() => {
+//         isScrollingRef.current = false;
+//       }, 500);
+//     }
+//   };
+
+//   window.addEventListener('pointermove', handlePointerMove);
+
+//   return () => {
+//     window.removeEventListener('pointermove', handlePointerMove);
+//   };
+// }, []);
+
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -277,7 +307,8 @@ case 'up':
     focusedId,
     registerItem,
     unregisterItem,
-    focusItem
+    focusItem,
+    itemsRef
   };
 
   return (

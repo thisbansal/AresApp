@@ -5,6 +5,7 @@ import { WebOSInputProvider } from './services/navigation/WebOSInputProvider'
 import { FocusProvider } from './services/navigation/focusManager'
 import { FocusableItem } from './components/FocusableItem'
 import './style.css'
+import { EdgeScrollTriggers } from './components/EdgeScrollTriggers'
 
 function App() {
   const rows = Array.from({ length: 15 }, (_, rowIndex) => ({
@@ -28,7 +29,7 @@ function App() {
     ][rowIndex] || `Category ${rowIndex + 1}`,
     items: Array.from({ length: 8 }, (_, itemIndex) => ({
       id: `${rowIndex}-${itemIndex}`,
-      image: `https://placehold.co/400x225/1a1a1a/white?text=Item+${itemIndex + 1}`,
+      image: `https://placehold.co/300x400/1a1a1a/white?text=Item+${itemIndex + 1}`,
       title: `Title ${itemIndex + 1}`
     }))
   }))
@@ -36,6 +37,7 @@ function App() {
   return (
     <WebOSInputProvider>
       <FocusProvider>
+        <EdgeScrollTriggers />
         <div className="app">
           <header className="header">
             <h1>Plex</h1>
@@ -83,7 +85,7 @@ function App() {
                         loading="lazy"
                       />
                       <div className="item-overlay">
-                        <h3>{item.title}</h3>
+                        <h3>{item.id}</h3>
                       </div>
                     </FocusableItem>
                   ))}

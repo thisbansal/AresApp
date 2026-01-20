@@ -1,6 +1,6 @@
 // FocusableItem.jsx - Add lock on hover
 import { useEffect, useRef } from 'react';
-import { useFocus } from '../services/navigation/FocusManager';
+import { useFocus } from '../services/navigation/focusManager';
 
 export function FocusableItem({ id, rowIndex, colIndex, children, onClick, className = '' }) {
   const elementRef = useRef(null);
@@ -36,7 +36,7 @@ export function FocusableItem({ id, rowIndex, colIndex, children, onClick, class
       style={{
         transform: isFocused ? 'scale(1.1)' : 'scale(1)',
         transition: 'transform 0.3s ease',
-        outline: isFocused ? '4px solid white' : 'none',
+        // outline: isFocused ? '4px solid white' : 'none',
         zIndex: isFocused ? 10 : 1,
       }}
     >
