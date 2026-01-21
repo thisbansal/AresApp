@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useFocusStore } from '../stores/FocusStore';
+import { useFocusStore } from '../../stores/FocusStore';
 
 export function FocusableItem({ id, rowIndex, colIndex, children, onClick, className = '' }) {
   const elementRef = useRef(null);

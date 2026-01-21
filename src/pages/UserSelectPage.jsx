@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FocusableItem } from '../components/FocusableItem'
+import { FocusableItem } from '../components/navigational/FocusableItem'
 
 function UserSelectPage() {
   const navigate = useNavigate()

@@ -7,5 +7,9 @@
   "title": "AresApp",
   "icon": "./icon.png",
   "bgColor": "#e5a00d",
-  "splashBackground": "./splashScreen.png"
+  "splashBackground": "./splashScreen.png",
+  "requiredPermissions": [
+    "keymanager"
+  ],
+  "supportPortraitMode": false
 }

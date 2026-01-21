@@ -1,6 +1,6 @@
 // KeyboardHandler.jsx
 import { useEffect } from 'react';
-import { useFocusStore } from '../stores/FocusStore';
+import { useFocusStore } from '../../stores/FocusStore';
 
 export function KeyboardHandler() {
   const { navigate, focusedId, itemsRef } = useFocusStore();
