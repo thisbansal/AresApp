@@ -7,9 +7,9 @@
     "dev": "vite",
     "move": "rm -rf ./webos-meta/dist && mv ./dist/ ./webos-meta/",
     "preview": "vite preview",
-    "start-remote": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp --open",
-    "start":"ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp",
-    "install":"ares-package ./webos-meta/ && ares-install --device lg ./*.ipk"
+    "start-remote": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp.v1 && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp.v1 --open",
+    "start": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp.v1",
+    "install": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.2",
@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "react-router-dom": "^7.12.0",
+    "zustand": "^5.0.10"
   }
 }

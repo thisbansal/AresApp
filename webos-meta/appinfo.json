@@ -1,10 +1,11 @@
 {
-  "id": "com.nookbyte.aresapp",
+  "id": "com.nookbyte.aresapp.v1",
   "version": "1.0.0",
   "vendor": "My Company",
   "type": "web",
   "main": "./dist/index.html",
   "title": "AresApp",
   "icon": "./icon.png",
-  "largeIcon": "./largeIcon.png"
+  "bgColor": "#e5a00d",
+  "splashBackground": "./splashScreen.png"
 }

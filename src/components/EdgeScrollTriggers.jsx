@@ -1,9 +1,8 @@
-// components/EdgeScrollTriggers.jsx
 import { useRef } from 'react';
-import { useFocus } from '../services/navigation/focusManager';
+import { useFocusStore } from '../stores/FocusStore';
 
 export function EdgeScrollTriggers() {
-  const { focusedId, itemsRef, focusItem } = useFocus(); // Add focusItem here
+  const { focusedId, itemsRef, focusItem } = useFocusStore();
   const canScrollLeft = useRef(true);
   const canScrollRight = useRef(true);
 
@@ -13,11 +12,11 @@ export function EdgeScrollTriggers() {
 
     if (!focusedId) return;
 
-    const currentItem = itemsRef.current.get(focusedId);
+    const currentItem = itemsRef.get(focusedId);
     if (!currentItem) return;
 
     const { rowIndex, colIndex } = currentItem;
-    const items = Array.from(itemsRef.current.entries());
+    const items = Array.from(itemsRef.entries());
 
     let targetId = null;
 
@@ -34,25 +33,20 @@ export function EdgeScrollTriggers() {
     }
 
     if (targetId) {
-      focusItem(targetId); // Now this will work
+      focusItem(targetId);
     }
   };
 
   const handleMouseEnter = (direction) => {
-    console.log('Mouse entered', direction, 'canScroll:', direction === 'left' ? canScrollLeft.current : canScrollRight.current);
     scrollOneItem(direction);
   };
 
   const handleMouseLeave = (direction) => {
-    console.log('Mouse left', direction);
-    setTimeout(() => {
-        if (direction === 'left') {
-          canScrollLeft.current = true;
-        } else {
-          canScrollRight.current = true;
-        }
-     }, 500)
-    console.log('Reset canScroll for', direction, 'to true');
+    if (direction === 'left') {
+      canScrollLeft.current = true;
+    } else {
+      canScrollRight.current = true;
+    }
   };
 
   return (
