@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { generatePin, checkPinAuth } from '../services/plex/plexAuthService'
+import { saveToken } from '../services/configurator/lunaTokenService'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -8,28 +10,30 @@ function LoginPage() {
   const [qrUrl, setQrUrl] = useState('')
   const [error, setError] = useState('')
   const [polling, setPolling] = useState(false)
+  const pinIdRef = useRef(null)
+  const pollIntervalRef = useRef(null)
 
   useEffect(() => {
-    generatePin()
+    initAuth()
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
   }, [])
 
-  const generatePin = async () => {
+  const initAuth = async () => {
     try {
       setLoading(true)
       setError('')
 
-      const data = {
-        code: 'PZ1Q',
-        qr: 'https://placehold.co/400x400/333/fff?text=QR+Code'
-      }
+      const pin = await generatePin()
+      pinIdRef.current = pin.id
 
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      setCode(data.code)
-      setQrUrl(data.qr)
+      setCode(pin.code)
+      setQrUrl(pin.qr)
       setLoading(false)
 
-      // Start polling after PIN is displayed
       startPolling()
     } catch (err) {
       setError(err.message)
@@ -40,11 +44,20 @@ function LoginPage() {
   const startPolling = () => {
     setPolling(true)
 
-    // Mock: simulate user signing in after 5 seconds
-    setTimeout(() => {
-      console.log('User authenticated! Navigating to user selection...')
-      navigate('/user-select')
-    }, 5000) // 5 seconds for testing
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const result = await checkPinAuth(pinIdRef.current)
+
+        if (result.authenticated) {
+          clearInterval(pollIntervalRef.current)
+          await saveToken(result.authToken)
+          console.log("navigating to /server-select")
+          navigate('/server-select')
+        }
+      } catch (err) {
+        console.error('Polling error:', err)
+      }
+    }, 2000)
   }
 
   if (loading) {
@@ -60,7 +73,7 @@ function LoginPage() {
       <div style={styles.container}>
         <div style={styles.error}>
           <p style={styles.errorText}>Error: {error}</p>
-          <button style={styles.button} onClick={generatePin}>Try Again</button>
+          <button style={styles.button} onClick={initAuth}>Try Again</button>
         </div>
       </div>
     )

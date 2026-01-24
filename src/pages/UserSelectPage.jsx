@@ -1,37 +1,33 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
+import { getToken } from '../services/configurator/lunaTokenService'
+import {getUsers} from '../services/plex/plexAuthService'
+import { verifyUserPin } from '../services/plex/plexAuthService'
 
 function UserSelectPage() {
   const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState(null)
   const [showPinPrompt, setShowPinPrompt] = useState(false)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
 
-  // Mock users
-  const users = [
-    {
-      id: 1,
-      name: 'John Doe',
-      avatar: 'https://i.pravatar.cc/300?img=12',
-      protected: true,
-      pin: '1234'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      avatar: 'https://i.pravatar.cc/300?img=5',
-      protected: false
-    },
-    {
-      id: 3,
-      name: 'Kids',
-      avatar: 'https://i.pravatar.cc/300?img=8',
-      protected: true,
-      pin: '0000'
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  const loadUsers = async () => {
+    try {
+      const token = await getToken()
+      const userList = await getUsers(token)
+      setUsers(userList)
+      setLoading(false)
+    } catch (err) {
+      setLoading(false)
     }
-  ]
+  }
 
   const handleUserClick = (user) => {
     setSelectedUser(user)
@@ -41,16 +37,31 @@ function UserSelectPage() {
       setPin('')
       setPinError('')
     } else {
-      navigate('/home')
+      saveUserSelection(user, null)
     }
   }
 
-  const handlePinSubmit = () => {
-    if (pin === selectedUser.pin) {
+  const handlePinSubmit = async (enteredPin) => {
+    if (enteredPin.length !== 4) {
+      setPinError('Please enter a 4-digit PIN')
+      setPin('')
+      return
+    }
+
+    try {
+      const token = await getToken()
+
+      const userToken = await verifyUserPin(token, selectedUser.id, enteredPin)
+
+      localStorage.setItem('selectedUserId', selectedUser.id)
+      localStorage.setItem('selectedUserName', selectedUser.name)
+
       navigate('/home')
-    } else {
+
+    } catch (err) {
       setPinError('Incorrect PIN. Try again.')
       setPin('')
+      setLoading(false)
     }
   }
 
@@ -61,155 +72,139 @@ function UserSelectPage() {
     setPinError('')
   }
 
-    if (showPinPrompt) {
+  const saveUserSelection = (user, pin) => {
+    localStorage.setItem('selectedUserId', user.id)
+    localStorage.setItem('selectedUserName', user.name)
+    if (pin) {
+      localStorage.setItem('selectedUserPin', pin)
+    }
+    navigate('/home')
+  }
+
+  if (loading) {
     return (
-        <div style={styles.container}>
+      <div style={styles.container}>
+        <div style={styles.spinner}>Loading users...</div>
+      </div>
+    )
+  }
+
+  if (showPinPrompt) {
+    return (
+      <div style={styles.container}>
         <div style={styles.pinPrompt}>
-            <img
+          <img
             src={selectedUser.avatar}
             alt={selectedUser.name}
             style={styles.pinAvatar}
-            />
-            <h2 style={styles.pinTitle}>Enter PIN for {selectedUser.name}</h2>
+          />
+          <h2 style={styles.pinTitle}>Enter PIN for {selectedUser.name}</h2>
 
-            <div style={styles.pinDisplay}>
+          <div style={styles.pinDisplay}>
             {[0, 1, 2, 3].map(i => (
-                <div key={i} style={styles.pinDot}>
+              <div key={i} style={styles.pinDot}>
                 {pin.length > i ? '●' : '○'}
-                </div>
+              </div>
             ))}
-            </div>
+          </div>
 
-            {pinError && <p style={styles.pinError}>{pinError}</p>}
+          {pinError && <p style={styles.pinError}>{pinError}</p>}
 
-            <div style={styles.numpad}>
-            {/* Row 1: 1, 2, 3 */}
+          <div style={styles.numpad}>
             {[1, 2, 3].map((num) => (
-                <FocusableItem
+              <FocusableItem
                 key={num}
                 id={`numpad-${num}`}
                 rowIndex={0}
                 colIndex={num - 1}
                 onClick={() => {
-                    if (pin.length < 4) {
+                  if (pin.length < 4) {
                     const newPin = pin + num
                     setPin(newPin)
                     if (newPin.length === 4) {
-                        setTimeout(() => {
-                        if (newPin === selectedUser.pin) {
-                            navigate('/home')
-                        } else {
-                            setPinError('Incorrect PIN. Try again.')
-                            setPin('')
-                        }
-                        }, 200)
+                      setTimeout(() => handlePinSubmit(newPin), 200)
                     }
-                    }
+                  }
                 }}
-                >
+              >
                 <div style={styles.numButton}>{num}</div>
-                </FocusableItem>
+              </FocusableItem>
             ))}
 
-            {/* Row 2: 4, 5, 6 */}
             {[4, 5, 6].map((num) => (
-                <FocusableItem
+              <FocusableItem
                 key={num}
                 id={`numpad-${num}`}
                 rowIndex={1}
                 colIndex={num - 4}
                 onClick={() => {
-                    if (pin.length < 4) {
+                  if (pin.length < 4) {
                     const newPin = pin + num
                     setPin(newPin)
                     if (newPin.length === 4) {
-                        setTimeout(() => {
-                        if (newPin === selectedUser.pin) {
-                            navigate('/home')
-                        } else {
-                            setPinError('Incorrect PIN. Try again.')
-                            setPin('')
-                        }
-                        }, 200)
+                      setTimeout(() => handlePinSubmit(newPin), 200)
                     }
-                    }
+                  }
                 }}
-                >
+              >
                 <div style={styles.numButton}>{num}</div>
-                </FocusableItem>
+              </FocusableItem>
             ))}
 
-            {/* Row 3: 7, 8, 9 */}
             {[7, 8, 9].map((num) => (
-                <FocusableItem
+              <FocusableItem
                 key={num}
                 id={`numpad-${num}`}
                 rowIndex={2}
                 colIndex={num - 7}
                 onClick={() => {
-                    if (pin.length < 4) {
+                  if (pin.length < 4) {
                     const newPin = pin + num
                     setPin(newPin)
                     if (newPin.length === 4) {
-                        setTimeout(() => {
-                        if (newPin === selectedUser.pin) {
-                            navigate('/home')
-                        } else {
-                            setPinError('Incorrect PIN. Try again.')
-                            setPin('')
-                        }
-                        }, 200)
+                      setTimeout(() => handlePinSubmit(newPin), 200)
                     }
-                    }
+                  }
                 }}
-                >
+              >
                 <div style={styles.numButton}>{num}</div>
-                </FocusableItem>
+              </FocusableItem>
             ))}
 
-            {/* Row 4: 0 (centered) */}
             <div style={styles.zeroRow}>
-                <FocusableItem
+              <FocusableItem
                 id="numpad-0"
                 rowIndex={3}
                 colIndex={1}
                 onClick={() => {
-                    if (pin.length < 4) {
+                  if (pin.length < 4) {
                     const newPin = pin + 0
                     setPin(newPin)
                     if (newPin.length === 4) {
-                        setTimeout(() => {
-                        if (newPin === selectedUser.pin) {
-                            navigate('/home')
-                        } else {
-                            setPinError('Incorrect PIN. Try again.')
-                            setPin('')
-                        }
-                        }, 200)
+                      setTimeout(() => handlePinSubmit(newPin), 200)
                     }
-                    }
+                  }
                 }}
-                >
+              >
                 <div style={styles.numButton}>0</div>
-                </FocusableItem>
+              </FocusableItem>
             </div>
-            </div>
+          </div>
 
-            {/* Row 5: Cancel button */}
-            <div style={styles.cancelRow}>
+          <div style={styles.cancelRow}>
             <FocusableItem
-                id="cancel-btn"
-                rowIndex={4}
-                colIndex={1}
-                onClick={handlePinCancel}
+              id="cancel-btn"
+              rowIndex={4}
+              colIndex={1}
+              onClick={handlePinCancel}
             >
-                <div style={styles.cancelButton}>Cancel</div>
+              <div style={styles.cancelButton}>Cancel</div>
             </FocusableItem>
-            </div>
+          </div>
         </div>
-        </div>
+      </div>
     )
-    }
+  }
 
   return (
     <div style={styles.container}>
@@ -250,13 +245,14 @@ function UserSelectPage() {
 const PLEX_YELLOW = '#e5a00d'
 
 const styles = {
+  // ... keep all your existing styles ...
   container: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100vh',           // Exact viewport height
-    padding: '0',              // No padding that adds to height
-    overflow: 'hidden'         // Never scroll
+    height: '100vh',
+    padding: '0',
+    overflow: 'hidden'
   },
   content: {
     textAlign: 'center',
@@ -316,19 +312,22 @@ const styles = {
     color: '#e8eaed',
     fontWeight: '500'
   },
-
-  // PIN Prompt styles - using vh units to fit exactly
+  spinner: {
+    fontSize: '48px',
+    color: '#e8eaed'
+  },
+  // ... rest of PIN styles stay the same ...
   pinPrompt: {
     textAlign: 'center',
     maxWidth: '900px',
-    height: '100vh',           // Full viewport height
+    height: '100vh',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     padding: '0 40px'
   },
   pinAvatar: {
-    width: '12vh',             // 12% of viewport height
+    width: '12vh',
     height: '12vh',
     borderRadius: '50%',
     border: `6px solid ${PLEX_YELLOW}`,
@@ -336,7 +335,7 @@ const styles = {
     alignSelf: 'center'
   },
   pinTitle: {
-    fontSize: '4vh',           // 4% of viewport height
+    fontSize: '4vh',
     color: '#e8eaed',
     marginBottom: '3vh'
   },
@@ -359,7 +358,7 @@ const styles = {
     fontSize: '3vh',
     color: '#ea4335',
     marginBottom: '2vh',
-    minHeight: '4vh'          // Reserve space even when empty
+    minHeight: '4vh'
   },
   numpad: {
     display: 'grid',
@@ -371,7 +370,7 @@ const styles = {
   },
   numButton: {
     fontSize: '4.5vh',
-    width: '10vh',             // 10% of viewport height
+    width: '10vh',
     height: '10vh',
     borderRadius: '50%',
     background: '#3c3f43',
