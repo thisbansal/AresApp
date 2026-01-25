@@ -1,5 +1,4 @@
 import {PLEX_CONFIG} from '../../config/app'
-import {XMLParser} from 'fast-xml-parser'
 
 const getHeaders = (authToken = null) => ({
   'Accept': 'application/json',
@@ -65,12 +64,7 @@ export const getUsers = async (authToken) => {
 export const verifyUserPin = async (authToken, userId, pin) => {
   const res = await fetch(`https://plex.tv/api/home/users/${userId}/switch`, {
     method: 'POST',
-    headers: {
-      'X-Plex-Token': authToken,
-      'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
-      'X-Plex-Product': PLEX_CONFIG.product,
-      'Content-Type': 'application/json'
-    },
+    headers: getHeaders(authToken),
     body: JSON.stringify({ pin })
   })
 

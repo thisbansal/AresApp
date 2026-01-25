@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getToken } from '../services/configurator/lunaTokenService'
-import { getServers, testConnection } from '../services/plex/plexAPIServer'
+import { getServers, testConnectionToServer } from '../services/plex/plexAPIServer'
 
 function ServerSelectPage() {
   const navigate = useNavigate()
@@ -16,36 +16,27 @@ function ServerSelectPage() {
 
   const loadServers = async () => {
     try {
-      console.log('1. Loading servers...')
       const token = await getToken()
-      console.log('2. Got token:', token)
 
       const serverList = await getServers(token)
-      console.log('3. Server list:', serverList)
 
       if (serverList.length === 0) {
-        console.log('4. No servers found')
         setError('No servers found')
         setLoading(false)
         return
       }
 
-      console.log('6. Showing server selection')
       setServers(serverList)
       setLoading(false)
     } catch (err) {
-      console.error('Failed to load servers:', err)
       setError(err.message)
       setLoading(false)
     }
   }
 
   const selectServer = async (server) => {
-    setLoading(true)
-
-    // Test connections and find the best one
     for (const conn of server.connections) {
-      const works = await testConnection(conn.uri, server.accessToken)
+      const works = await testConnectionToServer(conn.uri, server.accessToken)
       if (works) {
         const selectedServer = {
           ...server,

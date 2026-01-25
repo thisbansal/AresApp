@@ -4,4 +4,5 @@ export const PLEX_CONFIG = {
   device: 'webOS TV',
   apiUrl: 'https://plex.tv/api/v2',
   appId: 'com.nookbyte.aresapp.v1',
+  version: '1.0.0'
 };

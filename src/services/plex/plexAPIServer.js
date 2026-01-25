@@ -45,26 +45,14 @@ export const getServers = async (authToken) => {
     }))
 }
 
-export const testConnection = async (uri, accessToken) => {
+export const testConnectionToServer = async (uri, authToken) => {
   try {
-    const res = await fetch(`${uri}/?X-Plex-Token=${accessToken}`)
+    const res = await fetch(uri, {
+      method: 'GET',
+      headers: getHeaders(authToken)
+    })
     return res.ok
   } catch {
     return false
   }
-}
-
-export const findBestServer = async (servers) => {
-  for (const server of servers) {
-    for (const conn of server.connections) {
-      const works = await testConnection(conn.uri, server.accessToken)
-      if (works) {
-        return {
-          ...server,
-          activeConnection: conn.uri
-        }
-      }
-    }
-  }
-  return null
 }
