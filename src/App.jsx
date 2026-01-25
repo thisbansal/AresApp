@@ -9,7 +9,7 @@ import UserSelectPage from './pages/UserSelectPage'
 import HomePage from './pages/HomePage'
 import ServerSelectPage from './pages/ServerSelectPage'
 
-function ProtectedRoute({ children }) {
+function AuthRoute({ children, requireAuth = true, redirectTo = '/login' }) {
   const [hasToken, setHasToken] = useState(null)
   const navigate = useNavigate()
 
@@ -20,36 +20,22 @@ function ProtectedRoute({ children }) {
   const checkToken = async () => {
     const token = await getToken()
     setHasToken(!!token)
-    if (!token) {
-      navigate('/login')
+
+    // If requireAuth=true and no token → redirect to login
+    // If requireAuth=false and has token → redirect away from login
+    if (requireAuth && !token) {
+      navigate('/login', { replace: true })
+    } else if (!requireAuth && token) {
+      navigate(redirectTo, { replace: true })
     }
   }
 
-  if (hasToken === null) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: '48px', color: '#e8eaed' }}>Loading...</div>
-
-  return hasToken ? children : null
-}
-
-function LoginRoute({ children }) {
-  const [hasToken, setHasToken] = useState(null)
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    checkToken()
-  }, [])
-
-  const checkToken = async () => {
-    const token = await getToken()
-    setHasToken(!!token)
-    if (token) {
-      // Already logged in, redirect to user select
-      navigate('/user-select', { replace: true })
-    }
+  if (hasToken === null) {
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: '48px', color: '#e8eaed' }}>Loading...</div>
   }
 
-  if (hasToken === null) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: '48px', color: '#e8eaed' }}>Loading...</div>
-
-  return !hasToken ? children : null
+  // Show children only if auth requirement matches
+  return (requireAuth && hasToken) || (!requireAuth && !hasToken) ? children : null
 }
 
 function App() {
@@ -61,24 +47,24 @@ function App() {
       <div className="app">
         <Routes>
           <Route path="/login" element={
-            <LoginRoute>
+            <AuthRoute requireAuth={false} redirectTo='/server-select'>
               <LoginPage />
-            </LoginRoute>
+            </AuthRoute>
           } />
           <Route path="/server-select" element={
-            <ProtectedRoute>
+            <AuthRoute requireAuth={true} redirectTo='/user-select'>
               <ServerSelectPage />
-            </ProtectedRoute>
+            </AuthRoute>
           } />
           <Route path="/user-select" element={
-            <ProtectedRoute>
+            <AuthRoute requireAuth={true} redirectTo='/home'>
               <UserSelectPage />
-            </ProtectedRoute>
+            </AuthRoute>
           } />
           <Route path="/home" element={
-            <ProtectedRoute>
+            <AuthRoute requireAuth={true}>
               <HomePage />
-            </ProtectedRoute>
+            </AuthRoute>
           } />
           <Route path="/" element={<Navigate to="/server-select" replace />} />
         </Routes>
