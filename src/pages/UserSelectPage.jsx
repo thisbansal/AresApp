@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
-import { getToken } from '../services/configurator/lunaTokenService'
-import {getUsers} from '../services/plex/plexAuthService'
-import { verifyUserPin } from '../services/plex/plexAuthService'
+import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
+import { saveProfileSession, getLastProfile } from '../services/luna/settingsStorage'
+import { getMainToken, saveUserToken } from '../services/luna/tokenStorage'
 
 function UserSelectPage() {
   const navigate = useNavigate()
@@ -15,16 +15,38 @@ function UserSelectPage() {
   const [pinError, setPinError] = useState('')
 
   useEffect(() => {
-    loadUsers()
+    checkExistingSession()
   }, [])
+
+  const checkExistingSession = async () => {
+    try {
+      const lastProfile = await getLastProfile()
+      console.log('Checking existing session:', lastProfile)
+
+      // If we have a valid session, navigate to home
+      if (lastProfile && lastProfile.userId) {
+        console.log('Valid session found, navigating to home')
+        navigate('/home')
+        return
+      }
+
+      // No valid session, load users
+      loadUsers()
+    } catch (err) {
+      console.error('Error checking session:', err)
+      loadUsers()
+    }
+  }
 
   const loadUsers = async () => {
     try {
-      const token = await getToken()
+      const token = await getMainToken()
+      console.log('Main token:', token)
       const userList = await getUsers(token)
       setUsers(userList)
       setLoading(false)
     } catch (err) {
+      console.error('Failed to load users:', err)
       setLoading(false)
     }
   }
@@ -37,6 +59,7 @@ function UserSelectPage() {
       setPin('')
       setPinError('')
     } else {
+      // No PIN needed
       saveUserSelection(user, null)
     }
   }
@@ -49,19 +72,26 @@ function UserSelectPage() {
     }
 
     try {
-      const token = await getToken()
+      const mainToken = await getMainToken()
+      const userToken = await verifyUserPin(mainToken, selectedUser.id, enteredPin)
 
-      const userToken = await verifyUserPin(token, selectedUser.id, enteredPin)
+      // Save new user-specific token
+      await saveUserToken(userToken)
 
-      localStorage.setItem('selectedUserId', selectedUser.id)
-      localStorage.setItem('selectedUserName', selectedUser.name)
+      // Save profile session with PIN (rememberPin = true by default)
+      await saveProfileSession(selectedUser.id, selectedUser.name, enteredPin, true)
+      console.log('Saved profile session: ', {
+        userId: selectedUser.id,
+        userName: selectedUser.name,
+        hasPin: !!enteredPin
+      })
 
       navigate('/home')
 
     } catch (err) {
+      console.error('PIN verification failed:', err)
       setPinError('Incorrect PIN. Try again.')
       setPin('')
-      setLoading(false)
     }
   }
 
@@ -72,12 +102,9 @@ function UserSelectPage() {
     setPinError('')
   }
 
-  const saveUserSelection = (user, pin) => {
-    localStorage.setItem('selectedUserId', user.id)
-    localStorage.setItem('selectedUserName', user.name)
-    if (pin) {
-      localStorage.setItem('selectedUserPin', pin)
-    }
+  const saveUserSelection = async (user, pin) => {
+    // Save profile session without PIN
+    await saveProfileSession(user.id, user.name, pin, false)
     navigate('/home')
   }
 
@@ -111,96 +138,97 @@ function UserSelectPage() {
           {pinError && <p style={styles.pinError}>{pinError}</p>}
 
           <div style={styles.numpad}>
-            {[1, 2, 3].map((num) => (
-              <FocusableItem
-                key={num}
-                id={`numpad-${num}`}
-                rowIndex={0}
-                colIndex={num - 1}
-                onClick={() => {
-                  if (pin.length < 4) {
-                    const newPin = pin + num
-                    setPin(newPin)
-                    if (newPin.length === 4) {
-                      setTimeout(() => handlePinSubmit(newPin), 200)
-                    }
-                  }
-                }}
-              >
-                <div style={styles.numButton}>{num}</div>
-              </FocusableItem>
-            ))}
-
-            {[4, 5, 6].map((num) => (
-              <FocusableItem
-                key={num}
-                id={`numpad-${num}`}
-                rowIndex={1}
-                colIndex={num - 4}
-                onClick={() => {
-                  if (pin.length < 4) {
-                    const newPin = pin + num
-                    setPin(newPin)
-                    if (newPin.length === 4) {
-                      setTimeout(() => handlePinSubmit(newPin), 200)
-                    }
-                  }
-                }}
-              >
-                <div style={styles.numButton}>{num}</div>
-              </FocusableItem>
-            ))}
-
-            {[7, 8, 9].map((num) => (
-              <FocusableItem
-                key={num}
-                id={`numpad-${num}`}
-                rowIndex={2}
-                colIndex={num - 7}
-                onClick={() => {
-                  if (pin.length < 4) {
-                    const newPin = pin + num
-                    setPin(newPin)
-                    if (newPin.length === 4) {
-                      setTimeout(() => handlePinSubmit(newPin), 200)
-                    }
-                  }
-                }}
-              >
-                <div style={styles.numButton}>{num}</div>
-              </FocusableItem>
-            ))}
-
-            <div style={styles.zeroRow}>
-              <FocusableItem
-                id="numpad-0"
-                rowIndex={3}
-                colIndex={1}
-                onClick={() => {
-                  if (pin.length < 4) {
-                    const newPin = pin + 0
-                    setPin(newPin)
-                    if (newPin.length === 4) {
-                      setTimeout(() => handlePinSubmit(newPin), 200)
-                    }
-                  }
-                }}
-              >
-                <div style={styles.numButton}>0</div>
-              </FocusableItem>
-            </div>
-          </div>
-
-          <div style={styles.cancelRow}>
+          {[1, 2, 3].map((num, index) => (
             <FocusableItem
-              id="cancel-btn"
-              rowIndex={4}
-              colIndex={1}
-              onClick={handlePinCancel}
+              key={num}
+              id={`numpad-${num}`}
+              rowIndex={0}
+              colIndex={index}  // 0, 1, 2
+              onClick={() => {
+                if (pin.length < 4) {
+                  const newPin = pin + num
+                  setPin(newPin)
+                  if (newPin.length === 4) {
+                    setTimeout(() => handlePinSubmit(newPin), 200)
+                  }
+                }
+              }}
             >
-              <div style={styles.cancelButton}>Cancel</div>
+              <div style={styles.numButton}>{num}</div>
+            </FocusableItem>
+          ))}
+
+          {[4, 5, 6].map((num, index) => (
+            <FocusableItem
+              key={num}
+              id={`numpad-${num}`}
+              rowIndex={1}
+              colIndex={index}  // 0, 1, 2
+              onClick={() => {
+                if (pin.length < 4) {
+                  const newPin = pin + num
+                  setPin(newPin)
+                  if (newPin.length === 4) {
+                    setTimeout(() => handlePinSubmit(newPin), 200)
+                  }
+                }
+              }}
+            >
+              <div style={styles.numButton}>{num}</div>
+            </FocusableItem>
+          ))}
+
+          {[7, 8, 9].map((num, index) => (
+            <FocusableItem
+              key={num}
+              id={`numpad-${num}`}
+              rowIndex={2}
+              colIndex={index}  // 0, 1, 2
+              onClick={() => {
+                if (pin.length < 4) {
+                  const newPin = pin + num
+                  setPin(newPin)
+                  if (newPin.length === 4) {
+                    setTimeout(() => handlePinSubmit(newPin), 200)
+                  }
+                }
+              }}
+            >
+              <div style={styles.numButton}>{num}</div>
+            </FocusableItem>
+          ))}
+
+          <div style={styles.zeroRow}>
+            <FocusableItem
+              id="numpad-0"
+              rowIndex={3}
+              colIndex={1}  // Middle column
+              onClick={() => {
+                if (pin.length < 4) {
+                  const newPin = pin + 0
+                  setPin(newPin)
+                  if (newPin.length === 4) {
+                    setTimeout(() => handlePinSubmit(newPin), 200)
+                  }
+                }
+              }}
+            >
+              <div style={styles.numButton}>0</div>
             </FocusableItem>
           </div>
+        </div>
+
+        {/* Row 4: Cancel button (centered at column 1) */}
+        <div style={styles.cancelRow}>
+          <FocusableItem
+            id="cancel-btn"
+            rowIndex={4}
+            colIndex={1}
+            onClick={handlePinCancel}
+          >
+            <div style={styles.cancelButton}>Cancel</div>
+          </FocusableItem>
+        </div>
         </div>
       </div>
     )
@@ -245,7 +273,6 @@ function UserSelectPage() {
 const PLEX_YELLOW = '#e5a00d'
 
 const styles = {
-  // ... keep all your existing styles ...
   container: {
     display: 'flex',
     alignItems: 'center',
@@ -316,7 +343,6 @@ const styles = {
     fontSize: '48px',
     color: '#e8eaed'
   },
-  // ... rest of PIN styles stay the same ...
   pinPrompt: {
     textAlign: 'center',
     maxWidth: '900px',

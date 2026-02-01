@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { generatePin, checkPinAuth } from '../services/plex/plexAuthService'
-import { saveToken } from '../services/configurator/lunaTokenService'
+import { saveMainToken } from '../services/luna/tokenStorage'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -50,7 +50,7 @@ function LoginPage() {
 
         if (result.authenticated) {
           clearInterval(pollIntervalRef.current)
-          await saveToken(result.authToken)
+          await saveMainToken(result.authToken)
           console.log("navigating to /server-select")
           navigate('/server-select')
         }

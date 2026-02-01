@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
-import { getToken } from '../services/configurator/lunaTokenService'
 import { getServers, testConnectionToServer } from '../services/plex/plexAPIServer'
+import { getMainToken } from '../services/luna/tokenStorage'
+import { saveSetting, APP_KEYS } from '../services/luna/settingsStorage'
 
 function ServerSelectPage() {
   const navigate = useNavigate()
@@ -16,8 +17,7 @@ function ServerSelectPage() {
 
   const loadServers = async () => {
     try {
-      const token = await getToken()
-
+      const token = await getMainToken()
       const serverList = await getServers(token)
 
       if (serverList.length === 0) {
@@ -35,22 +35,37 @@ function ServerSelectPage() {
   }
 
   const selectServer = async (server) => {
-    for (const conn of server.connections) {
-      const works = await testConnectionToServer(conn.uri, server.accessToken)
-      if (works) {
-        const selectedServer = {
-          ...server,
-          activeConnection: conn.uri
+    try {
+      setLoading(true)
+
+      // Test each connection and find one that works
+      for (const conn of server.connections) {
+        const works = await testConnectionToServer(conn.uri, server.accessToken)
+        if (works) {
+          // Save the working connection URI to settings storage
+          await saveSetting(APP_KEYS.PMS_SERVER, conn.uri)
+          console.log('Saved PMS server:', conn.uri)
+
+          // Also save the full server object for later use (optional)
+          const selectedServer = {
+            ...server,
+            activeConnection: conn.uri
+          }
+          await saveSetting('pmsServerDetails', JSON.stringify(selectedServer))
+
+          navigate('/user-select')
+          return
         }
-
-        localStorage.setItem('pmsServer', JSON.stringify(selectedServer))
-        navigate('/user-select')
-        return
       }
-    }
 
-    setError('Could not connect to server')
-    setLoading(false)
+      // If we get here, no connections worked
+      setError('Could not connect to server')
+      setLoading(false)
+    } catch (err) {
+      console.error('Failed to select server:', err)
+      setError('Failed to connect to server')
+      setLoading(false)
+    }
   }
 
   if (loading) {
