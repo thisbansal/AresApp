@@ -15,7 +15,7 @@ export const setConfig = async (key, value) => {
     return { success: true }
   }
   new Promise((resolve, reject) => {
-    webos.service.request(configuratorURL, {
+    window?.webos?.service.request(configuratorURL, {
       method: 'setConfigs',
       parameters: {
         configs: { [key]: value }
@@ -36,14 +36,12 @@ export const getConfig = async (key, defaultValue = null) => {
   }
 
   return new Promise((resolve, reject) => {
-    webos?.service.request(configuratorURL, {
+    window?.webos?.service.request(configuratorURL, {
       method: 'getConfigs',
       parameters: {
         configNames: [key]
       },
-      onSuccess: (res) => {
-        resolve(res?.configs?.[key] ?? defaultValue)
-      },
+      onSuccess: (res) => resolve(res?.configs?.[key] ?? defaultValue),
       onFailure: (err) => {
         console.warn('No config found:', err)
         resolve(defaultValue)
@@ -61,7 +59,7 @@ export const deleteConfig = async (key) => {
   }
 
   new Promise((resolve, reject) => {
-    webos?.service.request(configuratorURL, {
+    window?.webos?.service.request(configuratorURL, {
       method: 'setConfigs',
       parameters: {
         configs: { [key]: null }
