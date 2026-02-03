@@ -6,7 +6,7 @@
 export const isWebOS = () => {
   // Check for webOS-specific APIs
   return typeof window !== 'undefined' && (
-    window.webOS !== undefined ||
+    webos !== undefined ||
     window.PalmSystem !== undefined ||
     navigator.userAgent.includes('Web0S') ||
     navigator.userAgent.includes('webOS')

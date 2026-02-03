@@ -72,17 +72,6 @@ WRAPPER_EOF
             ares-server
           }
 
-          # Function to launch WebOS Simulator
-          simulator() {
-            # Start server in background if not already running
-            if ! pgrep -f "ares-server" > /dev/null; then
-              echo "Starting WebOS development server..."
-              ares-server &
-              sleep 2
-            fi
-            open /Applications/WebOS.app
-          }
-
           # Function to stop the server
           stop-server() {
             pkill -f "ares-server"
@@ -95,7 +84,6 @@ WRAPPER_EOF
           echo "  node / npm     → Latest Node (v$(node --version | sed 's/v//'))"
           echo "  node16 / npm16 → Node 16 (v$(${nodejs16}/bin/node --version | sed 's/v//'))"
           echo "  ares-* commands will automatically use Node 16 (except ares-package)"
-          echo "  simulator      → Launch WebOS TV Simulator"
           echo "  server         → Start WebOS development server"
           echo "  stop-server    → Stop WebOS development server"
         '';

@@ -6,7 +6,10 @@
   "main": "./dist/index.html",
   "title": "AresApp",
   "icon": "./icon.png",
-  "bgColor": "#e5a00d",
+  "bgColor": "#262626",
   "splashBackground": "./splashScreen.png",
-  "supportPortraitMode": false
+  "supportPortraitMode": false,
+  "requiredLibraries": [
+    "webOSTV.js"
+  ]
 }

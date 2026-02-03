@@ -1,12 +1,12 @@
 export const saveToken = async (token) => {
-  if (!window.webOS?.service) {
+  if (!webos?.service) {
     console.warn('webOS not available, using localStorage')
     localStorage.setItem('plexToken', token)
     return
   }
 
   return new Promise((resolve, reject) => {
-    window.webOS.service.request('luna://com.webos.service.configurator', {
+    window?.webos?.service.request('luna://com.window?.webos?.service.configurator', {
       method: 'setConfigs',
       parameters: {
         configs: {
@@ -20,14 +20,14 @@ export const saveToken = async (token) => {
 }
 
 export const getToken = async () => {
-  if (!window.webOS?.service) {
+  if (!webos?.service) {
     console.warn('webOS not available, using localStorage')
     console.log(`plexToken: ${localStorage.getItem('plexToken')}`)
     return localStorage.getItem('plexToken')
   }
 
   return new Promise((resolve, reject) => {
-    window.webOS.service.request('luna://com.webos.service.configurator', {
+    window?.webos?.service.request('luna://com.window?.webos?.service.configurator', {
       method: 'getConfigs',
       parameters: {
         configNames: ['plexAuthToken']
@@ -42,13 +42,13 @@ export const getToken = async () => {
 }
 
 export const clearToken = async () => {
-  if (!window.webOS?.service) {
+  if (!webos?.service) {
     localStorage.removeItem('plexToken')
     return
   }
 
   return new Promise((resolve, reject) => {
-    window.webOS.service.request('luna://com.webos.service.configurator', {
+    window?.webos?.service.request('luna://com.window?.webos?.service.configurator', {
       method: 'setConfigs',
       parameters: {
         configs: {

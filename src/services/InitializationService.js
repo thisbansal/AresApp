@@ -1,16 +1,9 @@
 /**
- * Initialization Service
- *
- * Handles all heavy lifting BEFORE showing the UI:
- * 1. Load cached data (instant if available)
- * 2. Fetch fresh metadata from server
- * 3. Download and cache all visible images
- * 4. Only then show the UI
- *
- * Progress callbacks keep the splash screen updated
+ * Initialization Service - Updated to use MediaDB for images
  */
 
-import { universalStorage } from './UniversalStorage/UniversalStorage'
+import { universalStorage } from './UniversalStorage/universalStorage'
+import { putImage, getImage } from './luna/mediaDBService'
 import { getSetting, APP_KEYS } from './luna/settingsStorage'
 import { getMainToken } from './luna/tokenStorage'
 import { getLibraries, getLibraryItems } from './plex/plexContentService'
@@ -19,8 +12,6 @@ import { isWebOS } from './Environment/environment'
 const CACHE_KEYS = {
   LIBRARIES: 'init_libraries',
   LIBRARY_1_ITEMS: 'init_library_1_items',
-  IMAGES_BLOB: 'init_images_blob_', // For IndexedDB
-  IMAGES_BASE64: 'init_images_b64_', // For webOS
   INIT_TIMESTAMP: 'init_timestamp',
   INIT_COMPLETE: 'init_complete',
 }
@@ -33,14 +24,10 @@ class InitializationService {
     this.useWebOS = isWebOS()
   }
 
-  /**
-   * Main initialization flow
-   */
   async initialize(onProgress = null) {
     try {
       this.updateProgress(0, 'Checking cache...', onProgress)
 
-      // Check if we have cached data
       const hasCache = await this.hasValidCache()
 
       if (hasCache) {
@@ -51,18 +38,13 @@ class InitializationService {
         const allImagesCached = await this.verifyImageCache(cachedData.movies)
 
         if (allImagesCached) {
-          // Everything cached - instant load!
           this.updateProgress(100, 'Ready!', onProgress)
           this.initialized = true
-
-          // Start background sync
           this.backgroundSync(onProgress)
-
           return cachedData
         }
       }
 
-      // No cache or incomplete - do full initialization
       return await this.fullInitialization(onProgress)
 
     } catch (err) {
@@ -71,9 +53,6 @@ class InitializationService {
     }
   }
 
-  /**
-   * Full initialization (first run or cache miss)
-   */
   async fullInitialization(onProgress) {
     this.updateProgress(10, 'Connecting to server...', onProgress)
 
@@ -84,7 +63,6 @@ class InitializationService {
       throw new Error('Missing server or token')
     }
 
-    // Fetch metadata
     this.updateProgress(20, 'Loading libraries...', onProgress)
     const libraries = await getLibraries(serverUri, token)
 
@@ -96,12 +74,11 @@ class InitializationService {
 
     const movies = moviesResult.items || []
 
-    // Cache metadata
     this.updateProgress(40, 'Caching metadata...', onProgress)
     await universalStorage.set(CACHE_KEYS.LIBRARIES, JSON.stringify(libraries))
     await universalStorage.set(CACHE_KEYS.LIBRARY_1_ITEMS, JSON.stringify(moviesResult))
 
-    // Download and cache images (first 24)
+    // Download and cache images
     const visibleMovies = movies.slice(0, 24)
     const totalImages = visibleMovies.length
 
@@ -122,7 +99,6 @@ class InitializationService {
       )
     }
 
-    // Mark as complete
     await universalStorage.set(CACHE_KEYS.INIT_COMPLETE, 'true')
     await universalStorage.set(CACHE_KEYS.INIT_TIMESTAMP, Date.now().toString())
 
@@ -135,12 +111,9 @@ class InitializationService {
     }
   }
 
-  /**
-   * Download and cache a single image
-   */
   async downloadAndCacheImage(url, itemId) {
     try {
-      console.log('[Init] 📥 Downloading image:', itemId, 'from', url)
+      console.log('[Init] 📥 Downloading image:', itemId)
 
       const response = await fetch(url)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -149,18 +122,19 @@ class InitializationService {
       const sizeKB = Math.round(blob.size / 1024)
       console.log('[Init] Downloaded', sizeKB, 'KB for item:', itemId)
 
+      const base64 = await this.blobToBase64(blob)
+      const dataUrl = `data:${blob.type};base64,${base64}`
+
       if (this.useWebOS) {
-        console.log('[Init] Converting to base64 for webOS storage...')
-        // For webOS: convert to base64 and store
-        const base64 = await this.blobToBase64(blob)
-        const dataUrl = `data:${blob.type};base64,${base64}`
-        await universalStorage.set(`${CACHE_KEYS.IMAGES_BASE64}${itemId}`, dataUrl)
-        console.log('[Init] ✓ Cached to webOS storage:', itemId, '(base64 size:', Math.round(dataUrl.length / 1024), 'KB)')
+        // Use MediaDB on webOS
+        console.log('[Init] Storing to MediaDB...')
+        await putImage(itemId, dataUrl)
+        console.log('[Init] ✓ Cached to MediaDB:', itemId)
       } else {
-        console.log('[Init] Storing blob to IndexedDB...')
-        // For browser: store blob directly in IndexedDB
-        await universalStorage.set(`${CACHE_KEYS.IMAGES_BLOB}${itemId}`, blob)
-        console.log('[Init] ✓ Cached to IndexedDB:', itemId, '(blob size:', sizeKB, 'KB)')
+        // Use IndexedDB on browser
+        console.log('[Init] Storing to IndexedDB...')
+        await universalStorage.set(`image_${itemId}`, blob)
+        console.log('[Init] ✓ Cached to IndexedDB:', itemId)
       }
 
     } catch (err) {
@@ -168,9 +142,6 @@ class InitializationService {
     }
   }
 
-  /**
-   * Load cached data
-   */
   async loadCachedData() {
     const [librariesStr, moviesStr] = await Promise.all([
       universalStorage.get(CACHE_KEYS.LIBRARIES),
@@ -186,34 +157,23 @@ class InitializationService {
     }
   }
 
-  /**
-   * Check if we have valid cache
-   */
   async hasValidCache() {
     const complete = await universalStorage.get(CACHE_KEYS.INIT_COMPLETE)
     const timestamp = await universalStorage.get(CACHE_KEYS.INIT_TIMESTAMP)
 
     if (!complete || !timestamp) return false
 
-    // Cache is valid for 24 hours
     const age = Date.now() - parseInt(timestamp)
-    const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+    const maxAge = 24 * 60 * 60 * 1000
 
     return age < maxAge
   }
 
-  /**
-   * Verify that images are cached
-   */
   async verifyImageCache(movies) {
     const visibleMovies = movies.slice(0, 24)
 
     for (const movie of visibleMovies) {
-      const cacheKey = this.useWebOS
-        ? `${CACHE_KEYS.IMAGES_BASE64}${movie.id}`
-        : `${CACHE_KEYS.IMAGES_BLOB}${movie.id}`
-
-      const cached = await universalStorage.get(cacheKey)
+      const cached = await this.getCachedImage(movie.id)
       if (!cached) {
         console.log('[Init] Image not cached:', movie.id)
         return false
@@ -223,37 +183,29 @@ class InitializationService {
     return true
   }
 
-  /**
-   * Get cached image
-   */
   async getCachedImage(itemId) {
-    const cacheKey = this.useWebOS
-      ? `${CACHE_KEYS.IMAGES_BASE64}${itemId}`
-      : `${CACHE_KEYS.IMAGES_BLOB}${itemId}`
-
-    console.log('[Init] 🔍 Looking for cached image:', itemId, 'in', this.useWebOS ? 'webOS storage' : 'IndexedDB')
-
-    const cached = await universalStorage.get(cacheKey)
-
-    if (!cached) {
-      console.log('[Init] ✗ No cached image found for:', itemId)
-      return null
-    }
+    console.log('[Init] 🔍 Looking for cached image:', itemId)
 
     if (this.useWebOS) {
-      console.log('[Init] ✓ Found cached base64 image for:', itemId, '(size:', Math.round(cached.length / 1024), 'KB)')
-      // Already a data URL
-      return cached
+      // Get from MediaDB
+      const dataUrl = await getImage(itemId)
+      if (dataUrl) {
+        console.log('[Init] ✓ Found in MediaDB:', itemId)
+        return dataUrl
+      }
     } else {
-      console.log('[Init] ✓ Found cached blob for:', itemId, '(size:', Math.round(cached.size / 1024), 'KB)')
-      // Convert blob to object URL
-      return URL.createObjectURL(cached)
+      // Get from IndexedDB
+      const blob = await universalStorage.get(`image_${itemId}`)
+      if (blob) {
+        console.log('[Init] ✓ Found in IndexedDB:', itemId)
+        return URL.createObjectURL(blob)
+      }
     }
+
+    console.log('[Init] ✗ No cached image:', itemId)
+    return null
   }
 
-  /**
-   * Background sync (check for updates)
-   */
   async backgroundSync(onProgress) {
     setTimeout(async () => {
       try {
@@ -281,7 +233,6 @@ class InitializationService {
 
           await universalStorage.set(CACHE_KEYS.LIBRARY_1_ITEMS, JSON.stringify(freshMovies))
 
-          // Cache new images
           const newMovies = this.getNewMovies(cachedMovies.items, freshMovies.items)
           for (const movie of newMovies) {
             if (movie.thumb) {
@@ -303,12 +254,9 @@ class InitializationService {
       } catch (err) {
         console.error('[Init] Background sync failed:', err)
       }
-    }, 2000) // Start after 2 seconds
+    }, 2000)
   }
 
-  /**
-   * Check if data changed
-   */
   hasDataChanged(oldItems, newItems) {
     if (!oldItems || !newItems) return true
     if (oldItems.length !== newItems.length) return true
@@ -317,17 +265,11 @@ class InitializationService {
            oldItems[0]?.updatedAt !== newItems[0]?.updatedAt
   }
 
-  /**
-   * Get new movies
-   */
   getNewMovies(oldItems, newItems) {
     const oldIds = new Set(oldItems.map(item => item.id))
     return newItems.filter(item => !oldIds.has(item.id))
   }
 
-  /**
-   * Convert blob to base64
-   */
   blobToBase64(blob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -340,9 +282,6 @@ class InitializationService {
     })
   }
 
-  /**
-   * Update progress
-   */
   updateProgress(progress, status, callback) {
     this.progress = progress
     this.status = status
@@ -352,9 +291,6 @@ class InitializationService {
     }
   }
 
-  /**
-   * Clear cache
-   */
   async clearCache() {
     await universalStorage.delete(CACHE_KEYS.INIT_COMPLETE)
     await universalStorage.delete(CACHE_KEYS.INIT_TIMESTAMP)
@@ -366,7 +302,6 @@ class InitializationService {
   }
 }
 
-// Export singleton
 export const initService = new InitializationService()
 
 export const initializeApp = (onProgress) => {

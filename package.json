@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "move": "rm -rf ./webos-meta/dist && mv ./dist/ ./webos-meta/",
+    "move": "rm -rf ./webos-meta/dist && mv ./dist/ ./webos-meta/ && cp -r webOSTVjs ./webos-meta/dist",
     "preview": "vite preview",
     "start-remote": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp.v1 && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp.v1 --open",
     "start": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp.v1",
