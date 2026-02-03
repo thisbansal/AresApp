@@ -53,7 +53,7 @@ export function SplashScreen({ progress = 0, status = 'Loading...' }) {
   )
 }
 
-const PLEX_YELLOW = '#e5a00d'
+const PLEX_YELLOW = '#959595'
 
 const styles = {
   container: {

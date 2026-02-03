@@ -4,6 +4,7 @@
  */
 
 let webOSReady = false
+let configuratorURL = 'luna://com.service.configurator'
 
 // Wait for webOS to be ready
 if (typeof window !== 'undefined') {
@@ -30,7 +31,7 @@ export const setConfig = async (key, value) => {
   }
 
   return new Promise((resolve, reject) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.configurator', {
+    webos?.service.request(configuratorURL, {
       method: 'setConfigs',
       parameters: {
         configs: { [key]: value }
@@ -43,7 +44,6 @@ export const setConfig = async (key, value) => {
 
 export const getConfig = async (key, defaultValue = null) => {
   const available = isWebOS()
-  console.log(`getConfig called. isWebOS: ${available}`)
 
   if (!available) {
     console.warn('webOS not available, using localStorage')
@@ -52,7 +52,7 @@ export const getConfig = async (key, defaultValue = null) => {
   }
 
   return new Promise((resolve, reject) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.configurator', {
+    webos?.service.request(configuratorURL, {
       method: 'getConfigs',
       parameters: {
         configNames: [key]
@@ -76,7 +76,7 @@ export const deleteConfig = async (key) => {
   }
 
   return new Promise((resolve, reject) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.configurator', {
+    webos?.service.request(configuratorURL, {
       method: 'setConfigs',
       parameters: {
         configs: { [key]: null }
