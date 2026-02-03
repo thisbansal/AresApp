@@ -2,42 +2,26 @@
  * Generic Luna service wrapper
  * Handles communication with webOS Luna services with localStorage fallback
  */
+import { isWebOS } from "../Environment/environment"
 
-let webOSReady = false
 let configuratorURL = 'luna://com.service.configurator'
-
-// Wait for webOS to be ready
-if (typeof window !== 'undefined') {
-  if (webos) {
-    webOSReady = true
-  } else {
-    document.addEventListener('webOSReady', () => {
-      webOSReady = true
-      console.log('[Luna] webOS APIs now available')
-    })
-  }
-}
-
-const isWebOS = () => webOSReady || !!webos?.service
 
 export const setConfig = async (key, value) => {
   const available = isWebOS()
-  console.log(`setConfig called. isWebOS: ${available}`)
 
   if (!available) {
     console.warn('webOS not available, using localStorage')
     localStorage.setItem(key, JSON.stringify(value))
     return { success: true }
   }
-
-  return new Promise((resolve, reject) => {
-    webos?.service.request(configuratorURL, {
+  new Promise((resolve, reject) => {
+    webos.service.request(configuratorURL, {
       method: 'setConfigs',
       parameters: {
         configs: { [key]: value }
       },
-      onSuccess: resolve,
-      onFailure: reject
+      onSuccess: () => resolve({ success: true }),
+      onFailure: (err) => reject(err)
     })
   })
 }
@@ -57,7 +41,9 @@ export const getConfig = async (key, defaultValue = null) => {
       parameters: {
         configNames: [key]
       },
-      onSuccess: (res) => resolve(res?.configs?.[key] ?? defaultValue),
+      onSuccess: (res) => {
+        resolve(res?.configs?.[key] ?? defaultValue)
+      },
       onFailure: (err) => {
         console.warn('No config found:', err)
         resolve(defaultValue)
@@ -68,14 +54,13 @@ export const getConfig = async (key, defaultValue = null) => {
 
 export const deleteConfig = async (key) => {
   const available = isWebOS()
-  console.log(`deleteConfig called. isWebOS: ${available}`)
 
   if (!available) {
     localStorage.removeItem(key)
     return { success: true }
   }
 
-  return new Promise((resolve, reject) => {
+  new Promise((resolve, reject) => {
     webos?.service.request(configuratorURL, {
       method: 'setConfigs',
       parameters: {
