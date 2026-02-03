@@ -1,13 +1,13 @@
 {
-  "id": "com.nookbyte.aresapp.v1",
+  "id": "com.nookbyte.aresapp.3",
   "version": "1.0.0",
   "vendor": "My Company",
   "type": "web",
   "main": "./dist/index.html",
   "title": "AresApp",
   "icon": "./icon.png",
-  "bgColor": "#262626",
   "splashBackground": "./splashScreen.png",
+  "bgColor": "#262626",
   "supportPortraitMode": false,
   "requiredLibraries": [
     "webOSTV.js"

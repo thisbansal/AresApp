@@ -9,8 +9,6 @@ const KIND_ID = 'com.plex.posters:1'
 const OWNER_ID = 'com.plex.app'
 
 const isWebOS = () => !!webos?.service
-console.log('webos:', webos)
-console.log('window?.webos?.service:', webos?.service)
 
 /**
  * Initialize MediaDB kind (run once on first use)
