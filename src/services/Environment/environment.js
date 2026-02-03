@@ -4,13 +4,7 @@
  */
 
 export const isWebOS = () => {
-  // Check for webOS-specific APIs
-  return typeof window !== 'undefined' && (
-    webos !== undefined ||
-    window.PalmSystem !== undefined ||
-    navigator.userAgent.includes('Web0S') ||
-    navigator.userAgent.includes('webOS')
-  )
+  return typeof window !== 'undefined' && !!webos
 }
 
 export const isBrowser = () => {
@@ -26,8 +20,6 @@ export const getEnvironment = () => {
 
 export const logEnvironment = () => {
   const env = getEnvironment()
-  console.log(`[Environment] Running on: ${env}`)
-
   if (env === 'webos') {
     console.log('[Environment] webOS TV detected - using webOS storage APIs')
   } else {
