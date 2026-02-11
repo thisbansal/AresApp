@@ -1,3 +1,4 @@
+import { DB_KINDS } from '../services/luna/lunaService'
 import {
   getSetting,
   getLastProfile,
@@ -5,7 +6,7 @@ import {
 } from '../services/luna/settingsStorage'
 
 export const hasCompleteSession = async () => {
-  const server = await getSetting(APP_KEYS.PMS_SERVER)
+  const server = await getSetting(DB_KINDS.SERVER, )
   console.log('Has server:', !!server, server)
 
   const lastProfile = await getLastProfile()

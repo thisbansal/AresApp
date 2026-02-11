@@ -1,4 +1,4 @@
-import { getConfig, setConfig } from './lunaService'
+import { DB_KINDS, getData, setData } from './lunaService'
 
 // Global app settings (not profile-specific)
 export const APP_KEYS = {
@@ -18,12 +18,12 @@ export const PROFILE_KEYS = {
 const getProfileKey = (profileId, key) => `profile_${profileId}_${key}`
 
 // Global settings
-export const saveSetting = async (key, value) => {
-  return await setConfig(key, value)
+export const saveSetting = async (kind, key, value) => {
+  return await setData(kind, key, value)
 }
 
 export const getSetting = async (key, defaultValue = null) => {
-  return await getConfig(key, defaultValue)
+  return await getData(key, defaultValue)
 }
 
 // Profile-specific settings
@@ -48,7 +48,7 @@ export const saveProfileSession = async (profileId, userName, pin = null, rememb
   }
 
   // Save as last used profile
-  await saveSetting(APP_KEYS.LAST_PROFILE_ID, profileId)
+  await saveSetting(DB_KINDS.U, profileId)
 }
 
 // Get profile data
@@ -63,7 +63,7 @@ export const getProfileSession = async (profileId) => {
 
 // Get last used profile
 export const getLastProfile = async () => {
-  const lastProfileId = await getSetting(APP_KEYS.LAST_PROFILE_ID)
+  const lastProfileId = await getSetting(DB_KINDS.USER)
   if (!lastProfileId) return null
 
   return await getProfileSession(lastProfileId)

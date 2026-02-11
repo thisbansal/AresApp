@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getServers, testConnectionToServer } from '../services/plex/plexAPIServer'
 import { getMainToken } from '../services/luna/tokenStorage'
-import { saveSetting, APP_KEYS } from '../services/luna/settingsStorage'
+import { saveSetting } from '../services/luna/settingsStorage'
+import { DB_KINDS } from '../services/luna/lunaService'
+import { KINDS } from '../config/app'
 
 function ServerSelectPage() {
   const navigate = useNavigate()
@@ -43,15 +45,15 @@ function ServerSelectPage() {
         const works = await testConnectionToServer(conn.uri, server.accessToken)
         if (works) {
           // Save the working connection URI to settings storage
-          await saveSetting(APP_KEYS.PMS_SERVER, conn.uri)
-          console.log('Saved PMS server:', conn.uri)
+          await saveSetting(DB_KINDS.SERVER, KINDS.server, conn.uri)
+          console.log('Saved PMS server:', KINDS.server,conn.uri)
 
           // Also save the full server object for later use (optional)
           const selectedServer = {
             ...server,
             activeConnection: conn.uri
           }
-          await saveSetting('pmsServerDetails', JSON.stringify(selectedServer))
+          await saveSetting(DB_KINDS.SERVER, KINDS.server, conn.uri)
 
           navigate('/user-select')
           return

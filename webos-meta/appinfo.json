@@ -1,6 +1,6 @@
 {
-  "id": "com.nookbyte.aresapp.3",
-  "version": "1.0.0",
+  "id": "com.nookbyte.aresapp",
+  "version": "2.0.0",
   "vendor": "My Company",
   "type": "web",
   "main": "./dist/index.html",
@@ -9,6 +9,9 @@
   "splashBackground": "./splashScreen.png",
   "bgColor": "#262626",
   "supportPortraitMode": false,
+  "requiredPermissions": [
+    "db.operation"
+  ],
   "requiredLibraries": [
     "webOSTV.js"
   ]

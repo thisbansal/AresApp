@@ -6,7 +6,7 @@ export const saveToken = async (token) => {
   }
 
   return new Promise((resolve, reject) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.configurator', {
+    window?.webos?.service.request('luna://com.window.webos.service.configurator', {
       method: 'setConfigs',
       parameters: {
         configs: {
@@ -27,7 +27,7 @@ export const getToken = async () => {
   }
 
   return new Promise((resolve, reject) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.configurator', {
+    window?.webos?.service.request('luna://com.window.webos.service.configurator', {
       method: 'getConfigs',
       parameters: {
         configNames: ['plexAuthToken']
@@ -48,7 +48,7 @@ export const clearToken = async () => {
   }
 
   return new Promise((resolve, reject) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.configurator', {
+    window?.webos?.service.request('luna://com.window.webos.service.configurator', {
       method: 'setConfigs',
       parameters: {
         configs: {

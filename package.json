@@ -7,8 +7,8 @@
     "dev": "vite",
     "move": "rm -rf ./webos-meta/dist && mv ./dist/ ./webos-meta/ && cp -r webOSTVjs ./webos-meta/dist",
     "preview": "vite preview",
-    "start-remote": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp.3 && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp.3 --open",
-    "start": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp.3",
+    "start-remote": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp --open",
+    "start": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp",
     "install": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk"
   },
   "devDependencies": {

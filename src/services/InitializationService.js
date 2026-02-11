@@ -8,6 +8,7 @@ import { getSetting, APP_KEYS } from './luna/settingsStorage'
 import { getMainToken } from './luna/tokenStorage'
 import { getLibraries, getLibraryItems } from './plex/plexContentService'
 import { isWebOS } from './Environment/environment'
+import { DB_KINDS } from './luna/lunaService'
 
 const CACHE_KEYS = {
   LIBRARIES: 'init_libraries',
@@ -56,7 +57,7 @@ class InitializationService {
   async fullInitialization(onProgress) {
     this.updateProgress(10, 'Connecting to server...', onProgress)
 
-    const serverUri = await getSetting(APP_KEYS.PMS_SERVER)
+    const serverUri = await getSetting(DB_KINDS.SERVER)
     const token = await getMainToken()
 
     if (!serverUri || !token) {
@@ -211,7 +212,7 @@ class InitializationService {
       try {
         console.log('[Init] Background sync started')
 
-        const serverUri = await getSetting(APP_KEYS.PMS_SERVER)
+        const serverUri = await getSetting(DB_KINDS.SERVER)
         const token = await getMainToken()
 
         if (!serverUri || !token) return
