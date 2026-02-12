@@ -43,7 +43,6 @@ function App() {
       console.log('[App] Has token:', !!token, 'Can auto-login:', canAutoLogin)
 
       if (!token) {
-        console.log(`app state to ready`)
         setAppState('ready')
         navigate('/login')
         return
@@ -55,24 +54,26 @@ function App() {
         return
       }
 
+      navigate('/home')
+
       // User is fully logged in - initialize data
       setAppState('initializing')
 
-      const data = await initializeApp((progress) => {
-        setInitProgress(progress.progress)
-        setInitStatus(progress.status)
+      // const data = await initializeApp((progress) => {
+      //   setInitProgress(progress.progress)
+      //   setInitStatus(progress.status)
 
-        // Handle background updates
-        if (progress.dataUpdated && progress.newData) {
-          console.log('[App] Background update received')
-          setInitialData({
-            ...initialData,
-            movies: progress.newData
-          })
-        }
-      })
+      //   // Handle background updates
+      //   if (progress.dataUpdated && progress.newData) {
+      //     console.log('[App] Background update received')
+      //     setInitialData({
+      //       ...initialData,
+      //       movies: progress.newData
+      //     })
+      //   }
+      // })
 
-      setInitialData(data)
+      // setInitialData(data)
       setAppState('ready')
 
     } catch (err) {
@@ -143,12 +144,10 @@ function AuthRoute({ children, requireAuth = true, redirectTo = '/login' }) {
     const token = await getMainToken()
     let servers = await getDB8Kind(DB_KINDS.SERVER, KINDS.server)
     if (!!servers || servers === null ) {servers = await getServers(token)}
-    console.log(`server ${servers}`)
 
     setHasToken(!!token)
-    const currentPath = window.location.hash.replace('#', '')
+    // const currentPath = window.location.hash.replace('#', '')
 
-    // Only navigate if you're on a wrong page for your auth state
     if (!token) {
       navigate('/login', { replace: true })
       return
@@ -160,10 +159,10 @@ function AuthRoute({ children, requireAuth = true, redirectTo = '/login' }) {
     if (token && servers) {
       const canAutoLogin = await hasCompleteSession()
       if (canAutoLogin) {
+        console.log("Navigating to Home")
         navigate('/home', { replace: true })
       } else {
-        const savedServer = await getSetting(DB_KINDS.SERVER)
-        navigate(savedServer ? '/user-select' : '/server-select', { replace: true })
+        navigate(servers ? '/user-select' : '/server-select', { replace: true })
       }
     }
 

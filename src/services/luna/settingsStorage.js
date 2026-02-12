@@ -1,4 +1,5 @@
-import { DB_KINDS, getData, setData } from './lunaService'
+import { DB_KINDS, deleteData, getData, setData } from './lunaService'
+import { deleteUserData, saveUserProfile } from './tokenStorage'
 
 // Global app settings (not profile-specific)
 export const APP_KEYS = {
@@ -14,22 +15,8 @@ export const PROFILE_KEYS = {
   USER_PIN: 'userPin'
 }
 
-// Helper to create profile-specific key
-const getProfileKey = (profileId, key) => `profile_${profileId}_${key}`
-
-// Global settings
-export const saveSetting = async (kind, key, value) => {
-  return await setData(kind, key, value)
-}
-
 export const getSetting = async (key, defaultValue = null) => {
   return await getData(key, defaultValue)
-}
-
-// Profile-specific settings
-export const saveProfileSetting = async (profileId, key, value) => {
-  const fullKey = getProfileKey(profileId, key)
-  return await setConfig(fullKey, value)
 }
 
 export const getProfileSetting = async (profileId, key, defaultValue = null) => {
@@ -39,16 +26,15 @@ export const getProfileSetting = async (profileId, key, defaultValue = null) => 
 
 // Batch save profile data
 export const saveProfileSession = async (profileId, userName, pin = null, rememberPin = true) => {
-  await saveProfileSetting(profileId, PROFILE_KEYS.USER_ID, profileId)
-  await saveProfileSetting(profileId, PROFILE_KEYS.USER_NAME, userName)
-  await saveProfileSetting(profileId, PROFILE_KEYS.REMEMBER_PIN, rememberPin)
-
-  if (pin && rememberPin) {
-    await saveProfileSetting(profileId, PROFILE_KEYS.USER_PIN, pin)
+  const userProfileKeyDetails = {
+    userId: profileId,
+    userName: userName,
+    userPin: pin,
+    rememberPin: rememberPin
   }
 
-  // Save as last used profile
-  await saveSetting(DB_KINDS.U, profileId)
+  await deleteUserData()
+  await saveUserProfile(userProfileKeyDetails)
 }
 
 // Get profile data

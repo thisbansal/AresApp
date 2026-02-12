@@ -73,20 +73,12 @@ function UserSelectPage() {
 
     try {
       const mainToken = await getMainToken()
-      const userToken = await verifyUserPin(mainToken, selectedUser.id, enteredPin)
+      const isValidUser = await verifyUserPin(mainToken, selectedUser.id, enteredPin)
 
-      // Save new user-specific token
-      await saveUserToken(userToken)
-
-      // Save profile session with PIN (rememberPin = true by default)
-      await saveProfileSession(selectedUser.id, selectedUser.name, enteredPin, true)
-      console.log('Saved profile session: ', {
-        userId: selectedUser.id,
-        userName: selectedUser.name,
-        hasPin: !!enteredPin
-      })
-
-      navigate('/home')
+      if (isValidUser) {
+        await saveProfileSession(selectedUser.id, selectedUser.name, enteredPin, true)
+        navigate('/home')
+      }
 
     } catch (err) {
       console.error('PIN verification failed:', err)
@@ -104,7 +96,7 @@ function UserSelectPage() {
 
   const saveUserSelection = async (user, pin) => {
     // Save profile session without PIN
-    await saveProfileSession(user.id, user.name, pin, false)
+    await saveProfileSession(user.id, user.name, pin)
     navigate('/home')
   }
 

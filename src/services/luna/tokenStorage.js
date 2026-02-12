@@ -1,7 +1,8 @@
 import { getData, setData, deleteData, DB_KINDS, initDB8Kind } from './lunaService'
 
 const MAIN_TOKEN_KEY = 'plexMainToken'
-const USER_TOKEN_KEY = 'plexUserToken'
+const IS_VALID_USER = 'validPlexUser'
+const USER_TOKEN_KEY = 'plexMainUser'
 
 // Call this once when your app starts
 export const initialiseDatabase = async () => {
@@ -10,7 +11,7 @@ export const initialiseDatabase = async () => {
     initDB8Kind(DB_KINDS.USER),
     initDB8Kind(DB_KINDS.PREFERENCES),
     initDB8Kind(DB_KINDS.HISTORY),
-    initDB8Kind(DB_KINDS.SERVER)
+    initDB8Kind(DB_KINDS.SERVER),
   ])
 }
 
@@ -24,8 +25,8 @@ export const getMainToken = async () => {
 }
 
 // User-specific token (for accessing content as that user)
-export const saveUserToken = async (token) => {
-  return await setData(DB_KINDS.USER, USER_TOKEN_KEY, token)
+export const isValidUser = async (token) => {
+  return await setData(DB_KINDS.IS_VALID_USER, IS_VALID_USER, token)
 }
 
 export const getUserToken = async () => {
@@ -39,6 +40,14 @@ export const getDB8Kind = async (kind, key) => {
 export const saveToken = async (token) => {
   // Default to saving as main token
   return await saveMainToken(token)
+}
+
+export const saveUserProfile = async (userProfile) => {
+  return await setData(DB_KINDS.USER, USER_TOKEN_KEY, userProfile)
+}
+
+export const deleteUserData = async () => {
+  return await deleteData(DB_KINDS.USER)
 }
 
 export const clearTokens = async () => {
