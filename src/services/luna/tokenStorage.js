@@ -37,11 +37,6 @@ export const getDB8Kind = async (kind, key) => {
   return await getData(kind, key)
 }
 
-export const saveToken = async (token) => {
-  // Default to saving as main token
-  return await saveMainToken(token)
-}
-
 export const saveUserProfile = async (userProfile) => {
   return await setData(DB_KINDS.USER, USER_TOKEN_KEY, userProfile)
 }

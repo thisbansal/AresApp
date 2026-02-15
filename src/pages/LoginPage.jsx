@@ -15,6 +15,7 @@ function LoginPage() {
 
   useEffect(() => {
     initAuth()
+
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current)
@@ -23,6 +24,7 @@ function LoginPage() {
   }, [])
 
   const initAuth = async () => {
+    console.log("login page init")
     try {
       setLoading(true)
       setError('')

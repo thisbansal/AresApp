@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { saveProfileSession, getLastProfile } from '../services/luna/settingsStorage'
-import { getMainToken, saveUserToken } from '../services/luna/tokenStorage'
+import { getMainToken } from '../services/luna/tokenStorage'
 
 function UserSelectPage() {
   const navigate = useNavigate()

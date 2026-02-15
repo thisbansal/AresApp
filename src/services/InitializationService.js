@@ -4,7 +4,7 @@
 
 import { universalStorage } from './UniversalStorage/universalStorage'
 import { putImage, getImage } from './luna/mediaDBService'
-import { getSetting, APP_KEYS } from './luna/settingsStorage'
+import { getSetting } from './luna/settingsStorage'
 import { getMainToken } from './luna/tokenStorage'
 import { getLibraries, getLibraryItems } from './plex/plexContentService'
 import { isWebOS } from './Environment/environment'

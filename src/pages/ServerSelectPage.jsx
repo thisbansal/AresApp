@@ -17,6 +17,7 @@ function ServerSelectPage() {
   }, [])
 
   const loadServers = async () => {
+    console.log('Loading servers')
     try {
       const token = await getMainToken()
       const serverList = await getServers(token)
@@ -52,7 +53,7 @@ function ServerSelectPage() {
             ...server,
             activeConnection: conn.uri
           }
-          await saveSetting(DB_KINDS.SERVER, KINDS.server, conn.uri)
+          // await setData(DB_KINDS.SERVER, KINDS.server, conn.uri)
 
           navigate('/user-select')
           return

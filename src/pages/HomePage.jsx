@@ -2,12 +2,7 @@ import { useState, useEffect } from 'react'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getCachedImage } from '../services/initializationService'
 
-/**
- * HomePage - Shows pre-loaded data instantly
- *
- * All heavy lifting is done before this component mounts
- * Images are already cached and ready to display
- */
+
 function HomePage({ initialData }) {
   const [allMovies, setAllMovies] = useState(initialData?.movies || [])
   const [visibleStart, setVisibleStart] = useState(0)
