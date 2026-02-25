@@ -1,16 +1,8 @@
-// Plex API service for fetching media content - OPTIMIZED FOR TV PERFORMANCE
-
 /**
  * Build optimized image URL with specific size and format
- * For grid view: 200x300 WebP images load ~10x faster than full-res JPEGs
  */
-const buildImageUrl = (serverUri, path, token, width = 200, height = 300) => {
+export const buildImageUrl = (serverUri, path, token, width = 200, height = 300) => {
   if (!path) return null
-  // Optimizations:
-  // - Smaller dimensions (200x300 instead of 300x450)
-  // - WebP format (smaller file size)
-  // - minSize=1 (allow smaller than requested)
-  // - upscale=0 (don't upscale small images)
   return `${serverUri}${path}?X-Plex-Token=${token}&width=${width}&height=${height}&minSize=1&upscale=0&format=webp`
 }
 
@@ -33,7 +25,7 @@ export const getLibraries = async (serverUri, token) => {
     }
 
     const data = await response.json()
-    // Parse library data
+
     const libraries = data.MediaContainer.Directory.map(lib => ({
       id: lib.key,
       uuid: lib.uuid,
@@ -267,18 +259,6 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
   }
 }
 
-/**
- * Helper to get library type icon
- */
-export const getLibraryIcon = (type) => {
-  const icons = {
-    movie: '🎬',
-    show: '📺',
-    artist: '🎵',
-    photo: '📷',
-  }
-  return icons[type] || '📁'
-}
 
 /**
  * Helper to format duration (milliseconds to readable time)

@@ -1,106 +1,183 @@
 import { useState, useEffect } from 'react'
 import { FocusableItem } from '../components/navigational/FocusableItem'
-import { getCachedImage } from '../services/initializationService'
+import { getMainToken } from '../services/luna/tokenStorage'
+import { getServers } from '../services/plex/plexAPIServer'
 
+function HomePage() {
 
-function HomePage({ initialData }) {
-  const [allMovies, setAllMovies] = useState(initialData?.movies || [])
-  const [visibleStart, setVisibleStart] = useState(0)
-  const [imageUrls, setImageUrls] = useState({})
+  const [allMovies, setAllMovies] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const ITEMS_PER_ROW = 6
-  const VISIBLE_ROWS = 4
-  const ITEMS_PER_LOAD = ITEMS_PER_ROW * VISIBLE_ROWS
 
   useEffect(() => {
-    // Load cached image URLs
-    loadImageUrls()
-  }, [allMovies])
 
-  useEffect(() => {
-    // Update movies if initialData changes (background sync)
-    if (initialData?.movies) {
-      setAllMovies(initialData.movies)
+    fetchAllMovies()
+  }, [])
+
+  // Build optimized image URL
+  const buildImageUrl = (serverUri, path, token, width = 200, height = 300) => {
+    if (!path) return null
+    console.log('Image path:', path)
+    return `${serverUri}${path}?X-Plex-Token=${token}&width=${width}&height=${height}&minSize=1&upscale=0&format=webp`
+  }
+  // Get all libraries from Plex
+const getLibraries = async (serverUri, token) => {
+  console.log('📚 [getLibraries] Fetching libraries from:', serverUri)
+  const url = `${serverUri}/library/sections/all`
+
+  const response = await fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'X-Plex-Token': token
     }
-  }, [initialData])
+  })
 
-  const loadImageUrls = async () => {
-    console.log('[HomePage] Loading cached image URLs...')
-    const urls = {}
+  if (!response.ok) {
+    throw new Error(`Failed to fetch libraries: ${response.status}`)
+  }
 
-    // Load first 24 images (what's visible)
-    const visible = allMovies.slice(0, 24)
-    console.log('[HomePage] Loading URLs for', visible.length, 'visible movies')
+  const data = await response.json()
+  console.log('📚 [getLibraries] Raw response:', data)
 
-    for (const movie of visible) {
-      const url = await getCachedImage(movie.id)
-      if (url) {
-        urls[movie.id] = url
-        console.log('[HomePage] ✓ Loaded cached image for:', movie.title, '(ID:', movie.id, ')')
-      } else {
-        console.log('[HomePage] ✗ No cached image for:', movie.title, '(ID:', movie.id, ') - will fetch from network')
+  return data.MediaContainer.Directory.map(lib => ({
+    id: lib.key,
+    title: lib.title,
+    type: lib.type,
+    thumb: buildImageUrl(serverUri, lib.thumb, token, 100, 100), // Smaller!
+  }))
+}
+
+  // Get items from a specific library
+  const getLibraryItems = async (serverUri, token, libraryId, size = 500) => {
+
+    const url = `${serverUri}/library/sections/${libraryId}/all?X-Plex-Token=${token}&X-Plex-Container-Start=0&X-Plex-Container-Size=${size}&sort=titleSort:asc`
+
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Plex-Token': token,
       }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch library items: ${response.status}`)
     }
 
-    console.log('[HomePage] Total cached images loaded:', Object.keys(urls).length, '/', visible.length)
-    setImageUrls(urls)
+    const data = await response.json()
+
+
+    const items = (data.MediaContainer.Metadata || []).map(item => ({
+      id: item.ratingKey,
+      title: item.title,
+      type: item.type,
+      year: item.year,
+      thumb: buildImageUrl(serverUri, item.thumb, token, 200, 300),
+      rating: item.contentRating,
+      summary: item.summary,
+    }))
+
+    return items
   }
 
-  const visibleMovies = allMovies.slice(visibleStart, visibleStart + ITEMS_PER_LOAD)
-  const hasMore = visibleStart + ITEMS_PER_LOAD < allMovies.length
-  const hasPrev = visibleStart > 0
+  const fetchAllMovies = async () => {
+    try {
+      setLoading(true)
 
-  const handleNext = () => {
-    if (hasMore) {
-      setVisibleStart(prev => prev + ITEMS_PER_ROW)
-    }
-  }
+      const token = await getMainToken()
 
-  const handlePrev = () => {
-    if (hasPrev) {
-      setVisibleStart(prev => Math.max(0, prev - ITEMS_PER_ROW))
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      const servers = await getServers(token)
+
+      if (!servers || servers.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      // Use the first server
+      const server = servers[0]
+
+      // Get the first connection (prioritize local connections)
+      const localConnection = server.connections?.find(conn => conn.local === true)
+      const connection = localConnection || server.connections?.[0]
+
+      if (!connection) {
+        setLoading(false)
+        return
+      }
+
+      const serverUri = connection.uri
+
+      if (!serverUri) {
+        setLoading(false)
+        return
+      }
+
+      const libraries = await getLibraries(serverUri, token)
+
+      const movieLibraries = libraries.filter(lib => lib.title === 'Movies')
+
+      if (movieLibraries.length === 0) {
+        console.warn('⚠️ [fetchAllMovies] No movie libraries found')
+        setLoading(false)
+        return
+      }
+
+      const allMoviesPromises = movieLibraries.map(library =>
+        getLibraryItems(serverUri, token, library.id, 500)
+      )
+
+      const results = await Promise.all(allMoviesPromises)
+
+      const combinedMovies = results.flat()
+
+
+      setAllMovies(combinedMovies)
+      setLoading(false)
+
+    } catch (error) {
+      console.error('❌ [fetchAllMovies] Error:', error)
+      console.error('❌ [fetchAllMovies] Stack:', error.stack)
+      setLoading(false)
     }
   }
 
   const handleItemClick = (item) => {
     console.log('Selected item:', item)
-    // TODO: Navigate to detail page
   }
 
-  useEffect(() => {
-    const handleKey = (e) => {
-      if (e.key === 'PageDown') {
-        e.preventDefault()
-        handleNext()
-      } else if (e.key === 'PageUp') {
-        e.preventDefault()
-        handlePrev()
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [hasMore, hasPrev])
 
-  console.log('[HomePage] Rendering with', allMovies.length, 'movies')
-  console.log('[HomePage] Cached image URLs loaded:', Object.keys(imageUrls).length)
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.loadingText}>Loading movies...</div>
+      </div>
+    )
+  }
+
+  if (allMovies.length === 0) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.emptyText}>No movies found</div>
+      </div>
+    )
+  }
 
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <span style={styles.title}>Movies</span>
-      </div>
 
-      {/* Grid */}
       <div style={styles.grid}>
-        {visibleMovies.map((item, index) => {
+        {allMovies.map((item, index) => {
           const rowIndex = Math.floor(index / ITEMS_PER_ROW)
           const colIndex = index % ITEMS_PER_ROW
-          const imageSrc = imageUrls[item.id] || item.thumb
 
           return (
             <FocusableItem
-              key={`${item.id}-${visibleStart + index}`}
+              key={`${item.id}-${index}`}
               id={`poster-${item.id}`}
               rowIndex={rowIndex}
               colIndex={colIndex}
@@ -108,11 +185,11 @@ function HomePage({ initialData }) {
             >
               <div style={styles.card}>
                 <img
-                  src={imageSrc}
+                  src={item.thumb}
                   alt={item.title}
                   style={styles.poster}
-                  loading="eager"
-                  decoding="sync" // Sync for instant display
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div style={styles.info}>
                   <div style={styles.movieTitle}>{item.title}</div>
@@ -126,11 +203,6 @@ function HomePage({ initialData }) {
         })}
       </div>
 
-      {/* Navigation hints */}
-      <div style={styles.navHints}>
-        {hasPrev && <span style={styles.hint}>↑ PageUp for Previous</span>}
-        {hasMore && <span style={styles.hint}>↓ PageDown for Next</span>}
-      </div>
     </div>
   )
 }
@@ -146,11 +218,21 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '30px',
-    // GPU acceleration
-    willChange: 'transform',
-    transform: 'translateZ(0)',
-    backfaceVisibility: 'hidden',
-    perspective: 1000,
+  },
+  loadingContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100vh',
+    background: '#1a1a1a',
+  },
+  loadingText: {
+    fontSize: '36px',
+    color: PLEX_YELLOW,
+  },
+  emptyText: {
+    fontSize: '36px',
+    color: '#666',
   },
   header: {
     display: 'flex',
@@ -173,17 +255,10 @@ const styles = {
     gridTemplateColumns: 'repeat(6, 280px)',
     gap: '40px',
     justifyContent: 'center',
-    // Performance optimizations
-    willChange: 'contents',
-    contain: 'layout style paint',
   },
   card: {
     position: 'relative',
     cursor: 'pointer',
-    // GPU acceleration
-    willChange: 'transform',
-    transform: 'translateZ(0)',
-    backfaceVisibility: 'hidden',
   },
   poster: {
     width: '280px',
@@ -194,10 +269,6 @@ const styles = {
     display: 'block',
     border: '3px solid transparent',
     transition: 'border-color 0.15s ease',
-    // GPU acceleration
-    willChange: 'transform',
-    transform: 'translateZ(0)',
-    imageRendering: 'high-quality',
   },
   info: {
     marginTop: '10px',
