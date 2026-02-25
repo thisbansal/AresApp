@@ -19,7 +19,7 @@ function HomePage() {
   const buildImageUrl = (serverUri, path, token, width = 200, height = 300) => {
     if (!path) return null
     console.log('Image path:', path)
-    return `${serverUri}${path}?X-Plex-Token=${token}&width=${width}&height=${height}&minSize=1&upscale=0&format=webp`
+    return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(serverUri + path)}&width=${width}&height=${height}&X-Plex-Token=${token}`
   }
   // Get all libraries from Plex
 const getLibraries = async (serverUri, token) => {
