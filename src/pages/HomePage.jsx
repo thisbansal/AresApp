@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { getServers } from '../services/plex/plexAPIServer'
+import { getLibraries, getLibraryItems } from '../services/plex/plexContentService'
 
 function HomePage() {
 
@@ -11,79 +12,12 @@ function HomePage() {
   const ITEMS_PER_ROW = 6
 
   useEffect(() => {
-
     fetchAllMovies()
   }, [])
-
-  // Build optimized image URL
-  const buildImageUrl = (serverUri, path, token, width = 200, height = 300) => {
-    if (!path) return null
-    console.log('Image path:', path)
-    return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(serverUri + path)}&width=${width}&height=${height}&X-Plex-Token=${token}`
-  }
-  // Get all libraries from Plex
-const getLibraries = async (serverUri, token) => {
-  console.log('📚 [getLibraries] Fetching libraries from:', serverUri)
-  const url = `${serverUri}/library/sections/all`
-
-  const response = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'X-Plex-Token': token
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch libraries: ${response.status}`)
-  }
-
-  const data = await response.json()
-  console.log('📚 [getLibraries] Raw response:', data)
-
-  return data.MediaContainer.Directory.map(lib => ({
-    id: lib.key,
-    title: lib.title,
-    type: lib.type,
-    thumb: buildImageUrl(serverUri, lib.thumb, token, 100, 100), // Smaller!
-  }))
-}
-
-  // Get items from a specific library
-  const getLibraryItems = async (serverUri, token, libraryId, size = 500) => {
-
-    const url = `${serverUri}/library/sections/${libraryId}/all?X-Plex-Token=${token}&X-Plex-Container-Start=0&X-Plex-Container-Size=${size}&sort=titleSort:asc`
-
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        'X-Plex-Token': token,
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch library items: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-
-    const items = (data.MediaContainer.Metadata || []).map(item => ({
-      id: item.ratingKey,
-      title: item.title,
-      type: item.type,
-      year: item.year,
-      thumb: buildImageUrl(serverUri, item.thumb, token, 200, 300),
-      rating: item.contentRating,
-      summary: item.summary,
-    }))
-
-    return items
-  }
 
   const fetchAllMovies = async () => {
     try {
       setLoading(true)
-
       const token = await getMainToken()
 
       if (!token) {
@@ -128,7 +62,7 @@ const getLibraries = async (serverUri, token) => {
       }
 
       const allMoviesPromises = movieLibraries.map(library =>
-        getLibraryItems(serverUri, token, library.id, 500)
+        getLibraryItems(serverUri, token, 1)
       )
 
       const results = await Promise.all(allMoviesPromises)
@@ -191,12 +125,6 @@ const getLibraries = async (serverUri, token) => {
                   loading="lazy"
                   decoding="async"
                 />
-                <div style={styles.info}>
-                  <div style={styles.movieTitle}>{item.title}</div>
-                  {item.year && (
-                    <div style={styles.movieYear}>{item.year}</div>
-                  )}
-                </div>
               </div>
             </FocusableItem>
           )
@@ -207,12 +135,13 @@ const getLibraries = async (serverUri, token) => {
   )
 }
 
-const PLEX_YELLOW = '#e5a00d'
+const APP_BASE_COLOR = '#ffffff'
+const APP_BASE_BACKGROUND = '#2f2f2f'
 
 const styles = {
   container: {
     minHeight: '100vh',
-    background: '#1a1a1a',
+    background: APP_BASE_BACKGROUND,
     color: '#e8eaed',
     padding: '40px 60px',
     display: 'flex',
@@ -224,31 +153,15 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     height: '100vh',
-    background: '#1a1a1a',
+    background: APP_BASE_BACKGROUND,
   },
   loadingText: {
-    fontSize: '36px',
-    color: PLEX_YELLOW,
+    fontSize: '4rem',
+    color: APP_BASE_COLOR,
   },
   emptyText: {
     fontSize: '36px',
     color: '#666',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: '20px',
-    borderBottom: '2px solid #333',
-  },
-  title: {
-    fontSize: '48px',
-    fontWeight: 'bold',
-    color: PLEX_YELLOW,
-  },
-  counter: {
-    fontSize: '28px',
-    color: '#9aa0a6',
   },
   grid: {
     display: 'grid',
@@ -267,7 +180,6 @@ const styles = {
     borderRadius: '12px',
     background: '#222',
     display: 'block',
-    border: '3px solid transparent',
     transition: 'border-color 0.15s ease',
   },
   info: {
@@ -280,17 +192,6 @@ const styles = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-  },
-  movieYear: {
-    fontSize: '20px',
-    color: '#9aa0a6',
-    marginTop: '5px',
-  },
-  navHints: {
-    display: 'flex',
-    gap: '40px',
-    justifyContent: 'center',
-    marginTop: '20px',
   },
   hint: {
     fontSize: '24px',

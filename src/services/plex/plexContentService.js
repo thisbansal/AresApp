@@ -1,50 +1,39 @@
 /**
  * Build optimized image URL with specific size and format
  */
-export const buildImageUrl = (serverUri, path, token, width = 200, height = 300) => {
+const buildImageUrl = (serverUri, path, token, width = 200, height = 300) => {
   if (!path) return null
-  return `${serverUri}${path}?X-Plex-Token=${token}&width=${width}&height=${height}&minSize=1&upscale=0&format=webp`
+  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(serverUri + path)}&width=${width}&height=${height}&X-Plex-Token=${token}`
 }
 
 /**
  * Get all libraries from the Plex server
  */
 export const getLibraries = async (serverUri, token) => {
-  try {
-    const url = `${serverUri}/library/sections/all`
+  console.log('📚 [getLibraries] Fetching libraries from:', serverUri)
+  const url = `${serverUri}/library/sections/all`
+  console.log(`url: ${url}`)
 
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        'X-Plex-Token': token
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch libraries: ${response.status}`)
+  const response = await fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'X-Plex-Token': token
     }
+  })
 
-    const data = await response.json()
-
-    const libraries = data.MediaContainer.Directory.map(lib => ({
-      id: lib.key,
-      uuid: lib.uuid,
-      title: lib.title,
-      type: lib.type,
-      agent: lib.agent,
-      scanner: lib.scanner,
-      language: lib.language,
-      updatedAt: lib.updatedAt,
-      itemCount: lib.Location?.[0]?.id || 0,
-      thumb: buildImageUrl(serverUri, lib.thumb, token, 150, 150),
-      art: buildImageUrl(serverUri, lib.art, token, 600, 350),
-    }))
-
-    return libraries
-  } catch (error) {
-    console.error('Error fetching libraries:', error)
-    throw error
+  if (!response.ok) {
+    throw new Error(`Failed to fetch libraries: ${response.status}`)
   }
+
+  const data = await response.json()
+  console.log('📚 [getLibraries] Raw response:', data)
+
+  return data.MediaContainer.Directory.map(lib => ({
+    id: lib.key,
+    title: lib.title,
+    type: lib.type,
+    // thumb: buildImageUrl(serverUri, lib.thumb, token, 100, 100),
+  }))
 }
 
 /**
@@ -143,62 +132,36 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
  * Get library items (all content from a specific library)
  * OPTIMIZED: Returns small thumbnails for grid view
  */
-export const getLibraryItems = async (serverUri, token, libraryId, options = {}) => {
-  try {
-    const {
-      start = 0,
-      size = 50,
-      sort = 'titleSort:asc',
-      unwatched = false
-    } = options
+export const getLibraryItems = async (serverUri, token, libraryId) => {
 
-    let url = `${serverUri}/library/sections/${libraryId}/all?X-Plex-Token=${token}`
-    url += `&X-Plex-Container-Start=${start}`
-    url += `&X-Plex-Container-Size=${size}`
-    url += `&sort=${sort}`
+  const url = `${serverUri}/library/sections/${libraryId}/all`
+  console.log(`gettingItems: ${url}`)
 
-    if (unwatched) {
-      url += '&unwatched=1'
+  const response = await fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'X-Plex-Token': token,
     }
+  })
 
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        'X-Plex-Token': token,
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch library items: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    // Use SMALL thumbnails for grid view - this is key for performance!
-    const items = (data.MediaContainer.Metadata || []).map(item => ({
-      id: item.ratingKey,
-      title: item.title,
-      type: item.type,
-      year: item.year,
-      thumb: buildImageUrl(serverUri, item.thumb, token, 200, 300), // Small for grid
-      thumbLarge: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Large for detail
-      art: buildImageUrl(serverUri, item.art, token, 800, 450),
-      rating: item.contentRating,
-      summary: item.summary,
-      duration: item.duration,
-      viewCount: item.viewCount,
-      lastViewedAt: item.lastViewedAt,
-    }))
-
-    return {
-      items,
-      total: data.MediaContainer.totalSize,
-      size: data.MediaContainer.size,
-    }
-  } catch (error) {
-    console.error('Error fetching library items:', error)
-    throw error
+  if (!response.ok) {
+    throw new Error(`Failed to fetch library items: ${response.status}`)
   }
+
+  const data = await response.json()
+
+
+  const items = (data.MediaContainer.Metadata || []).map(item => ({
+    id: item.ratingKey,
+    title: item.title,
+    type: item.type,
+    year: item.year,
+    thumb: buildImageUrl(serverUri, item.thumb, token, 200, 300),
+    rating: item.contentRating,
+    summary: item.summary,
+  }))
+
+  return items
 }
 
 /**
