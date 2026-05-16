@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
 import { getMainToken } from '../services/luna/tokenStorage'
+import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
+import { KINDS } from '../config/app'
 import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
 import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
 
@@ -29,18 +31,30 @@ function ContentBrowserPage() {
         const token = await getMainToken()
         if (!token) return
 
+        // 1. Fast Path: Try to boot instantly using the last known server address
+        let currentUri = await getData(DB_KINDS.SERVER, KINDS.server)
+        
+        if (currentUri) {
+          setServerInfo({ uri: currentUri, token })
+          // Don't await this, let it run asynchronously so it doesn't block the background check if the URI is unreachable
+          getLibraries(currentUri, token).then(setLibraries).catch(e => console.warn('Fast path getLibraries failed:', e))
+        }
+
+        // 2. Background Check: Look for a better/restored local connection
         const servers = await getServers(token)
         if (!servers || servers.length === 0) return
 
         const server = servers[0]
-        const uri = await getBestServerConnection(server, token)
+        const bestUri = await getBestServerConnection(server, token)
 
-        if (!uri) return
-
-        setServerInfo({ uri, token })
-
-        const libsData = await getLibraries(uri, token)
-        setLibraries(libsData)
+        if (bestUri && bestUri !== currentUri) {
+          console.log('[initServerAndNav] Background check updating to better URI:', bestUri)
+          await setData(DB_KINDS.SERVER, KINDS.server, bestUri)
+          
+          setServerInfo({ uri: bestUri, token })
+          
+          getLibraries(bestUri, token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
+        }
       } catch (error) {
         console.error('[initServerAndNav] Error:', error)
       }
@@ -112,6 +126,21 @@ function ContentBrowserPage() {
   }
 
   const renderCard = (item, rowIndex, colIndex, prefix) => {
+    let isUnwatched = false;
+    
+    // Never show the unwatched ribbon on items in the "Continue Watching" (cw) row,
+    // or items that are partially watched (have a viewOffset).
+    if (prefix !== 'cw') {
+      if (item.type === 'show' || item.type === 'season') {
+        // Use leafCount if available, otherwise fallback to checking if any views exist
+        isUnwatched = item.leafCount 
+          ? ((item.viewedLeafCount || 0) < item.leafCount)
+          : (!item.viewCount && !item.viewedLeafCount)
+      } else {
+        isUnwatched = !item.viewCount && !item.viewOffset
+      }
+    }
+
     return (
       <FocusableItem
         key={`${prefix}-${item.id}-${colIndex}`}
@@ -128,6 +157,9 @@ function ContentBrowserPage() {
             loading="lazy"
             decoding="async"
           />
+          {isUnwatched && (
+            <div style={styles.unwatchedRibbon} />
+          )}
           {item.viewOffset && item.duration && (
             <div style={styles.progressBarContainer}>
               <div 
@@ -295,6 +327,8 @@ const styles = {
   card: {
     position: 'relative',
     cursor: 'pointer',
+    borderRadius: '12px',
+    overflow: 'hidden',
   },
   poster: {
     width: '180px',
@@ -319,6 +353,17 @@ const styles = {
   progressBarFill: {
     height: '100%',
     background: '#e5a00d', 
+  },
+  unwatchedRibbon: {
+    position: 'absolute',
+    top: '-24px',
+    right: '-24px',
+    width: '48px',
+    height: '48px',
+    background: '#0078d7', 
+    transform: 'rotate(45deg)',
+    zIndex: 2,
+    boxShadow: '0 0 10px rgba(0,0,0,0.7)',
   }
 }
 

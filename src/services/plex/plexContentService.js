@@ -82,6 +82,11 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
       parentTitle: item.parentTitle,
       index: item.index,
       parentIndex: item.parentIndex,
+      // View state
+      viewCount: item.viewCount,
+      viewOffset: item.viewOffset,
+      viewedLeafCount: item.viewedLeafCount,
+      leafCount: item.leafCount,
     }))
 
     return items
@@ -163,6 +168,11 @@ export const getLibraryItems = async (serverUri, token, libraryId) => {
     thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600),
     rating: item.contentRating,
     summary: item.summary,
+    // View state
+    viewCount: item.viewCount,
+    viewOffset: item.viewOffset,
+    viewedLeafCount: item.viewedLeafCount,
+    leafCount: item.leafCount,
   }))
 
   return items
