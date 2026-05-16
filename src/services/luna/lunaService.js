@@ -86,6 +86,15 @@ export const setData = async (kind, key, value) => {
   }
 
   try {
+    // Delete existing records with this key to simulate an upsert
+    await lunaCall({
+      service: DB8_URL,
+      method: "del",
+      parameters: {
+        query: { from: kind, where: [{ prop: "key", op: "=", val: key }] }
+      }
+    })
+
     const result = await lunaCall({
       service: DB8_URL,
       method: "put",

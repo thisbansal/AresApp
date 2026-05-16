@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
 import { getMainToken } from '../services/luna/tokenStorage'
@@ -9,6 +10,7 @@ import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../s
 import { useNotificationStore } from '../services/notifications/notificationStore'
 
 function ContentBrowserPage() {
+  const navigate = useNavigate()
 
   // State
   const [serverInfo, setServerInfo] = useState(null)
@@ -26,7 +28,7 @@ function ContentBrowserPage() {
   
   const [loading, setLoading] = useState(true)
 
-  const ITEMS_PER_ROW = 9
+  const ITEMS_PER_ROW = 7
 
   // 1. Initialise Server Info and Libraries
   useEffect(() => {
@@ -129,6 +131,7 @@ function ContentBrowserPage() {
 
   const handleItemClick = (item) => {
     console.log('Selected item:', item)
+    navigate(`/details/${item.id}`, { state: { serverInfo } })
   }
 
   const handleNavClick = (navItem) => {
@@ -294,6 +297,16 @@ function ContentBrowserPage() {
               <h2 style={styles.sectionTitle}>Settings</h2>
               
               <div style={styles.settingsSection}>
+                <h3 style={styles.settingsSubTitle}>Developer / Server</h3>
+                <div style={styles.settingItemRow}>
+                  <div style={styles.settingLabel}>Active Server URI</div>
+                  <div style={{ color: '#aaa', fontSize: '18px', fontFamily: 'monospace', wordBreak: 'break-all', maxWidth: '50%', textAlign: 'right' }}>
+                    {serverInfo ? serverInfo.uri : 'Not connected'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.settingsSection}>
                 <h3 style={styles.settingsSubTitle}>Appearance</h3>
                 
                 <div style={styles.settingItemRow}>
@@ -343,6 +356,9 @@ const styles = {
     flexDirection: 'column',
     gap: '40px',
     padding: '20px 0',
+    maxWidth: '900px',
+    margin: '0 auto',
+    width: '100%',
   },
   settingsSection: {
     display: 'flex',
@@ -428,7 +444,8 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(9, 180px)',
+    gridTemplateColumns: 'repeat(7, 220px)',
+    justifyContent: 'center',
     gap: '30px',
     padding: '20px 0',
   },
@@ -439,8 +456,8 @@ const styles = {
     overflow: 'hidden',
   },
   poster: {
-    width: '180px',
-    height: '270px',
+    width: '220px',
+    height: '330px',
     objectFit: 'cover',
     borderRadius: '12px',
     background: '#222',

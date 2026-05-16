@@ -12,6 +12,7 @@ import LoginPage from './routes/LoginPage'
 import UserSelectPage from './routes/UserSelectPage'
 import ContentBrowserPage from './routes/ContentBrowserPage'
 import ServerSelectPage from './routes/ServerSelectPage'
+import MediaDetailsPage from './routes/MediaDetailsPage'
 
 function App() {
   const [authState, setAuthState] = useState({
@@ -117,6 +118,19 @@ function App() {
                 hasSession={authState.hasSession}
               >
                 <ContentBrowserPage />
+              </AuthRoute>
+            }
+          />
+
+          <Route
+            path="/details/:ratingKey"
+            element={
+              <AuthRoute
+                requireAuth={true}
+                isAuthenticated={authState.isAuthenticated}
+                hasSession={authState.hasSession}
+              >
+                <MediaDetailsPage />
               </AuthRoute>
             }
           />
