@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { imageCacheService } from '../services/caching/ImageCacheService'
+import { useNotificationStore } from '../services/notifications/notificationStore'
 
 /**
  * CachedImage Component
@@ -67,6 +68,7 @@ export function CachedImage({ src, itemId, alt, style, className, loading = 'laz
       onLoad={() => setIsLoaded(true)}
       onError={(e) => {
         console.error('[CachedImage] Failed to load:', itemId)
+        useNotificationStore.getState().addNotification(`Image Load Failed: ${src}`, { level: 'dev' })
         // Fallback to original URL on error
         if (imageSrc.startsWith('data:')) {
           setImageSrc(src)

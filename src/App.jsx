@@ -5,6 +5,7 @@ import { EdgeScrollTriggers } from './components/navigational/EdgeScrollTriggers
 import { KeyboardHandler } from './components/navigational/KeyboardHandler'
 import { getMainToken, initialiseDatabase } from './services/luna/tokenStorage'
 import { hasCompleteSession } from './utils/appSettings'
+import { SystemToaster } from './components/navigational/SystemToaster'
 
 import AuthRoute from './pages/Auth'
 import LoginPage from './routes/LoginPage'
@@ -62,6 +63,7 @@ function App() {
     <WebOSInputProvider>
       <KeyboardHandler />
       <EdgeScrollTriggers />
+      <SystemToaster />
 
       <div className="app">
         <Routes>

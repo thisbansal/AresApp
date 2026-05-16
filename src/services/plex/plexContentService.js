@@ -1,3 +1,5 @@
+import { useNotificationStore } from '../notifications/notificationStore'
+
 /**
  * Build optimized image URL with specific size and format
  */
@@ -25,6 +27,7 @@ export const getLibraries = async (serverUri, token) => {
   })
 
   if (!response.ok) {
+    useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/sections/all`, { level: 'dev' })
     throw new Error(`Failed to fetch libraries: ${response.status}`)
   }
 
@@ -60,6 +63,7 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
     })
 
     if (!response.ok) {
+      useNotificationStore.getState().addNotification(`API Error: ${response.status} - ${endpoint}`, { level: 'dev' })
       throw new Error(`Failed to fetch recently added: ${response.status}`)
     }
 
@@ -93,6 +97,7 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
     return items
   } catch (error) {
     console.error('Error fetching recently added:', error)
+    useNotificationStore.getState().addNotification(`Network Error: ${error.message}`, { level: 'dev' })
     throw error
   }
 }
@@ -111,6 +116,7 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
     })
 
     if (!response.ok) {
+      useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/onDeck`, { level: 'dev' })
       throw new Error(`Failed to fetch on deck: ${response.status}`)
     }
 
@@ -134,6 +140,7 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
     return items
   } catch (error) {
     console.error('Error fetching on deck:', error)
+    useNotificationStore.getState().addNotification(`Network Error: ${error.message}`, { level: 'dev' })
     throw error
   }
 }
@@ -155,6 +162,7 @@ export const getLibraryItems = async (serverUri, token, libraryId) => {
   })
 
   if (!response.ok) {
+    useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/sections/${libraryId}/all`, { level: 'dev' })
     throw new Error(`Failed to fetch library items: ${response.status}`)
   }
 
@@ -193,6 +201,7 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
     })
 
     if (!response.ok) {
+      useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/metadata/${ratingKey}`, { level: 'dev' })
       throw new Error(`Failed to fetch metadata: ${response.status}`)
     }
 
@@ -233,6 +242,7 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
     }
   } catch (error) {
     console.error('Error fetching metadata:', error)
+    useNotificationStore.getState().addNotification(`Network Error: ${error.message}`, { level: 'dev' })
     throw error
   }
 }

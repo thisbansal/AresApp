@@ -6,6 +6,7 @@ import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
 import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
+import { useNotificationStore } from '../services/notifications/notificationStore'
 
 function ContentBrowserPage() {
 
@@ -80,7 +81,11 @@ function ContentBrowserPage() {
       return new Promise((resolve) => {
         const img = new Image()
         img.onload = resolve
-        img.onerror = resolve // Resolve even on error to prevent hanging
+        img.onerror = (e) => {
+          console.error('[ContentBrowser] Preload failed for:', url)
+          useNotificationStore.getState().addNotification(`Image Load Failed: ${url}`, { level: 'dev' })
+          resolve()
+        } // Resolve even on error to prevent hanging
         img.src = url
       })
     }))
@@ -155,13 +160,23 @@ function ContentBrowserPage() {
         onClick={() => handleItemClick(item)}
       >
         <div style={styles.card}>
-          <img
-            src={item.thumb}
-            alt={item.title}
-            style={styles.poster}
-            loading="lazy"
-            decoding="async"
-          />
+          {item.thumb ? (
+            <img
+              src={item.thumb}
+              alt={item.title}
+              style={styles.poster}
+              loading="lazy"
+              decoding="async"
+              onError={(e) => {
+                console.error('[ContentBrowser] Failed to load image:', item.thumb)
+                useNotificationStore.getState().addNotification(`Image Load Failed: ${item.thumb}`, { level: 'dev' })
+              }}
+            />
+          ) : (
+            <div style={{ ...styles.poster, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '10px', color: '#666' }}>
+              {item.title}
+            </div>
+          )}
           {showUnwatchedIndicator && isUnwatched && (
             <div style={styles.unwatchedRibbon} />
           )}
