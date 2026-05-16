@@ -160,6 +160,28 @@ function ContentBrowserPage() {
 
     fetchContent()
   }, [activeTab, serverInfo])
+  
+  // Global Input Locking & Mode Management
+  useEffect(() => {
+    const handleGlobalMouseMove = () => {
+      const { navigationMode } = useFocusStore.getState()
+      if (navigationMode !== 'cursor') {
+        useFocusStore.setState({ navigationMode: 'cursor' })
+      }
+    }
+
+    const handleGlobalWheel = () => {
+      // Wheel use should also lock out D-pad focus effects temporarily
+      useFocusStore.setState({ lastRemoteAction: Date.now() })
+    }
+
+    window.addEventListener('mousemove', handleGlobalMouseMove)
+    window.addEventListener('wheel', handleGlobalWheel)
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove)
+      window.removeEventListener('wheel', handleGlobalWheel)
+    }
+  }, [])
 
   const handleItemClick = (item) => {
     console.log('Selected item:', item)

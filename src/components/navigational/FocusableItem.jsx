@@ -20,6 +20,13 @@ export function FocusableItem({ id, rowIndex, colIndex, children, onClick, onFoc
   }, [isFocused, onFocus]);
 
   const handleMouseEnter = () => {
+    const { lastRemoteAction } = useFocusStore.getState();
+    
+    // Ignore hover if the D-pad was used very recently (prevents fighting)
+    if (Date.now() - lastRemoteAction < 500) {
+      return;
+    }
+
     useFocusStore.setState({ navigationMode: 'cursor' });
     focusItem(id);
   };
