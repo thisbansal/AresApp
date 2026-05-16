@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
-import { getServers, testConnectionToServer } from '../services/plex/plexAPIServer'
+import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { DB_KINDS, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
@@ -40,24 +40,21 @@ function ServerSelectPage() {
     try {
       setLoading(true)
 
-      // Test each connection and find one that works
-      for (const conn of server.connections) {
-        const works = await testConnectionToServer(conn.uri, server.accessToken)
-        if (works) {
-          // Save the working connection URI to settings storage
-          await setData(DB_KINDS.SERVER, KINDS.server, conn.uri)
-          console.log('Saved PMS server:', KINDS.server,conn.uri)
+      const bestUri = await getBestServerConnection(server, server.accessToken)
+      
+      if (bestUri) {
+        // Save the working connection URI to settings storage
+        await setData(DB_KINDS.SERVER, KINDS.server, bestUri)
+        console.log('Saved PMS server:', KINDS.server, bestUri)
 
-          // Also save the full server object for later use (optional)
-          const selectedServer = {
-            ...server,
-            activeConnection: conn.uri
-          }
-          // await setData(DB_KINDS.SERVER, KINDS.server, conn.uri)
-
-          navigate('/user-select')
-          return
+        // Also save the full server object for later use (optional)
+        const selectedServer = {
+          ...server,
+          activeConnection: bestUri
         }
+
+        navigate('/user-select')
+        return
       }
 
       // If we get here, no connections worked
@@ -73,7 +70,7 @@ function ServerSelectPage() {
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={styles.spinner}>Loading servers...</div>
+        <div style={styles.spinner}></div>
       </div>
     )
   }

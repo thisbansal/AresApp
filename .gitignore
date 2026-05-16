@@ -27,3 +27,4 @@ dist-ssr
 .nix-bin
 .npm-global
 com.*
+.continue

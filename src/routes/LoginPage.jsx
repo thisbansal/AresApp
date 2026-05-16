@@ -65,7 +65,7 @@ function LoginPage() {
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={styles.spinner}>Loading...</div>
+        <div style={styles.spinner}></div>
       </div>
     )
   }

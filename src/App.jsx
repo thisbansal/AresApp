@@ -7,10 +7,10 @@ import { getMainToken, initialiseDatabase } from './services/luna/tokenStorage'
 import { hasCompleteSession } from './utils/appSettings'
 
 import AuthRoute from './pages/Auth'
-import LoginPage from './pages/LoginPage'
-import UserSelectPage from './pages/UserSelectPage'
-import HomePage from './pages/HomePage'
-import ServerSelectPage from './pages/ServerSelectPage'
+import LoginPage from './routes/LoginPage'
+import UserSelectPage from './routes/UserSelectPage'
+import ContentBrowserPage from './routes/ContentBrowserPage'
+import ServerSelectPage from './routes/ServerSelectPage'
 
 function App() {
   const [authState, setAuthState] = useState({
@@ -51,7 +51,7 @@ function App() {
   if (authState.isLoading) {
     return (
       <div className="app loading" style={{ padding: '20px', color: 'white' }}>
-        <div>Loading...</div>
+        <div></div>
       </div>
     )
   }
@@ -107,14 +107,14 @@ function App() {
           />
 
           <Route
-            path="/home"
+            path="/browse"
             element={
               <AuthRoute
                 requireAuth={true}
                 isAuthenticated={authState.isAuthenticated}
                 hasSession={authState.hasSession}
               >
-                <HomePage />
+                <ContentBrowserPage />
               </AuthRoute>
             }
           />
@@ -123,7 +123,7 @@ function App() {
             path="/"
             element={
               <Navigate
-                to={authState.isAuthenticated && authState.hasSession ? "/home" : "/login"}
+                to={authState.isAuthenticated && authState.hasSession ? "/browse" : "/login"}
                 replace
               />
             }

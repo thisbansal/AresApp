@@ -45,14 +45,63 @@ export const getServers = async (authToken) => {
     }))
 }
 
-export const testConnectionToServer = async (uri, authToken) => {
+export const testConnectionToServer = async (uri, authToken, timeoutMs = 5000) => {
   try {
-    const res = await fetch(uri, {
+    const fetchPromise = fetch(uri, {
       method: 'GET',
       headers: getHeaders(authToken)
+    }).then(res => res.ok)
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('timeout')), timeoutMs)
     })
-    return res.ok
+
+    return await Promise.race([fetchPromise, timeoutPromise])
   } catch {
     return false
   }
+}
+
+export const getBestServerConnection = async (server, authToken) => {
+  if (!server || !server.connections || server.connections.length === 0) return null
+
+  const localConns = server.connections.filter(c => c.local)
+  const remoteConns = server.connections.filter(c => !c.local)
+
+  // 1. Try local connections with a 2000ms timeout concurrently (resolves instantly on first success)
+  if (localConns.length > 0) {
+    const localUri = await new Promise((resolve) => {
+      let failedCount = 0
+      for (const conn of localConns) {
+        testConnectionToServer(conn.uri, authToken, 2000).then(ok => {
+          if (ok) resolve(conn.uri)
+          else {
+            failedCount++
+            if (failedCount === localConns.length) resolve(null)
+          }
+        })
+      }
+    })
+    if (localUri) return localUri
+  }
+
+  // 2. Try remote connections with 5000ms timeout concurrently
+  if (remoteConns.length > 0) {
+    const remoteUri = await new Promise((resolve) => {
+      let failedCount = 0
+      for (const conn of remoteConns) {
+        testConnectionToServer(conn.uri, authToken, 5000).then(ok => {
+          if (ok) resolve(conn.uri)
+          else {
+            failedCount++
+            if (failedCount === remoteConns.length) resolve(null)
+          }
+        })
+      }
+    })
+    if (remoteUri) return remoteUri
+  }
+
+  // Fallback to the first connection if none resolved in time
+  return server.connections[0]?.uri
 }

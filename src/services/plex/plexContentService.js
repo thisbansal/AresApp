@@ -1,9 +1,11 @@
 /**
  * Build optimized image URL with specific size and format
  */
-const buildImageUrl = (serverUri, path, token, width = 200, height = 300) => {
+const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
   if (!path) return null
-  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(serverUri + path)}&width=${width}&height=${height}&X-Plex-Token=${token}`
+  const separator = path.includes('?') ? '&' : '?'
+  const innerUrl = `${serverUri}${path}${separator}X-Plex-Token=${token}`
+  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&X-Plex-Token=${token}`
 }
 
 /**
@@ -28,12 +30,14 @@ export const getLibraries = async (serverUri, token) => {
   const data = await response.json()
   console.log('📚 [getLibraries] Raw response:', data)
 
-  return data.MediaContainer.Directory.map(lib => ({
-    id: lib.key,
-    title: lib.title,
-    type: lib.type,
-    // thumb: buildImageUrl(serverUri, lib.thumb, token, 100, 100),
-  }))
+  return data.MediaContainer.Directory
+    .filter(lib => lib.type !== 'photo')
+    .map(lib => ({
+      id: lib.key,
+      title: lib.title,
+      type: lib.type,
+      // thumb: buildImageUrl(serverUri, lib.thumb, token, 100, 100),
+    }))
 }
 
 /**
@@ -66,7 +70,7 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
       title: item.title,
       type: item.type,
       year: item.year,
-      thumb: buildImageUrl(serverUri, item.thumb, token, 200, 300), // Grid thumbnail
+      thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Grid thumbnail
       art: buildImageUrl(serverUri, item.art, token, 800, 450), // Detail view
       rating: item.contentRating,
       summary: item.summary,
@@ -111,7 +115,7 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
       title: item.title,
       type: item.type,
       year: item.year,
-      thumb: buildImageUrl(serverUri, item.thumb, token, 200, 300),
+      thumb: buildImageUrl(serverUri, item.type === 'episode' ? (item.grandparentThumb || item.thumb) : item.thumb, token, 400, 600),
       art: buildImageUrl(serverUri, item.art, token, 800, 450),
       viewOffset: item.viewOffset,
       duration: item.duration,
@@ -156,7 +160,7 @@ export const getLibraryItems = async (serverUri, token, libraryId) => {
     title: item.title,
     type: item.type,
     year: item.year,
-    thumb: buildImageUrl(serverUri, item.thumb, token, 200, 300),
+    thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600),
     rating: item.contentRating,
     summary: item.summary,
   }))

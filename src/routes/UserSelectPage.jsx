@@ -103,7 +103,7 @@ function UserSelectPage() {
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={styles.spinner}>Loading users...</div>
+        <div style={styles.spinner}></div>
       </div>
     )
   }

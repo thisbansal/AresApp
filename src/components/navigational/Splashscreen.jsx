@@ -22,7 +22,7 @@ export function SplashScreen({ progress = 0, status = 'Loading...' }) {
       {/* Logo */}
       <div style={styles.logoContainer}>
         <div style={styles.logo}>PLEX</div>
-        <div style={styles.tagline}>Loading your library</div>
+        <div style={styles.tagline}></div>
       </div>
 
       {/* Progress bar */}
