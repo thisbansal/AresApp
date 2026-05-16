@@ -21,28 +21,24 @@ export function SystemToaster() {
       }}
     >
       {notifications.map((notif) => {
-        let bgColor, borderColor, icon
+        let accentColor, icon
         
         switch (notif.level) {
           case 'dev':
-            bgColor = 'rgba(20, 20, 20, 0.9)'
-            borderColor = '#eab308' // Yellow/Orange dev accent
+            accentColor = '#eab308' // Yellow/Orange
             icon = '🛠️'
             break
           case 'error':
-            bgColor = 'rgba(40, 10, 10, 0.85)'
-            borderColor = '#ef4444' // Red error accent
+            accentColor = '#ef4444' // Red
             icon = '⚠️'
             break
           case 'success':
-            bgColor = 'rgba(10, 40, 20, 0.85)'
-            borderColor = '#22c55e' // Green success accent
+            accentColor = '#22c55e' // Green
             icon = '✅'
             break
           case 'info':
           default:
-            bgColor = 'rgba(30, 30, 40, 0.85)'
-            borderColor = '#3b82f6' // Blue info accent
+            accentColor = '#3b82f6' // Blue
             icon = 'ℹ️'
             break
         }
@@ -52,29 +48,29 @@ export function SystemToaster() {
             key={notif.id}
             onClick={() => removeNotification(notif.id)}
             style={{
-              pointerEvents: 'auto', // Allow clicking to dismiss individual toasts
-              background: bgColor,
-              border: `1px solid ${borderColor}`,
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              borderRadius: '12px',
-              padding: '16px 20px',
+              pointerEvents: 'auto',
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              borderRadius: '9999px',
+              padding: '12px 28px',
               color: 'white',
               fontFamily: notif.level === 'dev' ? 'monospace' : '"Inter", "Roboto", sans-serif',
-              fontSize: '14px',
-              maxWidth: '400px',
-              minWidth: '250px',
+              fontSize: '18px',
+              fontWeight: '500',
+              maxWidth: '600px',
+              minWidth: '200px',
               wordBreak: 'break-word',
               display: 'flex',
-              alignItems: 'flex-start',
-              gap: '12px',
-              cursor: 'pointer',
+              alignItems: 'center',
+              gap: '16px',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              animation: 'slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              animation: 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           >
-            <span style={{ fontSize: '18px', lineHeight: '1' }}>{icon}</span>
+            <span style={{ fontSize: '20px', lineHeight: '1' }}>{icon}</span>
             <div style={{ flex: 1, lineHeight: '1.4' }}>
               {notif.message}
             </div>
