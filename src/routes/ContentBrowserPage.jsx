@@ -20,6 +20,9 @@ function ContentBrowserPage() {
   const [recentTv, setRecentTv] = useState([])
   const [libraryContent, setLibraryContent] = useState({ all: [] })
   
+  // Settings State
+  const [showUnwatchedIndicator, setShowUnwatchedIndicator] = useState(true)
+  
   const [loading, setLoading] = useState(true)
 
   const ITEMS_PER_ROW = 9
@@ -30,6 +33,12 @@ function ContentBrowserPage() {
       try {
         const token = await getMainToken()
         if (!token) return
+
+        // Load Settings
+        let prefs = await getData(DB_KINDS.PREFERENCES, KINDS.preferences)
+        if (prefs && prefs.showUnwatchedIndicator !== undefined) {
+          setShowUnwatchedIndicator(prefs.showUnwatchedIndicator)
+        }
 
         // 1. Fast Path: Try to boot instantly using the last known server address
         let currentUri = await getData(DB_KINDS.SERVER, KINDS.server)
@@ -118,10 +127,6 @@ function ContentBrowserPage() {
   }
 
   const handleNavClick = (navItem) => {
-    if (navItem.type === 'settings') {
-      console.log('Settings clicked')
-      return // Do nothing for now
-    }
     setActiveTab(navItem)
   }
 
@@ -157,7 +162,7 @@ function ContentBrowserPage() {
             loading="lazy"
             decoding="async"
           />
-          {isUnwatched && (
+          {showUnwatchedIndicator && isUnwatched && (
             <div style={styles.unwatchedRibbon} />
           )}
           {item.viewOffset && item.duration && (
@@ -180,6 +185,18 @@ function ContentBrowserPage() {
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
+        }
+        .setting-toggle {
+          cursor: pointer;
+          border-radius: 9999px;
+        }
+        .setting-toggle.focused > div {
+          background-color: rgba(255, 255, 255, 0.25) !important;
+          color: #fff !important;
+          box-shadow: inset 0 0 10px rgba(255,255,255,0.2) !important;
+        }
+        .setting-toggle[style] {
+          transform: scale(1) !important;
         }
       `}</style>
 
@@ -256,6 +273,36 @@ function ContentBrowserPage() {
               )}
             </>
           )}
+
+          {activeTab.type === 'settings' && (
+            <div style={styles.settingsContainer}>
+              <h2 style={styles.sectionTitle}>Settings</h2>
+              
+              <div style={styles.settingsSection}>
+                <h3 style={styles.settingsSubTitle}>Appearance</h3>
+                
+                <div style={styles.settingItemRow}>
+                  <div style={styles.settingLabel}>Show Unwatched Indicator</div>
+                  
+                  <FocusableItem
+                    id="toggle-unwatched"
+                    rowIndex={0} // D-Pad navigation grid row
+                    colIndex={0}
+                    onClick={() => {
+                      const newValue = !showUnwatchedIndicator
+                      setShowUnwatchedIndicator(newValue)
+                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, { showUnwatchedIndicator: newValue })
+                    }}
+                    className="setting-toggle"
+                  >
+                    <div style={styles.toggleCapsule}>
+                      {showUnwatchedIndicator ? 'Enabled' : 'Disabled'}
+                    </div>
+                  </FocusableItem>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -275,6 +322,52 @@ const styles = {
     flexDirection: 'column',
     gap: '30px',
     overflowX: 'hidden',
+  },
+  settingsContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '40px',
+    padding: '20px 0',
+  },
+  settingsSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    padding: '30px',
+    borderRadius: '16px',
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+  },
+  settingsSubTitle: {
+    fontSize: '24px',
+    color: '#aaa',
+    margin: 0,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+  },
+  settingItemRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 0',
+  },
+  settingLabel: {
+    fontSize: '22px',
+    color: '#e8eaed',
+  },
+  toggleCapsule: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+    backdropFilter: 'blur(20px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: '9999px',
+    padding: '12px 32px',
+    fontSize: '18px',
+    fontWeight: '600',
+    minWidth: '140px',
+    textAlign: 'center',
+    transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
   },
   loadingContainer: {
     display: 'flex',

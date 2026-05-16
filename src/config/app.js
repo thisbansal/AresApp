@@ -8,5 +8,6 @@ export const PLEX_CONFIG = {
 };
 
 export const KINDS = {
-  server: 'plexServerAddress'
+  server: 'plexServerAddress',
+  preferences: 'appPreferences'
 }

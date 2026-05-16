@@ -5,7 +5,8 @@ const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
   if (!path) return null
   const separator = path.includes('?') ? '&' : '?'
   const innerUrl = `${serverUri}${path}${separator}X-Plex-Token=${token}`
-  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&X-Plex-Token=${token}`
+  // WebOS TVs often struggle with WebP or complex formats, forcing jpeg ensures compatibility
+  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${token}`
 }
 
 /**
