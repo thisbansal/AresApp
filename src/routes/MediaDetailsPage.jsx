@@ -9,6 +9,7 @@ import MovieDetails from '../components/media/MovieDetails'
 import ShowDetails from '../components/media/ShowDetails'
 import SeasonDetails from '../components/media/SeasonDetails'
 import EpisodeDetails from '../components/media/EpisodeDetails'
+import { FallbackImage } from '../components/media/FallbackImage'
 
 function MediaDetailsPage() {
   const { ratingKey } = useParams()
@@ -95,11 +96,7 @@ function MediaDetailsPage() {
       {/* Content Layer (Apple TV Style) */}
       <div style={styles.contentWrapper}>
         <div style={styles.leftColumn}>
-          {item.thumb ? (
-            <img src={item.thumb} alt={item.title} style={styles.poster} />
-          ) : (
-            <div style={styles.posterPlaceholder}>{item.title}</div>
-          )}
+          <FallbackImage src={item.thumb} alt={item.title} style={styles.poster} />
         </div>
 
         <div style={styles.rightColumn}>
@@ -251,7 +248,7 @@ const styles = {
   },
   dynamicContent: {
     flex: 1,
-    overflowY: 'auto',
+    // overflowY: 'auto', removed to prevent button scaling from clipping on the left edge
   }
 }
 

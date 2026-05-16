@@ -1,4 +1,5 @@
 import React from 'react'
+import { FallbackImage } from './FallbackImage'
 
 export default function CastScroller({ cast = [] }) {
   if (!cast || cast.length === 0) return null
@@ -10,11 +11,7 @@ export default function CastScroller({ cast = [] }) {
         {cast.slice(0, 15).map((person, i) => (
           <div key={i} style={styles.personCard}>
             <div style={styles.avatarWrapper}>
-              {person.thumb ? (
-                <img src={person.thumb} alt={person.name} style={styles.avatar} loading="lazy" />
-              ) : (
-                <div style={styles.avatarPlaceholder}>{person.name.charAt(0)}</div>
-              )}
+              <FallbackImage src={person.thumb} alt={person.name} style={styles.avatar} loading="lazy" />
             </div>
             <div style={styles.name}>{person.name}</div>
             <div style={styles.role}>{person.role}</div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
+import { FallbackImage } from '../components/media/FallbackImage'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
@@ -169,23 +170,13 @@ function ContentBrowserPage() {
         onClick={() => handleItemClick(item)}
       >
         <div style={styles.card}>
-          {item.thumb ? (
-            <img
-              src={item.thumb}
-              alt={item.title}
-              style={styles.poster}
-              loading="lazy"
-              decoding="async"
-              onError={(e) => {
-                console.error('[ContentBrowser] Failed to load image:', item.thumb)
-                useNotificationStore.getState().addNotification(`Image Load Failed: ${item.thumb}`, { level: 'dev' })
-              }}
-            />
-          ) : (
-            <div style={{ ...styles.poster, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '10px', color: '#666' }}>
-              {item.title}
-            </div>
-          )}
+          <FallbackImage
+            src={item.thumb}
+            alt={item.title}
+            style={styles.poster}
+            loading="lazy"
+            decoding="async"
+          />
           {showUnwatchedIndicator && isUnwatched && (
             <div style={styles.unwatchedRibbon} />
           )}
