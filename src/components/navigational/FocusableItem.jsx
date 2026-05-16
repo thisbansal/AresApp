@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useFocusStore } from '../../stores/FocusStore';
 
-export function FocusableItem({ id, rowIndex, colIndex, children, onClick, className = '' }) {
+export function FocusableItem({ id, rowIndex, colIndex, children, onClick, onFocus, className = '' }) {
   const elementRef = useRef(null);
   const { focusedId, registerItem, unregisterItem, focusItem } = useFocusStore();
   const isFocused = focusedId === id;
@@ -12,6 +12,12 @@ export function FocusableItem({ id, rowIndex, colIndex, children, onClick, class
     }
     return () => unregisterItem(id);
   }, [id, rowIndex, colIndex, registerItem, unregisterItem]);
+
+  useEffect(() => {
+    if (isFocused && onFocus) {
+      onFocus();
+    }
+  }, [isFocused, onFocus]);
 
   const handleMouseEnter = () => {
     // Lock vertical scroll when hovering thumbnail

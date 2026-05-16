@@ -2,13 +2,13 @@ import React from 'react'
 import { FallbackImage } from './FallbackImage'
 import { FocusableItem } from '../navigational/FocusableItem'
 
-export default function CastScroller({ cast = [], rowIndexOffset = 2 }) {
+export default function CastScroller({ cast = [], rowIndexOffset = 2, onFocusItem }) {
   if (!cast || cast.length === 0) return null
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="row">
       <h3 style={styles.header}>Cast & Crew</h3>
-      <div style={styles.scroller} className="hide-scrollbar row-items row">
+      <div style={styles.scroller} className="hide-scrollbar row-items">
         {cast.slice(0, 15).map((person, i) => (
           <FocusableItem
             key={i}
@@ -16,6 +16,7 @@ export default function CastScroller({ cast = [], rowIndexOffset = 2 }) {
             rowIndex={rowIndexOffset}
             colIndex={i}
             onClick={() => console.log('Clicked cast:', person.name)}
+            onFocus={() => onFocusItem?.(null)} // Reset art when focusing cast
             className="cast-card"
           >
             <div style={styles.personCard}>
@@ -64,7 +65,9 @@ const styles = {
     display: 'flex',
     gap: '24px',
     overflowX: 'auto',
-    paddingBottom: '20px',
+    paddingTop: '30px', // Room for focus scale
+    paddingBottom: '30px',
+    marginTop: '-30px', // Compensate for padding
   },
   personCard: {
     display: 'flex',

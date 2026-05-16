@@ -434,8 +434,8 @@ const styles = {
     display: 'flex',
     gap: '30px',
     overflowX: 'auto',
-    padding: '20px 30px',
-    margin: '0 -30px',
+    padding: '30px', // Room for focus scale
+    margin: '-10px -30px 0 -30px',
     scrollbarWidth: 'none', 
     msOverflowStyle: 'none',
   },

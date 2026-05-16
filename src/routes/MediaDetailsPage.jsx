@@ -19,6 +19,10 @@ function MediaDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [item, setItem] = useState(null)
   const [serverInfo, setServerInfo] = useState(location.state?.serverInfo || null)
+  
+  // Dynamic background and summary (Apple TV style)
+  const [dynamicArt, setDynamicArt] = useState(null)
+  const [dynamicSummary, setDynamicSummary] = useState(null)
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -40,6 +44,8 @@ function MediaDetailsPage() {
 
         const metadata = await getMetadata(uri, token, ratingKey)
         setItem(metadata)
+        setDynamicArt(metadata.art)
+        setDynamicSummary(null) // Reset dynamic summary when main item changes
       } catch (error) {
         console.error('[MediaDetailsPage] Error fetching metadata:', error)
       } finally {
@@ -49,6 +55,16 @@ function MediaDetailsPage() {
 
     fetchDetails()
   }, [ratingKey, navigate])
+
+  const handleFocusItem = (focusedItem) => {
+    if (focusedItem) {
+      if (focusedItem.art) setDynamicArt(focusedItem.art);
+      if (focusedItem.summary) setDynamicSummary(focusedItem.summary);
+    } else {
+      setDynamicArt(item.art);
+      setDynamicSummary(null);
+    }
+  }
 
   if (loading) {
     return (
@@ -71,13 +87,13 @@ function MediaDetailsPage() {
   const renderDetails = () => {
     switch (item.type) {
       case 'movie':
-        return <MovieDetails item={item} serverInfo={serverInfo} />
+        return <MovieDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       case 'show':
-        return <ShowDetails item={item} serverInfo={serverInfo} />
+        return <ShowDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       case 'season':
-        return <SeasonDetails item={item} serverInfo={serverInfo} />
+        return <SeasonDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       case 'episode':
-        return <EpisodeDetails item={item} serverInfo={serverInfo} />
+        return <EpisodeDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       default:
         return <div>Unsupported media type: {item.type}</div>
     }
@@ -85,13 +101,26 @@ function MediaDetailsPage() {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        *::-webkit-scrollbar { display: none !important; }
+        * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      
       {/* Background Layer with blurred Art */}
-      {item.art && (
-        <>
-          <div style={{ ...styles.backgroundArt, backgroundImage: `url(${item.art})` }} />
-          <div style={styles.backgroundOverlay} />
-        </>
-      )}
+      <div 
+        style={{ 
+          ...styles.backgroundArt, 
+          backgroundImage: `url(${dynamicArt || item.art})`,
+          opacity: 1,
+          transition: 'background-image 0.5s ease-in-out'
+        }} 
+      />
+      <div style={styles.backgroundOverlay} />
 
       {/* Content Layer (Apple TV Style) */}
       <div style={styles.contentWrapper}>
@@ -114,6 +143,13 @@ function MediaDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* Floating Summary for focused episodes/seasons */}
+      {dynamicSummary && (
+        <div style={styles.floatingSummary}>
+          <p>{dynamicSummary}</p>
+        </div>
+      )}
     </div>
   )
 }
@@ -249,6 +285,19 @@ const styles = {
   dynamicContent: {
     flex: 1,
     // overflowY: 'auto', removed to prevent button scaling from clipping on the left edge
+  },
+  floatingSummary: {
+    position: 'absolute',
+    bottom: '40px',
+    left: '540px', // Align with right column content
+    right: '100px',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: '20px 30px',
+    borderRadius: '16px',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    zIndex: 10,
+    animation: 'fadeIn 0.3s ease-out',
   }
 }
 

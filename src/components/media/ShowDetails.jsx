@@ -6,7 +6,7 @@ import { FocusableItem } from '../navigational/FocusableItem'
 import { getChildren } from '../../services/plex/plexContentService'
 import { FallbackImage } from './FallbackImage'
 
-export default function ShowDetails({ item, serverInfo }) {
+export default function ShowDetails({ item, serverInfo, onFocusItem }) {
   const navigate = useNavigate()
   const [seasons, setSeasons] = useState([])
 
@@ -35,18 +35,17 @@ export default function ShowDetails({ item, serverInfo }) {
     <div style={styles.container}>
       <p style={styles.summary}>{item.summary}</p>
       
-      {item.genres && item.genres.length > 0 && (
-        <div style={styles.metaRow}>
-          <span style={styles.metaLabel}>Genres:</span> {item.genres.join(', ')}
-        </div>
-      )}
+      <div style={styles.meta}>
+        <div style={styles.metaItem}><span style={styles.metaLabel}>Studio:</span> {item.studio}</div>
+        <div style={styles.metaItem}><span style={styles.metaLabel}>Genre:</span> {item.genres.join(', ')}</div>
+      </div>
 
       <ActionButtons onPlay={handlePlay} onMore={() => console.log('More info')} />
 
       {seasons.length > 0 && (
-        <div style={styles.seasonsContainer}>
+        <div style={styles.seasonsContainer} className="row">
           <h3 style={styles.header}>Seasons</h3>
-          <div style={styles.scroller} className="hide-scrollbar row-items row">
+          <div style={styles.scroller} className="hide-scrollbar row-items">
             {seasons.map((season, i) => (
               <FocusableItem
                 key={season.id}
@@ -54,6 +53,7 @@ export default function ShowDetails({ item, serverInfo }) {
                 rowIndex={1}
                 colIndex={i}
                 onClick={() => handleSeasonClick(season.id)}
+                onFocus={() => onFocusItem(season)}
                 className="season-card"
               >
                 <div style={styles.seasonInner}>
@@ -82,7 +82,7 @@ export default function ShowDetails({ item, serverInfo }) {
         }
       `}</style>
 
-      <CastScroller cast={item.actors} rowIndexOffset={2} />
+      <CastScroller cast={item.actors} rowIndexOffset={2} onFocusItem={onFocusItem} />
     </div>
   )
 }
@@ -122,9 +122,11 @@ const styles = {
     display: 'flex',
     gap: '24px',
     overflowX: 'auto',
+    paddingTop: '30px', // Room for focus scale
     paddingBottom: '30px',
     paddingLeft: '10px',
     marginLeft: '-10px',
+    marginTop: '-30px', // Compensate for padding
   },
   seasonInner: {
     width: '160px',

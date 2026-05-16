@@ -5,7 +5,7 @@ import { getChildren, formatDuration } from '../../services/plex/plexContentServ
 import { FallbackImage } from './FallbackImage'
 import ActionButtons from './ActionButtons'
 
-export default function SeasonDetails({ item, serverInfo }) {
+export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
   const navigate = useNavigate()
   
   const [episodes, setEpisodes] = useState([])
@@ -36,12 +36,15 @@ export default function SeasonDetails({ item, serverInfo }) {
       {item.parentTitle && <h3 style={styles.parentTitle}>{item.parentTitle}</h3>}
       <p style={styles.summary}>{item.summary || 'No summary available.'}</p>
       
-      <ActionButtons onPlay={handlePlay} />
+      <ActionButtons 
+        onPlay={handlePlay} 
+        onFocus={() => onFocusItem(null)} 
+      />
 
       {episodes.length > 0 && (
-        <div style={styles.episodesContainer}>
+        <div style={styles.episodesContainer} className="row">
           <h3 style={styles.header}>Episodes</h3>
-          <div style={styles.scroller} className="hide-scrollbar row-items row">
+          <div style={styles.scroller} className="hide-scrollbar row-items">
             {episodes.map((episode, i) => (
               <FocusableItem
                 key={episode.id}
@@ -49,6 +52,7 @@ export default function SeasonDetails({ item, serverInfo }) {
                 rowIndex={1}
                 colIndex={i}
                 onClick={() => handleEpisodeClick(episode.id)}
+                onFocus={() => onFocusItem(episode)}
                 className="episode-card"
               >
                 <div style={styles.episodeInner}>
@@ -114,9 +118,11 @@ const styles = {
     display: 'flex',
     gap: '24px',
     overflowX: 'auto',
+    paddingTop: '30px', // Room for focus scale
     paddingBottom: '30px',
     paddingLeft: '10px',
     marginLeft: '-10px',
+    marginTop: '-30px', // Compensate for padding
   },
   episodeInner: {
     width: '280px',
