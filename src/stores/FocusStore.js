@@ -3,6 +3,7 @@ import { create } from 'zustand';
 
 export const useFocusStore = create((set, get) => ({
   focusedId: null,
+  navigationMode: 'remote', // 'remote' or 'cursor'
   itemsRef: new Map(),
 
   registerItem: (id, element, rowIndex, colIndex) => {
@@ -65,6 +66,7 @@ export const useFocusStore = create((set, get) => ({
 
   navigate: (direction) => {
     const { focusedId, itemsRef, focusItem } = get();
+    set({ navigationMode: 'remote' });
 
     // Unlock vertical scroll when using D-pad
     if (window.unlockVerticalScroll) {

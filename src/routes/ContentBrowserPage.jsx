@@ -204,7 +204,9 @@ function ContentBrowserPage() {
             decoding="async"
           />
           {showUnwatchedIndicator && isUnwatched && (
-            <div style={styles.unwatchedRibbon} />
+            <div style={styles.unwatchedRibbon}>
+              <div style={styles.unwatchedDot} />
+            </div>
           )}
           {item.viewOffset && item.duration && (
             <div style={styles.progressBarContainer}>
@@ -264,27 +266,27 @@ function ContentBrowserPage() {
               ) : (
                 <>
                   {continueWatching.length > 0 && (
-                    <div style={styles.section}>
+                    <div style={styles.section} className="row">
                       <h2 style={styles.sectionTitle}>Continue Watching</h2>
-                      <div style={styles.row} className="hide-scrollbar">
+                      <div style={styles.row} className="hide-scrollbar row-items">
                         {continueWatching.map((item, index) => renderCard(item, 0, index, 'cw'))}
                       </div>
                     </div>
                   )}
 
                   {recentMovies.length > 0 && (
-                    <div style={styles.section}>
+                    <div style={styles.section} className="row">
                       <h2 style={styles.sectionTitle}>Recently Added Movies</h2>
-                      <div style={styles.row} className="hide-scrollbar">
+                      <div style={styles.row} className="hide-scrollbar row-items">
                         {recentMovies.map((item, index) => renderCard(item, 1, index, 'rm'))}
                       </div>
                     </div>
                   )}
 
                   {recentTv.length > 0 && (
-                    <div style={styles.section}>
+                    <div style={styles.section} className="row">
                       <h2 style={styles.sectionTitle}>Recently Added TV Shows</h2>
-                      <div style={styles.row} className="hide-scrollbar">
+                      <div style={styles.row} className="hide-scrollbar row-items">
                         {recentTv.map((item, index) => renderCard(item, 2, index, 'rt'))}
                       </div>
                     </div>
@@ -303,7 +305,7 @@ function ContentBrowserPage() {
               ) : (
                 <>
                   {libraryContent.all.length > 0 && (
-                    <div style={styles.section}>
+                    <div style={styles.section} className="row">
                       <div style={styles.grid}>
                         {libraryContent.all.map((item, index) => {
                           const rowIndex = Math.floor(index / ITEMS_PER_ROW) + 1
@@ -534,14 +536,27 @@ const styles = {
   },
   unwatchedRibbon: {
     position: 'absolute',
-    top: '-24px',
-    right: '-24px',
-    width: '96px',
-    height: '96px',
-    background: '#0078d7',
+    top: '-70px',
+    right: '-70px',
+    width: '140px',
+    height: '140px',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    border: '3px solid rgba(255, 255, 255, 0.4)',
     transform: 'rotate(45deg)',
     zIndex: 2,
-    boxShadow: '0 0 10px rgba(0,0,0,0.7)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+  },
+  unwatchedDot: {
+    width: '24px',
+    height: '24px',
+    backgroundColor: '#0089ff', // Vibrant Navbar Blue
+    borderRadius: '50%',
+    boxShadow: '0 0 25px rgba(0, 137, 255, 1)',
+    marginTop: '70px', // Center the dot relative to the visible part of the ribbon
+    border: '3px solid rgba(255,255,255,0.6)',
   }
 }
 

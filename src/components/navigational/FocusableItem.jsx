@@ -3,7 +3,7 @@ import { useFocusStore } from '../../stores/FocusStore';
 
 export function FocusableItem({ id, rowIndex, colIndex, children, onClick, onFocus, className = '' }) {
   const elementRef = useRef(null);
-  const { focusedId, registerItem, unregisterItem, focusItem } = useFocusStore();
+  const { focusedId, registerItem, unregisterItem, focusItem, navigationMode } = useFocusStore();
   const isFocused = focusedId === id;
 
   useEffect(() => {
@@ -20,10 +20,7 @@ export function FocusableItem({ id, rowIndex, colIndex, children, onClick, onFoc
   }, [isFocused, onFocus]);
 
   const handleMouseEnter = () => {
-    // Lock vertical scroll when hovering thumbnail
-    if (window.lockVerticalScroll) {
-      window.lockVerticalScroll();
-    }
+    useFocusStore.setState({ navigationMode: 'cursor' });
     focusItem(id);
   };
 

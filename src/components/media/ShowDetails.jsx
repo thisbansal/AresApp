@@ -79,9 +79,9 @@ export default function ShowDetails({ item, serverInfo, onFocusItem }) {
 
       {/* Row 1: Seasons */}
       {seasons.length > 0 && (
-        <div style={styles.explorerSection}>
+        <div style={styles.explorerSection} className="row">
           <h3 style={styles.header}>Seasons</h3>
-          <div style={styles.scroller} className="hide-scrollbar">
+          <div style={styles.scroller} className="hide-scrollbar row-items">
             {seasons.map((season, i) => (
               <FocusableItem
                 key={season.id}
@@ -102,14 +102,14 @@ export default function ShowDetails({ item, serverInfo, onFocusItem }) {
       )}
 
       {/* Row 2: Episodes of Active Season */}
-      <div style={styles.explorerSection}>
+      <div style={styles.explorerSection} className="row">
         <h3 style={styles.header}>
           {seasons.find(s => s.id === activeSeasonId)?.title || 'Episodes'}
         </h3>
         {loadingEpisodes ? (
            <div style={styles.loadingPlaceholder}>Loading episodes...</div>
         ) : (
-          <div style={styles.scroller} className="hide-scrollbar">
+          <div style={styles.scroller} className="hide-scrollbar row-items">
             {episodes.map((episode, i) => (
               <FocusableItem
                 key={episode.id}
