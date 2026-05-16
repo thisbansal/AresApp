@@ -11,6 +11,9 @@ export const useFocusStore = create((set, get) => ({
 
     if (itemsRef.size === 1 && !focusedId) {
       set({ focusedId: id });
+    } else if (focusedId === id) {
+      // Re-trigger focus side-effects (like scrolling to middle) when returning to a page
+      get().focusItem(id);
     }
   },
 

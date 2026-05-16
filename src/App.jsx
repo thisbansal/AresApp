@@ -14,6 +14,10 @@ import ContentBrowserPage from './routes/ContentBrowserPage'
 import ServerSelectPage from './routes/ServerSelectPage'
 import MediaDetailsPage from './routes/MediaDetailsPage'
 
+if ('scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual'
+}
+
 function App() {
   const [authState, setAuthState] = useState({
     isAuthenticated: false,

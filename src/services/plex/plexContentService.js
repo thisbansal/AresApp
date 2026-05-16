@@ -247,6 +247,48 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
   }
 }
 
+/**
+ * Get children for a specific item (e.g. Seasons for a Show, Episodes for a Season)
+ */
+export const getChildren = async (serverUri, token, ratingKey) => {
+  try {
+    const url = `${serverUri}/library/metadata/${ratingKey}/children?X-Plex-Token=${token}`
+
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
+
+    if (!response.ok) {
+      useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/metadata/${ratingKey}/children`, { level: 'dev' })
+      throw new Error(`Failed to fetch children: ${response.status}`)
+    }
+
+    const data = await response.json()
+    const items = (data.MediaContainer.Metadata || []).map(item => ({
+      id: item.ratingKey,
+      title: item.title,
+      type: item.type,
+      year: item.year,
+      index: item.index,
+      parentIndex: item.parentIndex,
+      thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600),
+      rating: item.contentRating,
+      summary: item.summary,
+      viewCount: item.viewCount,
+      viewOffset: item.viewOffset,
+      viewedLeafCount: item.viewedLeafCount,
+      leafCount: item.leafCount,
+    }))
+
+    return items
+  } catch (error) {
+    console.error('Error fetching children:', error)
+    useNotificationStore.getState().addNotification(`Network Error: ${error.message}`, { level: 'dev' })
+    throw error
+  }
+}
 
 /**
  * Helper to format duration (milliseconds to readable time)

@@ -1,23 +1,51 @@
 import React from 'react'
 import { FallbackImage } from './FallbackImage'
+import { FocusableItem } from '../navigational/FocusableItem'
 
-export default function CastScroller({ cast = [] }) {
+export default function CastScroller({ cast = [], rowIndexOffset = 2 }) {
   if (!cast || cast.length === 0) return null
 
   return (
     <div style={styles.container}>
       <h3 style={styles.header}>Cast & Crew</h3>
-      <div style={styles.scroller} className="hide-scrollbar">
+      <div style={styles.scroller} className="hide-scrollbar row-items row">
         {cast.slice(0, 15).map((person, i) => (
-          <div key={i} style={styles.personCard}>
-            <div style={styles.avatarWrapper}>
-              <FallbackImage src={person.thumb} alt={person.name} style={styles.avatar} loading="lazy" />
+          <FocusableItem
+            key={i}
+            id={`cast-${i}`}
+            rowIndex={rowIndexOffset}
+            colIndex={i}
+            onClick={() => console.log('Clicked cast:', person.name)}
+            className="cast-card"
+          >
+            <div style={styles.personCard}>
+              <div style={styles.avatarWrapper} className="avatar-wrapper">
+                <FallbackImage src={person.thumb} alt={person.name} style={styles.avatar} loading="lazy" />
+              </div>
+              <div style={styles.name}>{person.name}</div>
+              <div style={styles.role}>{person.role}</div>
             </div>
-            <div style={styles.name}>{person.name}</div>
-            <div style={styles.role}>{person.role}</div>
-          </div>
+          </FocusableItem>
         ))}
       </div>
+
+      <style>{`
+        .cast-card {
+          flex-shrink: 0;
+          border-radius: 12px;
+          padding: 8px;
+          margin: -8px;
+          transition: transform 0.2s ease;
+        }
+        .cast-card.focused {
+          transform: scale(1.1);
+          z-index: 10;
+        }
+        .cast-card.focused .avatar-wrapper {
+          box-shadow: 0 10px 30px rgba(255, 255, 255, 0.3);
+          border: 2px solid #fff;
+        }
+      `}</style>
     </div>
   )
 }
