@@ -33,9 +33,6 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
 
   return (
     <div style={styles.container}>
-      {item.parentTitle && <h3 style={styles.parentTitle}>{item.parentTitle}</h3>}
-      <p style={styles.summary}>{item.summary || 'No summary available.'}</p>
-      
       <ActionButtons 
         onPlay={handlePlay} 
         onFocus={() => onFocusItem(null)} 
@@ -107,6 +104,7 @@ const styles = {
   },
   episodesContainer: {
     marginTop: '30px',
+    minWidth: 0,
   },
   header: {
     fontSize: '24px',

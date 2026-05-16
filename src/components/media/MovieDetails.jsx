@@ -2,7 +2,7 @@ import React from 'react'
 import ActionButtons from './ActionButtons'
 import CastScroller from './CastScroller'
 
-export default function MovieDetails({ item, serverInfo }) {
+export default function MovieDetails({ item, serverInfo, onFocusItem }) {
   const handlePlay = () => {
     console.log('Play movie:', item.id)
     // TODO: Navigate to player route
@@ -11,8 +11,6 @@ export default function MovieDetails({ item, serverInfo }) {
   return (
     <div style={styles.container}>
       {item.tagline && <h2 style={styles.tagline}>"{item.tagline}"</h2>}
-      
-      <p style={styles.summary}>{item.summary}</p>
       
       {item.directors && item.directors.length > 0 && (
         <div style={styles.metaRow}>
@@ -28,7 +26,7 @@ export default function MovieDetails({ item, serverInfo }) {
 
       <ActionButtons onPlay={handlePlay} />
 
-      <CastScroller cast={item.actors} />
+      <CastScroller cast={item.actors} onFocusItem={onFocusItem} />
     </div>
   )
 }

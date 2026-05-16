@@ -33,8 +33,6 @@ export default function ShowDetails({ item, serverInfo, onFocusItem }) {
 
   return (
     <div style={styles.container}>
-      <p style={styles.summary}>{item.summary}</p>
-      
       <div style={styles.meta}>
         <div style={styles.metaItem}><span style={styles.metaLabel}>Studio:</span> {item.studio}</div>
         <div style={styles.metaItem}><span style={styles.metaLabel}>Genre:</span> {item.genres.join(', ')}</div>
@@ -111,6 +109,7 @@ const styles = {
   },
   seasonsContainer: {
     marginTop: '30px',
+    minWidth: 0,
   },
   header: {
     fontSize: '24px',

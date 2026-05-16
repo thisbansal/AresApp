@@ -19,7 +19,7 @@ function MediaDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [item, setItem] = useState(null)
   const [serverInfo, setServerInfo] = useState(location.state?.serverInfo || null)
-  
+
   // Dynamic background and summary (Apple TV style)
   const [dynamicArt, setDynamicArt] = useState(null)
   const [dynamicSummary, setDynamicSummary] = useState(null)
@@ -34,7 +34,7 @@ function MediaDetailsPage() {
         if (!uri || !token) {
           token = await getMainToken()
           uri = await getData(DB_KINDS.SERVER, KINDS.server)
-          
+
           if (!token || !uri) {
             navigate('/')
             return
@@ -106,19 +106,23 @@ function MediaDetailsPage() {
         * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
         
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
+          from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        
+        .summary-text {
+          transition: opacity 0.3s ease;
+        }
       `}</style>
-      
+
       {/* Background Layer with blurred Art */}
-      <div 
-        style={{ 
-          ...styles.backgroundArt, 
+      <div
+        style={{
+          ...styles.backgroundArt,
           backgroundImage: `url(${dynamicArt || item.art})`,
           opacity: 1,
           transition: 'background-image 0.5s ease-in-out'
-        }} 
+        }}
       />
       <div style={styles.backgroundOverlay} />
 
@@ -136,20 +140,32 @@ function MediaDetailsPage() {
               {item.rating && <span style={styles.badge}>{item.rating}</span>}
               {item.duration && <span style={styles.badge}>{formatDuration(item.duration)}</span>}
             </div>
+
+            {/* Contextual Title (e.g. Episode Title) */}
+            <h2 style={styles.contextTitle} key={dynamicArt}>
+              {dynamicArt !== item.art ? (
+                item.type === 'show' ? 'Season Details' :
+                  item.type === 'season' ? 'Episode Preview' :
+                    'Preview'
+              ) : (
+                item.type === 'movie' ? 'Synopsis' :
+                  item.type === 'show' ? 'About this Show' :
+                    item.type === 'season' ? 'About this Season' :
+                      'About this episode'
+              )}
+            </h2>
+
+            {/* Main Integrated Summary Area */}
+            <p style={styles.mainSummary} className="summary-text" key={dynamicSummary || 'main'}>
+              {dynamicSummary || item.summary || 'No description available.'}
+            </p>
           </div>
-          
+
           <div style={styles.dynamicContent}>
             {renderDetails()}
           </div>
         </div>
       </div>
-
-      {/* Floating Summary for focused episodes/seasons */}
-      {dynamicSummary && (
-        <div style={styles.floatingSummary}>
-          <p>{dynamicSummary}</p>
-        </div>
-      )}
     </div>
   )
 }
@@ -161,7 +177,8 @@ const styles = {
     position: 'relative',
     backgroundColor: '#141414',
     color: '#fff',
-    overflow: 'hidden',
+    overflowY: 'auto',
+    overflowX: 'hidden',
   },
   loadingContainer: {
     height: '100vh',
@@ -197,11 +214,11 @@ const styles = {
     cursor: 'pointer',
   },
   backgroundArt: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    position: 'fixed',
+    top: '-5%',
+    left: '-5%',
+    right: '-5%',
+    bottom: '-5%',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     filter: 'blur(40px)',
@@ -209,7 +226,7 @@ const styles = {
     zIndex: 1,
   },
   backgroundOverlay: {
-    position: 'absolute',
+    position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
@@ -222,15 +239,15 @@ const styles = {
     position: 'relative',
     zIndex: 3,
     display: 'flex',
-    height: '100vh',
-    padding: '80px',
+    minHeight: '100vh',
+    padding: '80px 0 80px 80px', // No padding on the right
     gap: '60px',
   },
   leftColumn: {
     flexShrink: 0,
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   poster: {
     width: '400px',
@@ -255,11 +272,13 @@ const styles = {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'center',
-    paddingRight: '100px',
+    justifyContent: 'flex-start',
+    paddingRight: '0', // Allow content to bleed off edge for "peek"
+    minWidth: 0,
   },
   metaHeader: {
-    marginBottom: '30px',
+    marginBottom: '20px',
+    paddingRight: '80px', // Keep header text away from edge
   },
   title: {
     fontSize: '64px',
@@ -267,6 +286,24 @@ const styles = {
     margin: '0 0 16px 0',
     lineHeight: '1.1',
     textShadow: '0 4px 12px rgba(0,0,0,0.3)',
+  },
+  contextTitle: {
+    fontSize: '24px',
+    color: '#fff', // Changed from gold to white as requested
+    margin: '20px 0 10px 0',
+    textTransform: 'uppercase',
+    letterSpacing: '2px',
+    fontWeight: '600',
+    animation: 'fadeIn 0.3s ease-out',
+  },
+  mainSummary: {
+    fontSize: '20px',
+    lineHeight: '1.6',
+    color: '#e8eaed',
+    margin: '0 0 30px 0',
+    maxWidth: '900px',
+    minHeight: '100px', // Prevent layout jump
+    animation: 'fadeIn 0.4s ease-out',
   },
   badges: {
     display: 'flex',
@@ -284,20 +321,7 @@ const styles = {
   },
   dynamicContent: {
     flex: 1,
-    // overflowY: 'auto', removed to prevent button scaling from clipping on the left edge
-  },
-  floatingSummary: {
-    position: 'absolute',
-    bottom: '40px',
-    left: '540px', // Align with right column content
-    right: '100px',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: '20px 30px',
-    borderRadius: '16px',
-    backdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    zIndex: 10,
-    animation: 'fadeIn 0.3s ease-out',
+    minWidth: 0,
   }
 }
 
