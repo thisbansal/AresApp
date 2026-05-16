@@ -8,6 +8,7 @@ import { KINDS } from '../config/app'
 import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
 import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
 import { useNotificationStore } from '../services/notifications/notificationStore'
+import { useBrowserStore } from '../stores/browserStore'
 
 function ContentBrowserPage() {
   const navigate = useNavigate()
@@ -15,13 +16,18 @@ function ContentBrowserPage() {
   // State
   const [serverInfo, setServerInfo] = useState(null)
   const [libraries, setLibraries] = useState([])
-  const [activeTab, setActiveTab] = useState({ type: 'home' })
+  const activeTab = useBrowserStore((state) => state.activeTab)
+  const setActiveTab = useBrowserStore((state) => state.setActiveTab)
   
   // Content State
-  const [continueWatching, setContinueWatching] = useState([])
-  const [recentMovies, setRecentMovies] = useState([])
-  const [recentTv, setRecentTv] = useState([])
-  const [libraryContent, setLibraryContent] = useState({ all: [] })
+  const continueWatching = useBrowserStore((state) => state.continueWatching)
+  const setContinueWatching = useBrowserStore((state) => state.setContinueWatching)
+  const recentMovies = useBrowserStore((state) => state.recentMovies)
+  const setRecentMovies = useBrowserStore((state) => state.setRecentMovies)
+  const recentTv = useBrowserStore((state) => state.recentTv)
+  const setRecentTv = useBrowserStore((state) => state.setRecentTv)
+  const libraryContent = useBrowserStore((state) => state.libraryContent)
+  const setLibraryContent = useBrowserStore((state) => state.setLibraryContent)
   
   // Settings State
   const [showUnwatchedIndicator, setShowUnwatchedIndicator] = useState(true)
