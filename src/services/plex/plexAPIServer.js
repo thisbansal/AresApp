@@ -8,6 +8,20 @@ const getHeaders = (authToken) => ({
   'X-Plex-Version': '1.0.0'
 })
 
+// Function to convert plex.direct URIs to plain local IP addresses (vital for WebOS reliability)
+const normalizeConnectionUri = (conn) => {
+  if (conn.local && conn.uri.includes('plex.direct')) {
+    try {
+      const url = new URL(conn.uri)
+      const ipPart = url.hostname.split('.')[0].replace(/-/g, '.')
+      return `http://${ipPart}:${url.port}`
+    } catch (e) {
+      return conn.uri
+    }
+  }
+  return conn.uri
+}
+
 export const getServers = async (authToken) => {
   const res = await fetch(
     'https://plex.tv/api/v2/resources?includeHttps=1&includeRelay=1&includeIPv6=1',
@@ -38,7 +52,7 @@ export const getServers = async (authToken) => {
           return 0
         })
         .map(conn => ({
-          uri: conn.uri,
+          uri: normalizeConnectionUri(conn), // Use normalized IP for reliability
           local: conn.local,
           relay: conn.relay
         }))

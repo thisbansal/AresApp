@@ -6,7 +6,7 @@ import { FallbackImage } from '../components/media/FallbackImage'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
-import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
+import { getServers, getBestServerConnection, testConnectionToServer } from '../services/plex/plexAPIServer'
 import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useBrowserStore } from '../stores/browserStore'
@@ -19,7 +19,7 @@ function ContentBrowserPage() {
   const [libraries, setLibraries] = useState([])
   const activeTab = useBrowserStore((state) => state.activeTab)
   const setActiveTab = useBrowserStore((state) => state.setActiveTab)
-  
+
   // Content State
   const continueWatching = useBrowserStore((state) => state.continueWatching)
   const setContinueWatching = useBrowserStore((state) => state.setContinueWatching)
@@ -29,10 +29,13 @@ function ContentBrowserPage() {
   const setRecentTv = useBrowserStore((state) => state.setRecentTv)
   const libraryContent = useBrowserStore((state) => state.libraryContent)
   const setLibraryContent = useBrowserStore((state) => state.setLibraryContent)
-  
-  // Settings State
-  const [showUnwatchedIndicator, setShowUnwatchedIndicator] = useState(true)
-  
+
+  // Settings State from Store
+  const showNotifications = useBrowserStore((state) => state.showNotifications)
+  const setShowNotifications = useBrowserStore((state) => state.setShowNotifications)
+  const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
+  const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
+
   const [loading, setLoading] = useState(true)
 
   const ITEMS_PER_ROW = 7
@@ -46,32 +49,54 @@ function ContentBrowserPage() {
 
         // Load Settings
         let prefs = await getData(DB_KINDS.PREFERENCES, KINDS.preferences)
-        if (prefs && prefs.showUnwatchedIndicator !== undefined) {
-          setShowUnwatchedIndicator(prefs.showUnwatchedIndicator)
+        if (prefs) {
+          if (prefs.showUnwatchedIndicator !== undefined) setShowUnwatchedIndicator(prefs.showUnwatchedIndicator)
+          if (prefs.showNotifications !== undefined) setShowNotifications(prefs.showNotifications)
         }
 
         // 1. Fast Path: Try to boot instantly using the last known server address
         let currentUri = await getData(DB_KINDS.SERVER, KINDS.server)
-        
+        let isCurrentHealthy = false
+
         if (currentUri) {
+          console.log('[init] Trying fast path:', currentUri)
           setServerInfo({ uri: currentUri, token })
-          // Don't await this, let it run asynchronously so it doesn't block the background check if the URI is unreachable
-          getLibraries(currentUri, token).then(setLibraries).catch(e => console.warn('Fast path getLibraries failed:', e))
+
+          // Test health quickly (1500ms timeout)
+          const startTime = Date.now()
+          const healthy = await testConnectionToServer(currentUri, token, 1500)
+          const duration = Date.now() - startTime
+
+          if (healthy) {
+            console.log(`[init] Fast path healthy (${duration}ms). Loading libraries...`)
+            isCurrentHealthy = true
+            getLibraries(currentUri, token).then(setLibraries).catch(e => console.warn('Fast path getLibraries failed:', e))
+
+            // If it's a fast local connection, we're done. No need to hit Plex.tv.
+            if (!currentUri.includes('relay')) {
+              console.log('[init] Staying on healthy local connection. Skipping background discovery.')
+              return
+            }
+          } else {
+            console.warn('[init] Fast path URI unreachable. Starting discovery...')
+          }
         }
 
-        // 2. Background Check: Look for a better/restored local connection
+        // 2. Background Check/Discovery: Only if current is unhealthy or a relay
+        console.log('[init] Running full server discovery...')
         const servers = await getServers(token)
-        if (!servers || servers.length === 0) return
+        if (!servers || servers.length === 0) {
+          if (!isCurrentHealthy) useNotificationStore.getState().addNotification('No Plex servers found.', { level: 'error' })
+          return
+        }
 
         const server = servers[0]
         const bestUri = await getBestServerConnection(server, token)
 
         if (bestUri && bestUri !== currentUri) {
-          console.log('[initServerAndNav] Background check updating to better URI:', bestUri)
+          console.log('[init] Found better connection:', bestUri)
           await setData(DB_KINDS.SERVER, KINDS.server, bestUri)
-          
           setServerInfo({ uri: bestUri, token })
-          
           getLibraries(bestUri, token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
         }
       } catch (error) {
@@ -85,7 +110,7 @@ function ContentBrowserPage() {
   const preloadImages = async (itemsArrays) => {
     // Flatten arrays and take up to 24 images (enough for initial screen load)
     const urls = itemsArrays.flat().slice(0, 24).map(item => item.thumb).filter(Boolean)
-    
+
     await Promise.all(urls.map(url => {
       return new Promise((resolve) => {
         const img = new Image()
@@ -112,18 +137,18 @@ function ContentBrowserPage() {
             getOnDeck(serverInfo.uri, serverInfo.token, 20),
             getRecentlyAdded(serverInfo.uri, serverInfo.token, null, 40) // Fetch more to ensure we have enough for both rows
           ])
-          
+
           await preloadImages([onDeckData, recentData])
-          
+
           setContinueWatching(onDeckData)
           setRecentMovies(recentData.filter(i => i.type === 'movie'))
           setRecentTv(recentData.filter(i => ['show', 'season', 'episode'].includes(i.type)))
         } else if (activeTab.type === 'library') {
           const libId = activeTab.data.id
           const allData = await getLibraryItems(serverInfo.uri, serverInfo.token, libId)
-          
+
           await preloadImages([allData])
-          
+
           setLibraryContent({ all: allData })
         }
       } catch (error) {
@@ -147,13 +172,13 @@ function ContentBrowserPage() {
 
   const renderCard = (item, rowIndex, colIndex, prefix) => {
     let isUnwatched = false;
-    
+
     // Never show the unwatched ribbon on items in the "Continue Watching" (cw) row,
     // or items that are partially watched (have a viewOffset).
     if (prefix !== 'cw') {
       if (item.type === 'show' || item.type === 'season') {
         // Use leafCount if available, otherwise fallback to checking if any views exist
-        isUnwatched = item.leafCount 
+        isUnwatched = item.leafCount
           ? ((item.viewedLeafCount || 0) < item.leafCount)
           : (!item.viewCount && !item.viewedLeafCount)
       } else {
@@ -168,6 +193,7 @@ function ContentBrowserPage() {
         rowIndex={rowIndex}
         colIndex={colIndex}
         onClick={() => handleItemClick(item)}
+        style={{ flexShrink: 0 }}
       >
         <div style={styles.card}>
           <FallbackImage
@@ -182,11 +208,11 @@ function ContentBrowserPage() {
           )}
           {item.viewOffset && item.duration && (
             <div style={styles.progressBarContainer}>
-              <div 
+              <div
                 style={{
-                  ...styles.progressBarFill, 
+                  ...styles.progressBarFill,
                   width: `${(item.viewOffset / item.duration) * 100}%`
-                }} 
+                }}
               />
             </div>
           )}
@@ -216,7 +242,11 @@ function ContentBrowserPage() {
       `}</style>
 
       {libraries.length > 0 && (
-        <NavigationBar libraries={libraries} activeTab={activeTab} onItemClick={handleNavClick} />
+        <NavigationBar
+          libraries={libraries}
+          activeTab={activeTab}
+          onItemClick={handleNavClick}
+        />
       )}
 
       {loading ? (
@@ -274,7 +304,6 @@ function ContentBrowserPage() {
                 <>
                   {libraryContent.all.length > 0 && (
                     <div style={styles.section}>
-                      <h2 style={styles.sectionTitle}>All {activeTab.data.title}</h2>
                       <div style={styles.grid}>
                         {libraryContent.all.map((item, index) => {
                           const rowIndex = Math.floor(index / ITEMS_PER_ROW) + 1
@@ -292,7 +321,7 @@ function ContentBrowserPage() {
           {activeTab.type === 'settings' && (
             <div style={styles.settingsContainer}>
               <h2 style={styles.sectionTitle}>Settings</h2>
-              
+
               <div style={styles.settingsSection}>
                 <h3 style={styles.settingsSubTitle}>Developer / Server</h3>
                 <div style={styles.settingItemRow}>
@@ -305,10 +334,10 @@ function ContentBrowserPage() {
 
               <div style={styles.settingsSection}>
                 <h3 style={styles.settingsSubTitle}>Appearance</h3>
-                
+
                 <div style={styles.settingItemRow}>
                   <div style={styles.settingLabel}>Show Unwatched Indicator</div>
-                  
+
                   <FocusableItem
                     id="toggle-unwatched"
                     rowIndex={0} // D-Pad navigation grid row
@@ -316,12 +345,37 @@ function ContentBrowserPage() {
                     onClick={() => {
                       const newValue = !showUnwatchedIndicator
                       setShowUnwatchedIndicator(newValue)
-                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, { showUnwatchedIndicator: newValue })
+                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                        showUnwatchedIndicator: newValue,
+                        showNotifications
+                      })
                     }}
                     className="setting-toggle"
                   >
                     <div style={styles.toggleCapsule}>
                       {showUnwatchedIndicator ? 'Enabled' : 'Disabled'}
+                    </div>
+                  </FocusableItem>
+                </div>
+                <div style={styles.settingItemRow}>
+                  <div style={styles.settingLabel}>Show System Notifications</div>
+
+                  <FocusableItem
+                    id="toggle-notifications"
+                    rowIndex={1}
+                    colIndex={0}
+                    onClick={() => {
+                      const newValue = !showNotifications
+                      setShowNotifications(newValue)
+                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                        showUnwatchedIndicator,
+                        showNotifications: newValue
+                      })
+                    }}
+                    className="setting-toggle"
+                  >
+                    <div style={styles.toggleCapsule}>
+                      {showNotifications ? 'Enabled' : 'Disabled'}
                     </div>
                   </FocusableItem>
                 </div>
@@ -367,33 +421,33 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.05)',
   },
   settingsSubTitle: {
-    fontSize: '24px',
-    color: '#aaa',
+    fontSize: '34px',
+    color: '#e5a00d',
     margin: 0,
-    fontWeight: '500',
-    textTransform: 'uppercase',
+    fontWeight: '600',
     letterSpacing: '1px',
   },
   settingItemRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '10px 0',
+    padding: '20px 0',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
   },
   settingLabel: {
-    fontSize: '22px',
+    fontSize: '28px',
     color: '#e8eaed',
   },
   toggleCapsule: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(20px) saturate(180%)',
     WebkitBackdropFilter: 'blur(20px) saturate(180%)',
     border: '1px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '9999px',
     padding: '12px 32px',
-    fontSize: '18px',
+    fontSize: '24px',
     fontWeight: '600',
-    minWidth: '140px',
+    minWidth: '160px',
     textAlign: 'center',
     transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
   },
@@ -425,18 +479,19 @@ const styles = {
     gap: '20px',
   },
   sectionTitle: {
-    fontSize: '32px',
+    fontSize: '42px',
     color: '#e8eaed',
     margin: 0,
     fontWeight: '600',
   },
   row: {
     display: 'flex',
+    flexWrap: 'nowrap',
     gap: '30px',
     overflowX: 'auto',
     padding: '30px', // Room for focus scale
     margin: '-10px -30px 0 -30px',
-    scrollbarWidth: 'none', 
+    scrollbarWidth: 'none',
     msOverflowStyle: 'none',
   },
   grid: {
@@ -451,6 +506,7 @@ const styles = {
     cursor: 'pointer',
     borderRadius: '12px',
     overflow: 'hidden',
+    flexShrink: 0,
   },
   poster: {
     width: '220px',
@@ -474,15 +530,15 @@ const styles = {
   },
   progressBarFill: {
     height: '100%',
-    background: '#e5a00d', 
+    background: '#e5a00d',
   },
   unwatchedRibbon: {
     position: 'absolute',
     top: '-24px',
     right: '-24px',
-    width: '48px',
-    height: '48px',
-    background: '#0078d7', 
+    width: '96px',
+    height: '96px',
+    background: '#0078d7',
     transform: 'rotate(45deg)',
     zIndex: 2,
     boxShadow: '0 0 10px rgba(0,0,0,0.7)',

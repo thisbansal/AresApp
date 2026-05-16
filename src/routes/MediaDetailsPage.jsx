@@ -115,16 +115,37 @@ function MediaDetailsPage() {
         }
       `}</style>
 
-      {/* Background Layer with blurred Art */}
-      <div
-        style={{
-          ...styles.backgroundArt,
-          backgroundImage: `url(${dynamicArt || item.art})`,
-          opacity: 1,
-          transition: 'background-image 0.5s ease-in-out'
-        }}
-      />
+      {/* Background Layer with Cross-fading Art */}
+      <div style={styles.backgroundContainer}>
+        <div
+          style={{
+            ...styles.backgroundArt,
+            backgroundImage: `url(${item.art})`,
+            opacity: dynamicArt ? 0 : 1,
+            zIndex: 1,
+          }}
+        />
+        {dynamicArt && (
+          <div
+            key={dynamicArt}
+            style={{
+              ...styles.backgroundArt,
+              backgroundImage: `url(${dynamicArt})`,
+              opacity: 1,
+              zIndex: 2,
+              animation: 'fadeInArt 0.8s ease-in-out'
+            }}
+          />
+        )}
+      </div>
       <div style={styles.backgroundOverlay} />
+
+      <style>{`
+        @keyframes fadeInArt {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
 
       {/* Content Layer (Apple TV Style) */}
       <div style={styles.contentWrapper}>
@@ -212,6 +233,14 @@ const styles = {
     border: 'none',
     borderRadius: '8px',
     cursor: 'pointer',
+  },
+  backgroundContainer: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
   },
   backgroundArt: {
     position: 'fixed',
@@ -315,7 +344,7 @@ const styles = {
     backgroundColor: 'rgba(255,255,255,0.15)',
     border: '1px solid rgba(255,255,255,0.3)',
     borderRadius: '6px',
-    fontSize: '16px',
+    fontSize: '24px',
     fontWeight: '500',
     backdropFilter: 'blur(10px)',
   },

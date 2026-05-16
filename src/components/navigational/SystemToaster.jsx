@@ -1,11 +1,13 @@
 import React from 'react'
 import { useNotificationStore } from '../../services/notifications/notificationStore'
+import { useBrowserStore } from '../../stores/browserStore'
 
 export function SystemToaster() {
   const notifications = useNotificationStore((state) => state.notifications)
   const removeNotification = useNotificationStore((state) => state.removeNotification)
+  const showNotifications = useBrowserStore((state) => state.showNotifications)
 
-  if (notifications.length === 0) return null
+  if (!showNotifications || notifications.length === 0) return null
 
   return (
     <div
