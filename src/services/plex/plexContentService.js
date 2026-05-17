@@ -87,6 +87,8 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
       parentTitle: item.parentTitle,
       index: item.index,
       parentIndex: item.parentIndex,
+      grandparentRatingKey: item.grandparentRatingKey,
+      parentRatingKey: item.parentRatingKey,
       // View state
       viewCount: item.viewCount,
       viewOffset: item.viewOffset,
@@ -135,6 +137,8 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
       parentTitle: item.parentTitle,
       index: item.index,
       parentIndex: item.parentIndex,
+      grandparentRatingKey: item.grandparentRatingKey,
+      parentRatingKey: item.parentRatingKey,
     }))
 
     return items
@@ -224,6 +228,8 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
       directors: item.Director?.map(d => d.tag) || [],
       writers: item.Writer?.map(w => w.tag) || [],
       actors: item.Role?.map(r => ({ name: r.tag, role: r.role, thumb: r.thumb })) || [],
+      grandparentRatingKey: item.grandparentRatingKey,
+      parentRatingKey: item.parentRatingKey,
       media: item.Media?.map(m => ({
         videoResolution: m.videoResolution,
         bitrate: m.bitrate,

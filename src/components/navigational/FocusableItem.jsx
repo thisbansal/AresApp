@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useFocusStore } from '../../stores/FocusStore';
 
-export function FocusableItem({ id, rowIndex, colIndex, children, onClick, onFocus, className = '' }) {
+export function FocusableItem({ id, rowIndex, colIndex, children, onClick, onFocus, className = '', style = {} }) {
   const elementRef = useRef(null);
   const { focusedId, registerItem, unregisterItem, focusItem, navigationMode } = useFocusStore();
   const isFocused = focusedId === id;
@@ -45,8 +45,8 @@ export function FocusableItem({ id, rowIndex, colIndex, children, onClick, onFoc
       style={{
         transform: isFocused ? 'scale(1.1)' : 'scale(1)',
         transition: 'transform 0.3s ease',
-        // outline: isFocused ? '4px solid white' : 'none',
         zIndex: isFocused ? 10 : 1,
+        ...style,
       }}
     >
       {children}

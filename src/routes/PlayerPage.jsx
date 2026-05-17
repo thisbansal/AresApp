@@ -5,6 +5,8 @@ import { getMainToken } from '../services/luna/tokenStorage'
 import { DB_KINDS, getData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { useNotificationStore } from '../services/notifications/notificationStore'
+import { useFocusStore } from '../stores/FocusStore'
+import { FocusableItem } from '../components/navigational/FocusableItem'
 
 // Video.js React integration
 import '@videojs/react/video/skin.css'
@@ -36,6 +38,12 @@ export default function PlayerPage() {
   // Real-time Fluid Scrolling States
   const [isScrolling, setIsScrolling] = useState(false)
   const [scrollTime, setScrollTime] = useState(0)
+
+  useEffect(() => {
+    if (!showHUD) {
+      useFocusStore.setState({ focusedId: null })
+    }
+  }, [showHUD])
 
   const videoRef = useRef(null)
   const hudTimeoutRef = useRef(null)
@@ -107,9 +115,7 @@ export default function PlayerPage() {
 
     const handleCursorStateChange = (e) => {
       const isVisible = e.detail.visibility
-      if (isVisible) {
-        triggerHUD()
-      } else {
+      if (!isVisible) {
         // Automatically hide the controls overlay when the system pointer fades out
         setShowHUD(false)
         if (document.activeElement) {
@@ -181,6 +187,7 @@ export default function PlayerPage() {
             if (document.activeElement) {
               document.activeElement.blur()
             }
+            useFocusStore.setState({ focusedId: null })
             if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
           } else {
             // Exit page only if HUD is already hidden
@@ -190,48 +197,101 @@ export default function PlayerPage() {
         return
       }
 
-      // Display HUD on any other button click
+      // Display HUD on any other button click (except Enter/Space which toggles play/pause directly without waking the HUD)
       if (e.type === 'keydown') {
-        triggerHUD()
+        if (!showHUD) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            const videoEl = getVideoElement()
+            if (videoEl) {
+              if (videoEl.paused) {
+                videoEl.play().catch(err => console.error('Play failed:', err))
+                useNotificationStore.getState().addNotification('Play', { level: 'success' })
+              } else {
+                videoEl.pause()
+                useNotificationStore.getState().addNotification('Pause', { level: 'success' })
+              }
+            }
+            return
+          }
+
+          triggerHUD()
+          useFocusStore.setState({ focusedId: 'player-play', lastRemoteAction: Date.now() })
+          
+          // Let arrow keys skip time on their initial press even when waking up the HUD
+          const videoEl = getVideoElement()
+          if (videoEl) {
+            if (e.key === 'ArrowLeft') {
+              videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
+              useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
+            } else if (e.key === 'ArrowRight') {
+              videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10)
+              useNotificationStore.getState().addNotification('Seek +10s', { level: 'info' })
+            }
+          }
+          e.preventDefault()
+          return
+        }
       }
 
       const videoEl = getVideoElement()
       if (!videoEl) return
 
       if (e.type === 'keydown') {
-        switch (e.key) {
-          case 'Enter':
-          case ' ':
-            e.preventDefault()
-            if (videoEl.paused) {
-              videoEl.play().catch(err => console.error('Play failed:', err))
-              useNotificationStore.getState().addNotification('Play', { level: 'success' })
-            } else {
-              videoEl.pause()
-              useNotificationStore.getState().addNotification('Pause', { level: 'success' })
-            }
-            break
-
-          case 'ArrowLeft':
-            e.preventDefault()
-            videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
-            useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
-            break
-
-          case 'ArrowRight':
-            e.preventDefault()
-            videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10)
-            useNotificationStore.getState().addNotification('Seek +10s', { level: 'info' })
-            break
-
-          default:
-            break
+        // If HUD is visible, let D-pad ArrowUp/ArrowDown navigate vertical buttons,
+        // and let ArrowLeft/ArrowRight skip playback directly (since there are no other buttons next to Play/Pause).
+        if (showHUD) {
+          switch (e.key) {
+            case 'ArrowLeft':
+              e.preventDefault()
+              if (videoEl) {
+                videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
+                useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
+              }
+              break
+            case 'ArrowRight':
+              e.preventDefault()
+              if (videoEl) {
+                videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10)
+                useNotificationStore.getState().addNotification('Seek +10s', { level: 'info' })
+              }
+              break
+            case 'ArrowUp':
+              e.preventDefault()
+              useFocusStore.setState({ lastRemoteAction: Date.now() })
+              useFocusStore.getState().navigate('up')
+              break
+            case 'ArrowDown':
+              e.preventDefault()
+              useFocusStore.setState({ lastRemoteAction: Date.now() })
+              useFocusStore.getState().navigate('down')
+              break
+            case 'Enter':
+            case ' ':
+              e.preventDefault()
+              useFocusStore.setState({ lastRemoteAction: Date.now() })
+              const focusedId = useFocusStore.getState().focusedId
+              const item = useFocusStore.getState().itemsRef.get(focusedId)
+              if (item && item.element) {
+                item.element.click()
+              } else {
+                // Fallback direct toggle
+                if (videoEl.paused) {
+                  videoEl.play().catch(err => console.error('Play failed:', err))
+                  useNotificationStore.getState().addNotification('Play', { level: 'success' })
+                } else {
+                  videoEl.pause()
+                  useNotificationStore.getState().addNotification('Pause', { level: 'success' })
+                }
+              }
+              break
+            default:
+              break
+          }
+          triggerHUD()
+          return
         }
       }
-    }
-
-    const handleMouseMove = () => {
-      triggerHUD()
     }
 
     const handleWheel = (e) => {
@@ -266,15 +326,11 @@ export default function PlayerPage() {
     // Register Back button capture listeners on window at highest capture-phase priority
     window.addEventListener('keydown', handleKeyDown, true)
     window.addEventListener('keyup', handleKeyDown, true)
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('pointermove', handleMouseMove)
     window.addEventListener('wheel', handleWheel, { passive: false })
     
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true)
       window.removeEventListener('keyup', handleKeyDown, true)
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('pointermove', handleMouseMove)
       window.removeEventListener('wheel', handleWheel)
       if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
       if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
@@ -422,7 +478,10 @@ export default function PlayerPage() {
   return (
     <div style={styles.container}>
       {/* Premium Translucent Glass Back Button */}
-      <button 
+      <FocusableItem 
+        id="player-back"
+        rowIndex={0}
+        colIndex={1}
         style={{
           ...styles.backButton,
           opacity: showHUD ? 1 : 0,
@@ -432,6 +491,10 @@ export default function PlayerPage() {
         onClick={() => {
           if (showHUD) {
             setShowHUD(false)
+            if (document.activeElement) {
+              document.activeElement.blur()
+            }
+            useFocusStore.setState({ focusedId: null })
           } else {
             navigate(-1)
           }
@@ -442,7 +505,7 @@ export default function PlayerPage() {
           <line x1="19" y1="12" x2="5" y2="12"></line>
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
-      </button>
+      </FocusableItem>
 
       {/* Video.js Provider (Raw clean Video element completely removing default black skin overlays) */}
       <Player.Provider>
@@ -503,8 +566,8 @@ export default function PlayerPage() {
               className="timeline-knob"
             />
             
-            {/* Floating seek target tooltip bubble directly below knob */}
-            {(isScrolling || isDragging) && (
+            {/* Floating seek target tooltip bubble directly below knob - only visible during scroll wheel seek */}
+            {isScrolling && (
               <div 
                 style={{
                   ...styles.knobTooltip,
@@ -521,47 +584,27 @@ export default function PlayerPage() {
 
         {/* Playback Buttons Row */}
         <div style={styles.hudControls}>
-          {/* Seek Back Button */}
-          <button 
-            style={styles.controlBtn} 
-            onClick={() => handleSeek('back')}
-            className="hud-control-btn"
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="1 4 1 10 7 10"></polyline>
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-            </svg>
-          </button>
-
-          {/* Center Play/Pause Toggle */}
-          <button 
+          {/* Capsule-style Continue/Pause Button */}
+          <FocusableItem 
+            id="player-play"
+            rowIndex={1}
+            colIndex={0}
             style={styles.playPauseBtn} 
             onClick={handlePlayPauseClick}
             className="hud-play-btn"
           >
             {isPlaying ? (
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="6" y="4" width="4" height="16"></rect>
                 <rect x="14" y="4" width="4" height="16"></rect>
               </svg>
             ) : (
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translateX(2px)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translateX(2px)' }}>
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
             )}
-          </button>
-
-          {/* Seek Forward Button */}
-          <button 
-            style={styles.controlBtn} 
-            onClick={() => handleSeek('forward')}
-            className="hud-control-btn"
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-          </button>
+            <span style={styles.capsuleLabel}>{isPlaying ? 'Pause' : 'Continue'}</span>
+          </FocusableItem>
         </div>
       </div>
 
@@ -575,9 +618,9 @@ export default function PlayerPage() {
           animation: spin 1s linear infinite;
         }
         .player-back-btn {
-          transition: background-color 0.25s ease, transform 0.2s ease, border-color 0.25s ease, opacity 0.35s ease, transform 0.35s ease;
+          transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, opacity 0.35s ease;
         }
-        .player-back-btn:hover, .player-back-btn:focus {
+        .player-back-btn.focused, .player-back-btn:hover {
           background-color: rgba(255, 255, 255, 0.25) !important;
           border-color: rgba(255, 255, 255, 0.5) !important;
           transform: scale(1.08) !important;
@@ -597,34 +640,22 @@ export default function PlayerPage() {
           height: 24px !important;
           transform: translateX(-50%) scale(1.1) !important;
         }
-        .hud-control-btn {
-          transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
-        }
-        .hud-control-btn:hover, .hud-control-btn:focus {
-          background-color: rgba(255, 255, 255, 0.15) !important;
-          border-color: rgba(255, 255, 255, 0.4) !important;
-          transform: scale(1.08);
-          outline: none;
-        }
-        .hud-control-btn:active {
-          transform: scale(0.95);
-        }
         .hud-play-btn {
           transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
         }
-        .hud-play-btn:hover, .hud-play-btn:focus {
-          background-color: #ffffff !important;
-          border-color: #ffffff !important;
-          box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
-          transform: scale(1.1);
+        .hud-play-btn.focused, .hud-play-btn:hover {
+          background-color: rgba(255, 255, 255, 0.25) !important;
+          border-color: rgba(255, 255, 255, 0.5) !important;
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+          transform: scale(1.08) !important;
           outline: none;
         }
-        .hud-play-btn:hover svg, .hud-play-btn:focus svg {
-          fill: #000000 !important;
-          stroke: #000000 !important;
+        .hud-play-btn.focused svg, .hud-play-btn:hover svg {
+          fill: #ffffff !important;
+          stroke: #ffffff !important;
         }
         .hud-play-btn:active {
-          transform: scale(0.95);
+          transform: scale(0.95) !important;
         }
         video {
           width: 100% !important;
@@ -765,7 +796,7 @@ const styles = {
   timelineTrack: {
     flex: 1,
     height: '12px',
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    backgroundColor: '#2e2e34', // Elegant dark grey seek bar track
     borderRadius: '6px',
     position: 'relative',
     cursor: 'pointer',
@@ -775,18 +806,18 @@ const styles = {
   },
   timelineFill: {
     height: '100%',
-    backgroundColor: '#ffffff', // Clean white theme
+    backgroundColor: '#a8a8af', // Elegant light grey progress fill
     borderRadius: '6px',
-    boxShadow: '0 0 14px rgba(255, 255, 255, 0.75)',
+    boxShadow: '0 0 8px rgba(255, 255, 255, 0.15)',
   },
   timelineKnob: {
     position: 'absolute',
     width: '20px',
     height: '20px',
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff', // Pure white knob
     borderRadius: '50%',
     transform: 'translateX(-50%)',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+    boxShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 2px 8px rgba(0,0,0,0.5)', // Strong white outer glow to make it stand out beautifully!
     pointerEvents: 'none',
     transition: 'width 0.15s ease, height 0.15s ease, transform 0.15s ease',
   },
@@ -810,9 +841,9 @@ const styles = {
   },
   hudControls: {
     display: 'flex',
-    justifyContent: 'center',
+    justifyContent: 'flex-start', // Align continue capsule button to the left corner
     alignItems: 'center',
-    gap: '30px',
+    marginTop: '10px',
   },
   controlBtn: {
     width: '60px',
@@ -827,15 +858,24 @@ const styles = {
     backdropFilter: 'blur(10px)',
   },
   playPauseBtn: {
-    width: '76px',
-    height: '76px',
-    borderRadius: '50%',
+    padding: '14px 28px',
+    borderRadius: '9999px', // Pill capsule shape
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     border: '1.5px solid rgba(255, 255, 255, 0.25)',
     display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: '12px',
     cursor: 'pointer',
-    backdropFilter: 'blur(10px)',
+    backdropFilter: 'blur(15px)',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.35)',
+  },
+  capsuleLabel: {
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#ffffff',
+    fontFamily: "'Outfit', 'Inter', sans-serif",
+    letterSpacing: '-0.3px',
   }
 }

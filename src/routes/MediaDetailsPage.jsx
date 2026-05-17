@@ -93,6 +93,18 @@ function MediaDetailsPage() {
         }
 
         const metadata = await getMetadata(uri, token, ratingKey)
+        
+        // Unified Details: Redirect season/episode views to the main parent/grandparent Show details page
+        if (metadata.type === 'episode' && metadata.grandparentRatingKey) {
+          console.log(`[MediaDetailsPage] Unified Redirect: episode ${ratingKey} -> show ${metadata.grandparentRatingKey}`)
+          navigate(`/details/${metadata.grandparentRatingKey}`, { replace: true, state: { serverInfo } })
+          return
+        } else if (metadata.type === 'season' && metadata.parentRatingKey) {
+          console.log(`[MediaDetailsPage] Unified Redirect: season ${ratingKey} -> show ${metadata.parentRatingKey}`)
+          navigate(`/details/${metadata.parentRatingKey}`, { replace: true, state: { serverInfo } })
+          return
+        }
+
         setItem(metadata)
       } catch (error) {
         console.error('[MediaDetailsPage] Error fetching metadata:', error)

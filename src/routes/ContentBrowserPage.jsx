@@ -186,7 +186,13 @@ function ContentBrowserPage() {
 
   const handleItemClick = (item) => {
     console.log('Selected item:', item)
-    navigate(`/details/${item.id}`, { state: { serverInfo } })
+    let targetId = item.id
+    if (item.type === 'episode' && item.grandparentRatingKey) {
+      targetId = item.grandparentRatingKey
+    } else if (item.type === 'season' && item.parentRatingKey) {
+      targetId = item.parentRatingKey
+    }
+    navigate(`/details/${targetId}`, { state: { serverInfo } })
   }
 
   const handleToggleWatched = async (item) => {
@@ -632,7 +638,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '6px',
-    marginBottom: '35px',
+    marginBottom: '10px',
   },
   sectionTitle: {
     fontSize: '34px',
