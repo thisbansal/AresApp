@@ -500,13 +500,15 @@ const styles = {
   section: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '6px',
   },
   sectionTitle: {
-    fontSize: '42px',
-    color: '#e8eaed',
+    fontSize: '34px',
+    color: '#a8a8af',
     margin: 0,
-    fontWeight: '600',
+    fontWeight: '500',
+    fontFamily: "'Outfit', 'Inter', -apple-system, sans-serif",
+    letterSpacing: '-0.3px',
   },
   row: {
     display: 'flex',

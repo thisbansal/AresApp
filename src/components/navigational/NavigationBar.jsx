@@ -128,7 +128,8 @@ const styles = {
   textContainer: {
     padding: '12px 24px',
     fontSize: '28px',
-    fontWeight: '600',
+    fontWeight: '500',
+    fontFamily: "'Outfit', 'Inter', -apple-system, sans-serif",
     whiteSpace: 'nowrap',
   }
 };
