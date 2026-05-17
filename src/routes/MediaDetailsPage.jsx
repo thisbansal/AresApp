@@ -4,6 +4,7 @@ import { getMainToken } from '../services/luna/tokenStorage'
 import { DB_KINDS, getData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { getMetadata, formatDuration } from '../services/plex/plexContentService'
+import { useFocusStore } from '../stores/FocusStore'
 
 import MovieDetails from '../components/media/MovieDetails'
 import ShowDetails from '../components/media/ShowDetails'
@@ -20,9 +21,36 @@ function MediaDetailsPage() {
   const [item, setItem] = useState(null)
   const [serverInfo, setServerInfo] = useState(location.state?.serverInfo || null)
 
-  // Dynamic background and summary (Apple TV style)
   const [dynamicArt, setDynamicArt] = useState(null)
   const [dynamicSummary, setDynamicSummary] = useState(null)
+
+  // Global Input Locking & Mode Management on Details view
+  useEffect(() => {
+    const handleGlobalMouseMove = () => {
+      const { navigationMode } = useFocusStore.getState()
+      if (navigationMode !== 'cursor') {
+        useFocusStore.setState({ navigationMode: 'cursor' })
+      }
+    }
+
+    const handleGlobalWheel = () => {
+      // Wheel use locks out D-pad focus auto-scroll to prevent fighting
+      useFocusStore.setState({ lastRemoteAction: Date.now() })
+      if (window.lockVerticalScroll) {
+        window.lockVerticalScroll()
+      }
+    }
+
+    window.addEventListener('mousemove', handleGlobalMouseMove)
+    window.addEventListener('wheel', handleGlobalWheel)
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove)
+      window.removeEventListener('wheel', handleGlobalWheel)
+      if (window.unlockVerticalScroll) {
+        window.unlockVerticalScroll()
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -244,14 +272,12 @@ const styles = {
   },
   backgroundArt: {
     position: 'fixed',
-    top: '-5%',
-    left: '-5%',
-    right: '-5%',
-    bottom: '-5%',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    filter: 'blur(40px)',
-    transform: 'scale(1.1)', // Prevents blurred edges from showing background color
     zIndex: 1,
   },
   backgroundOverlay: {
@@ -260,8 +286,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(20, 20, 20, 0.7)', // Dark overlay for text readability
-    backgroundImage: 'linear-gradient(to right, rgba(20,20,20,0.9) 0%, rgba(20,20,20,0.5) 100%)',
+    backgroundImage: 'linear-gradient(to right, #141414 0%, rgba(20, 20, 20, 0.95) 30%, rgba(20, 20, 20, 0.8) 60%, rgba(20, 20, 20, 0.25) 100%)',
     zIndex: 2,
   },
   contentWrapper: {
@@ -269,7 +294,7 @@ const styles = {
     zIndex: 3,
     display: 'flex',
     minHeight: '100vh',
-    padding: '80px 0 80px 80px', // No padding on the right
+    padding: '80px 80px 80px 80px',
     gap: '60px',
   },
   leftColumn: {
@@ -302,12 +327,10 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'flex-start',
-    paddingRight: '0', // Allow content to bleed off edge for "peek"
     minWidth: 0,
   },
   metaHeader: {
     marginBottom: '20px',
-    paddingRight: '80px', // Keep header text away from edge
   },
   title: {
     fontSize: '64px',
@@ -341,12 +364,11 @@ const styles = {
   },
   badge: {
     padding: '4px 10px',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    border: '1px solid rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
     borderRadius: '6px',
     fontSize: '24px',
     fontWeight: '500',
-    backdropFilter: 'blur(10px)',
   },
   dynamicContent: {
     flex: 1,

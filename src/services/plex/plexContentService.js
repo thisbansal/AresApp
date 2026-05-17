@@ -305,3 +305,41 @@ export const formatDuration = (ms) => {
   }
   return `${minutes}m`
 }
+
+/**
+ * Mark a specific item as watched (scrobble) on Plex
+ */
+export const markAsWatched = async (serverUri, token, ratingKey) => {
+  try {
+    const url = `${serverUri}/:/scrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library&X-Plex-Token=${token}`
+    console.log('🎬 [markAsWatched] Scrobbling item:', ratingKey)
+    const response = await fetch(url, { method: 'GET' })
+    if (!response.ok) {
+      throw new Error(`Failed to mark as watched: ${response.status}`)
+    }
+    return true
+  } catch (error) {
+    console.error('Error scrobbling item:', error)
+    useNotificationStore.getState().addNotification(`Error scrobbling item: ${error.message}`, { level: 'dev' })
+    throw error
+  }
+}
+
+/**
+ * Mark a specific item as unwatched (unscrobble) on Plex
+ */
+export const markAsUnwatched = async (serverUri, token, ratingKey) => {
+  try {
+    const url = `${serverUri}/:/unscrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library&X-Plex-Token=${token}`
+    console.log('🎬 [markAsUnwatched] Unscrobbling item:', ratingKey)
+    const response = await fetch(url, { method: 'GET' })
+    if (!response.ok) {
+      throw new Error(`Failed to mark as unwatched: ${response.status}`)
+    }
+    return true
+  } catch (error) {
+    console.error('Error unscrobbling item:', error)
+    useNotificationStore.getState().addNotification(`Error unscrobbling item: ${error.message}`, { level: 'dev' })
+    throw error
+  }
+}

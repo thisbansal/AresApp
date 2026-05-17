@@ -1,6 +1,5 @@
 import React from 'react'
 import ActionButtons from './ActionButtons'
-import CastScroller from './CastScroller'
 
 export default function MovieDetails({ item, serverInfo, onFocusItem }) {
   const handlePlay = () => {
@@ -25,8 +24,6 @@ export default function MovieDetails({ item, serverInfo, onFocusItem }) {
       )}
 
       <ActionButtons onPlay={handlePlay} />
-
-      <CastScroller cast={item.actors} onFocusItem={onFocusItem} />
     </div>
   )
 }

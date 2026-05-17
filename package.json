@@ -9,11 +9,13 @@
     "preview": "vite preview",
     "start-remote": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp --open",
     "start": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp",
-    "install": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk"
+    "install": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.2",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.1.6"
   },
   "dependencies": {
     "@enact/webos": "^5.4.2",
