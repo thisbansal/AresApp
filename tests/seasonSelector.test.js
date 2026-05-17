@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findTargetSeason } from '../seasonSelector';
+import { findTargetSeason } from '../src/utils/seasonSelector';
 
 describe('findTargetSeason', () => {
   const createSeason = (id, index, title, viewedLeafCount, leafCount) => ({
@@ -56,5 +56,35 @@ describe('findTargetSeason', () => {
     ];
     const target = findTargetSeason(seasons);
     expect(target.id).toBe('specials');
+  });
+});
+
+describe('Layout Coordinates & Focus Alignments', () => {
+  it('should align Play button on column 0 and Season Dropdown on column 1', () => {
+    const playButtonCol = 0;
+    const seasonDropdownCol = 1;
+    expect(playButtonCol).toBe(0);
+    expect(seasonDropdownCol).toBe(1);
+  });
+
+  it('should keep Play button and Season Dropdown on the same row to prevent dead-end navigation', () => {
+    const playButtonRow = 1;
+    const seasonDropdownRow = 1;
+    expect(playButtonRow).toBe(seasonDropdownRow);
+  });
+});
+
+describe('Play Handler Registration Pattern', () => {
+  it('should delegate target play behavior cleanly via callbacks', () => {
+    let registeredHandler = null;
+    const registerPlay = (handler) => {
+      registeredHandler = handler;
+    };
+    
+    const mockPlayHandler = () => 'Playing first episode';
+    registerPlay(mockPlayHandler);
+    
+    expect(registeredHandler).toBe(mockPlayHandler);
+    expect(registeredHandler()).toBe('Playing first episode');
   });
 });

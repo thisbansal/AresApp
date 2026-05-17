@@ -31,18 +31,22 @@ export const useFocusStore = create((set, get) => ({
 
       requestAnimationFrame(() => {
         // Vertical scroll (page)
-        const rowElement = item.element.closest('.row');
+        const { navigationMode } = get();
+        if (navigationMode === 'remote') {
+          const itemElement = item.element;
+          if (itemElement) {
+            const itemRect = itemElement.getBoundingClientRect();
+            // A card is visible if its entire vertical span fits within viewport margins (e.g. 100px from top and bottom)
+            const isItemVisible = itemRect.top >= 100 && itemRect.bottom <= window.innerHeight - 100;
 
-        if (rowElement) {
-          const rowRect = rowElement.getBoundingClientRect();
-          const isRowVisible = rowRect.top >= -100 && rowRect.bottom <= window.innerHeight + 100;
+            if (!isItemVisible) {
+              const scrollTarget = document.scrollingElement || document.documentElement;
+              // Center the focused item vertically in the viewport
+              const targetScrollTop = scrollTarget.scrollTop + itemRect.top - (window.innerHeight / 2) + (itemRect.height / 2);
 
-          if (!isRowVisible) {
-            const scrollTarget = document.scrollingElement || document.documentElement;
-            const targetScrollTop = scrollTarget.scrollTop + rowRect.top - (window.innerHeight / 3);
-
-            if (window.setScrollTarget) {
-              window.setScrollTarget(targetScrollTop);
+              if (window.setScrollTarget) {
+                window.setScrollTarget(targetScrollTop);
+              }
             }
           }
         }

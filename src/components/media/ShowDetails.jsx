@@ -7,7 +7,7 @@ import { FallbackImage } from './FallbackImage'
 import { useNotificationStore } from '../../services/notifications/notificationStore'
 import { findTargetSeason } from '../../utils/seasonSelector'
 
-export default function ShowDetails({ item, serverInfo, onFocusItem }) {
+export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterPlay }) {
   const navigate = useNavigate()
   const [seasons, setSeasons] = useState([])
   const [activeSeasonId, setActiveSeasonId] = useState(null)
@@ -63,6 +63,17 @@ export default function ShowDetails({ item, serverInfo, onFocusItem }) {
       handleEpisodeClick(episodes[0])
     }
   }
+
+  useEffect(() => {
+    if (onRegisterPlay) {
+      onRegisterPlay(handlePlay)
+    }
+    return () => {
+      if (onRegisterPlay) {
+        onRegisterPlay(null)
+      }
+    }
+  }, [episodes, onRegisterPlay])
 
   const handleEpisodeClick = (episode) => {
     console.log('Play episode:', episode.title)
@@ -138,13 +149,6 @@ export default function ShowDetails({ item, serverInfo, onFocusItem }) {
 
   return (
     <div style={styles.container}>
-      <div style={styles.meta}>
-        <div style={styles.metaItem}><span style={styles.metaLabel}>Studio:</span> {item.studio}</div>
-        <div style={styles.metaItem}><span style={styles.metaLabel}>Genre:</span> {item.genres?.join(', ')}</div>
-      </div>
-
-      <ActionButtons onPlay={handlePlay} onMore={() => console.log('More info')} />
-
       {/* Row 1: Season Dropdown / Label */}
       {seasons.length > 0 && (
         <div style={styles.dropdownContainer} className="row">
@@ -153,7 +157,7 @@ export default function ShowDetails({ item, serverInfo, onFocusItem }) {
               <FocusableItem
                 id="season-dropdown-btn"
                 rowIndex={1}
-                colIndex={0}
+                colIndex={1}
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="season-dropdown-btn"
               >
@@ -173,7 +177,7 @@ export default function ShowDetails({ item, serverInfo, onFocusItem }) {
                       key={season.id}
                       id={`season-option-${season.id}`}
                       rowIndex={2 + index}
-                      colIndex={0}
+                      colIndex={1}
                       onClick={() => handleSeasonSelect(season)}
                       className="season-dropdown-item"
                     >

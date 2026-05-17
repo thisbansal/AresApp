@@ -1,12 +1,12 @@
 import React from 'react'
 import { FocusableItem } from '../navigational/FocusableItem'
 
-export default function ActionButtons({ onPlay, onMore, onFocus }) {
+export default function ActionButtons({ onPlay, onMore, onFocus, rowIndex = 0 }) {
   return (
     <div style={styles.container}>
       <FocusableItem
         id="btn-play"
-        rowIndex={0}
+        rowIndex={rowIndex}
         colIndex={0}
         onClick={onPlay}
         onFocus={onFocus}
@@ -20,7 +20,7 @@ export default function ActionButtons({ onPlay, onMore, onFocus }) {
       {onMore && (
         <FocusableItem
           id="btn-more"
-          rowIndex={0}
+          rowIndex={rowIndex}
           colIndex={1}
           onClick={onMore}
           onFocus={onFocus}

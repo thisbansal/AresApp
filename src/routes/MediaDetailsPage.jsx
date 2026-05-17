@@ -11,6 +11,7 @@ import ShowDetails from '../components/media/ShowDetails'
 import SeasonDetails from '../components/media/SeasonDetails'
 import EpisodeDetails from '../components/media/EpisodeDetails'
 import { FallbackImage } from '../components/media/FallbackImage'
+import ActionButtons from '../components/media/ActionButtons'
 
 function MediaDetailsPage() {
   const { ratingKey } = useParams()
@@ -23,6 +24,7 @@ function MediaDetailsPage() {
 
   const [dynamicArt, setDynamicArt] = useState(null)
   const [dynamicSummary, setDynamicSummary] = useState(null)
+  const [playHandler, setPlayHandler] = useState(null)
 
   // Global Input Locking & Mode Management on Details view
   useEffect(() => {
@@ -87,10 +89,8 @@ function MediaDetailsPage() {
   const handleFocusItem = (focusedItem) => {
     if (focusedItem) {
       if (focusedItem.art) setDynamicArt(focusedItem.art);
-      if (focusedItem.summary) setDynamicSummary(focusedItem.summary);
     } else {
       setDynamicArt(item.art);
-      setDynamicSummary(null);
     }
   }
 
@@ -117,7 +117,7 @@ function MediaDetailsPage() {
       case 'movie':
         return <MovieDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       case 'show':
-        return <ShowDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
+        return <ShowDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} onRegisterPlay={(handler) => setPlayHandler(() => handler)} />
       case 'season':
         return <SeasonDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       case 'episode':
@@ -179,6 +179,11 @@ function MediaDetailsPage() {
       <div style={styles.contentWrapper}>
         <div style={styles.leftColumn}>
           <FallbackImage src={item.thumb} alt={item.title} style={styles.poster} />
+          {item.type === 'show' && playHandler && (
+            <div style={styles.leftColumnButtons}>
+              <ActionButtons onPlay={playHandler} rowIndex={1} />
+            </div>
+          )}
         </div>
 
         <div style={styles.rightColumn}>
@@ -226,7 +231,6 @@ const styles = {
     position: 'relative',
     backgroundColor: '#141414',
     color: '#fff',
-    overflowY: 'auto',
     overflowX: 'hidden',
   },
   loadingContainer: {
@@ -309,6 +313,12 @@ const styles = {
     objectFit: 'cover',
     borderRadius: '16px',
     boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+  },
+  leftColumnButtons: {
+    marginTop: '20px',
+    display: 'flex',
+    justifyContent: 'center',
+    width: '100%',
   },
   posterPlaceholder: {
     width: '400px',
