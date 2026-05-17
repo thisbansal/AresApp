@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { DB_KINDS, getData } from '../services/luna/lunaService'
@@ -41,6 +41,10 @@ function MediaDetailsPage() {
   const [serverInfo, setServerInfo] = useState(location.state?.serverInfo || null)
 
   const [playHandler, setPlayHandler] = useState(null)
+
+  const handleRegisterPlay = useCallback((handler) => {
+    setPlayHandler(() => handler)
+  }, [])
 
   // Global Input Locking & Mode Management on Details view
   useEffect(() => {
@@ -125,7 +129,7 @@ function MediaDetailsPage() {
       case 'movie':
         return <MovieDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       case 'show':
-        return <ShowDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} onRegisterPlay={(handler) => setPlayHandler(() => handler)} />
+        return <ShowDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} onRegisterPlay={handleRegisterPlay} />
       case 'season':
         return <SeasonDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       case 'episode':

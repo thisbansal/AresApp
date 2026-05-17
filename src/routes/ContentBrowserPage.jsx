@@ -7,9 +7,10 @@ import { getMainToken } from '../services/luna/tokenStorage'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { getServers, getBestServerConnection, testConnectionToServer } from '../services/plex/plexAPIServer'
-import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
+import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems, markAsWatched, markAsUnwatched } from '../services/plex/plexContentService'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useBrowserStore } from '../stores/browserStore'
+import { useFocusStore } from '../stores/FocusStore'
 
 function ContentBrowserPage() {
   const navigate = useNavigate()
@@ -188,6 +189,75 @@ function ContentBrowserPage() {
     navigate(`/details/${item.id}`, { state: { serverInfo } })
   }
 
+  const handleToggleWatched = async (item) => {
+    try {
+      if (!serverInfo?.uri || !serverInfo?.token) return
+
+      let isCurrentlyWatched = false
+      if (item.type === 'show' || item.type === 'season') {
+        isCurrentlyWatched = item.leafCount
+          ? ((item.viewedLeafCount || 0) === item.leafCount)
+          : (Number(item.viewCount || 0) > 0 || Number(item.viewedLeafCount || 0) > 0)
+      } else {
+        isCurrentlyWatched = Number(item.viewCount || 0) > 0
+      }
+
+      if (isCurrentlyWatched) {
+        // Mark as Unwatched
+        await markAsUnwatched(serverInfo.uri, serverInfo.token, item.id)
+
+        // Helper to update local store items
+        const updateItem = (i) => {
+          if (i.id === item.id) {
+            return {
+              ...i,
+              viewCount: 0,
+              viewedLeafCount: 0,
+              viewOffset: 0
+            }
+          }
+          return i
+        }
+
+        setContinueWatching((continueWatching || []).map(updateItem))
+        setRecentMovies((recentMovies || []).map(updateItem))
+        setRecentTv((recentTv || []).map(updateItem))
+        setLibraryContent({
+          all: (libraryContent.all || []).map(updateItem)
+        })
+
+        useNotificationStore.getState().addNotification(`Marked as unwatched: ${item.title}`, { level: 'success' })
+      } else {
+        // Mark as Watched
+        await markAsWatched(serverInfo.uri, serverInfo.token, item.id)
+
+        // Helper to update local store items
+        const updateItem = (i) => {
+          if (i.id === item.id) {
+            return {
+              ...i,
+              viewCount: 1,
+              viewedLeafCount: i.leafCount || 1,
+              viewOffset: 0
+            }
+          }
+          return i
+        }
+
+        setContinueWatching((continueWatching || []).map(updateItem))
+        setRecentMovies((recentMovies || []).map(updateItem))
+        setRecentTv((recentTv || []).map(updateItem))
+        setLibraryContent({
+          all: (libraryContent.all || []).map(updateItem)
+        })
+
+        useNotificationStore.getState().addNotification(`Marked as watched: ${item.title}`, { level: 'success' })
+      }
+    } catch (err) {
+      console.error('Failed to toggle watched state:', err)
+    }
+  }
+
   const handleNavClick = (navItem) => {
     setActiveTab(navItem)
   }
@@ -225,12 +295,43 @@ function ContentBrowserPage() {
             loading="lazy"
             decoding="async"
           />
-          {showUnwatchedIndicator && isUnwatched && (
-            <div style={styles.unwatchedRibbon}>
-              <div style={styles.unwatchedDot} />
-            </div>
+          {showUnwatchedIndicator && prefix !== 'cw' && (
+            isUnwatched ? (
+              <div 
+                style={styles.unwatchedEpisodeRibbon} 
+                className="unwatched-episode-ribbon"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleToggleWatched(item)
+                }}
+              >
+                {/* Tick checkmark (Shown on hover/cursor) */}
+                <svg className="unwatched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }}>
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            ) : (
+              <div 
+                style={styles.watchedRibbon} 
+                className="watched-ribbon"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleToggleWatched(item)
+                }}
+              >
+                {/* Tick checkmark (Shown by default) */}
+                <svg className="watched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }}>
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                {/* Cross X (Shown on hover) */}
+                <svg className="watched-cross" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'none', transform: 'rotate(-45deg)', marginBottom: '6px' }}>
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </div>
+            )
           )}
-          {item.viewOffset && item.duration && (
+          {!!item.viewOffset && item.duration && (
             <div style={styles.progressBarContainer}>
               <div
                 style={{
@@ -262,6 +363,36 @@ function ContentBrowserPage() {
         }
         .setting-toggle[style] {
           transform: scale(1) !important;
+        }
+        .watched-ribbon {
+          transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+        }
+        .watched-ribbon:hover {
+          background-color: rgba(255, 115, 0, 0.8) !important;
+          border-color: rgba(255, 115, 0, 0.95) !important;
+          cursor: pointer;
+          transform: rotate(45deg) scale(1.05) !important;
+        }
+        .watched-ribbon:hover .watched-tick {
+          display: none !important;
+        }
+        .watched-ribbon:hover .watched-cross {
+          display: block !important;
+        }
+        .unwatched-episode-ribbon {
+          transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+        }
+        .unwatched-episode-ribbon:hover {
+          background-color: rgba(140, 140, 140, 0.75) !important;
+          border-color: rgba(255, 255, 255, 0.9) !important;
+          cursor: pointer;
+          transform: rotate(45deg) scale(1.05) !important;
+        }
+        .unwatched-episode-ribbon .unwatched-tick {
+          display: none !important;
+        }
+        .unwatched-episode-ribbon:hover .unwatched-tick {
+          display: block !important;
         }
       `}</style>
 
@@ -559,29 +690,37 @@ const styles = {
     height: '100%',
     background: '#e5a00d',
   },
-  unwatchedRibbon: {
+  watchedRibbon: {
     position: 'absolute',
     top: '-70px',
     right: '-70px',
     width: '140px',
     height: '140px',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    border: '3px solid rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(229, 160, 13, 0.45)',
+    border: '1.5px solid rgba(229, 160, 13, 0.6)',
     transform: 'rotate(45deg)',
-    zIndex: 2,
+    zIndex: 5,
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'center',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+    paddingBottom: '16px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
   },
-  unwatchedDot: {
-    width: '24px',
-    height: '24px',
-    backgroundColor: '#0089ff', // Vibrant Navbar Blue
-    borderRadius: '50%',
-    boxShadow: '0 0 25px rgba(0, 137, 255, 1)',
-    marginTop: '70px', // Center the dot relative to the visible part of the ribbon
-    border: '3px solid rgba(255,255,255,0.6)',
+  unwatchedEpisodeRibbon: {
+    position: 'absolute',
+    top: '-70px',
+    right: '-70px',
+    width: '140px',
+    height: '140px',
+    backgroundColor: 'rgba(90, 90, 90, 0.45)',
+    border: '1.5px solid rgba(150, 150, 150, 0.6)',
+    transform: 'rotate(45deg)',
+    zIndex: 5,
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingBottom: '16px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
   }
 }
 

@@ -6,9 +6,11 @@ import { getChildren, markAsUnwatched, markAsWatched } from '../../services/plex
 import { FallbackImage } from './FallbackImage'
 import { useNotificationStore } from '../../services/notifications/notificationStore'
 import { findTargetSeason } from '../../utils/seasonSelector'
+import { useBrowserStore } from '../../stores/browserStore'
 
 export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterPlay }) {
   const navigate = useNavigate()
+  const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const [seasons, setSeasons] = useState([])
   const [activeSeasonId, setActiveSeasonId] = useState(null)
   const [episodes, setEpisodes] = useState([])
@@ -226,25 +228,41 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
                   <div style={styles.episodeInner}>
                     <div style={styles.episodeThumbContainer} className="episode-thumb-container">
                       <FallbackImage src={episode.thumb} alt={episode.title} style={styles.episodeThumb} loading="lazy" />
-                      {Number(episode.viewCount || 0) > 0 && (
-                        <div 
-                          style={styles.watchedRibbon} 
-                          className="watched-ribbon"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleToggleWatched(episode)
-                          }}
-                        >
-                          {/* Tick checkmark (Shown by default) */}
-                          <svg className="watched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }}>
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                          {/* Cross X (Shown on hover) */}
-                          <svg className="watched-cross" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'none', transform: 'rotate(-45deg)', marginBottom: '6px' }}>
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                          </svg>
-                        </div>
+                      {showUnwatchedIndicator && (
+                        Number(episode.viewCount || 0) > 0 ? (
+                          <div 
+                            style={styles.watchedRibbon} 
+                            className="watched-ribbon"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleToggleWatched(episode)
+                            }}
+                          >
+                            {/* Tick checkmark (Shown by default) */}
+                            <svg className="watched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }}>
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            {/* Cross X (Shown on hover) */}
+                            <svg className="watched-cross" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'none', transform: 'rotate(-45deg)', marginBottom: '6px' }}>
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </div>
+                        ) : (
+                          <div 
+                            style={styles.unwatchedEpisodeRibbon} 
+                            className="unwatched-episode-ribbon"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleToggleWatched(episode)
+                            }}
+                          >
+                            {/* Tick checkmark (Shown on hover/cursor) */}
+                            <svg className="unwatched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }}>
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </div>
+                        )
                       )}
                     </div>
                     <div style={styles.episodeMeta}>
@@ -298,8 +316,8 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
           transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
         }
         .watched-ribbon:hover {
-          background-color: rgba(255, 59, 48, 0.8) !important;
-          border-color: rgba(255, 59, 48, 0.95) !important;
+          background-color: rgba(255, 115, 0, 0.8) !important;
+          border-color: rgba(255, 115, 0, 0.95) !important;
           cursor: pointer;
           transform: rotate(45deg) scale(1.05) !important;
         }
@@ -307,6 +325,21 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
           display: none !important;
         }
         .watched-ribbon:hover .watched-cross {
+          display: block !important;
+        }
+        .unwatched-episode-ribbon {
+          transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+        }
+        .unwatched-episode-ribbon:hover {
+          background-color: rgba(140, 140, 140, 0.75) !important;
+          border-color: rgba(255, 255, 255, 0.9) !important;
+          cursor: pointer;
+          transform: rotate(45deg) scale(1.05) !important;
+        }
+        .unwatched-episode-ribbon .unwatched-tick {
+          display: none !important;
+        }
+        .unwatched-episode-ribbon:hover .unwatched-tick {
           display: block !important;
         }
       `}</style>
@@ -439,8 +472,24 @@ const styles = {
     right: '-70px',
     width: '140px',
     height: '140px',
-    backgroundColor: 'rgba(0, 209, 102, 0.45)',
-    border: '1.5px solid rgba(0, 209, 102, 0.6)',
+    backgroundColor: 'rgba(229, 160, 13, 0.45)',
+    border: '1.5px solid rgba(229, 160, 13, 0.6)',
+    transform: 'rotate(45deg)',
+    zIndex: 5,
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingBottom: '16px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+  },
+  unwatchedEpisodeRibbon: {
+    position: 'absolute',
+    top: '-70px',
+    right: '-70px',
+    width: '140px',
+    height: '140px',
+    backgroundColor: 'rgba(90, 90, 90, 0.45)',
+    border: '1.5px solid rgba(150, 150, 150, 0.6)',
     transform: 'rotate(45deg)',
     zIndex: 5,
     display: 'flex',
