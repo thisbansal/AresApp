@@ -101,6 +101,58 @@ export default function PlayerPage() {
     fetchStreamDetails()
   }, [ratingKey, navigate])
 
+  // Sync controls HUD visibility with native webOS cursorStateChange events
+  useEffect(() => {
+    if (loading) return
+
+    const handleCursorStateChange = (e) => {
+      const isVisible = e.detail.visibility
+      if (isVisible) {
+        triggerHUD()
+      } else {
+        // Automatically hide the controls overlay when the system pointer fades out
+        setShowHUD(false)
+        if (document.activeElement) {
+          document.activeElement.blur()
+        }
+      }
+    }
+
+    document.addEventListener('cursorStateChange', handleCursorStateChange)
+    return () => {
+      document.removeEventListener('cursorStateChange', handleCursorStateChange)
+    }
+  }, [loading])
+
+  // Smart-TV Browser History popstate overlay interception
+  useEffect(() => {
+    if (loading) return
+
+    // Push dummy history entry when page completes loading
+    window.history.pushState(null, null, window.location.pathname)
+
+    const handlePopState = (e) => {
+      // Prevent exit if controls or overlays are currently on screen
+      if (showHUD) {
+        e.preventDefault()
+        // Push dummy entry again to maintain stability in history length
+        window.history.pushState(null, null, window.location.pathname)
+        setShowHUD(false)
+        if (document.activeElement) {
+          document.activeElement.blur()
+        }
+      } else {
+        // Go back inside our React router
+        navigate(-1)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [loading, showHUD, navigate])
+
   // Custom Playback D-pad, Wheel Scrolling, and Back Remote Key Binds
   useEffect(() => {
     const getVideoElement = () => {
@@ -108,46 +160,73 @@ export default function PlayerPage() {
     }
 
     const handleKeyDown = (e) => {
-      // Remote Back Key, Esc or Backspace -> Go back
-      if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'BrowserBack') {
+      // Remote Back Key, Escape, Backspace, webOS keycode 461, Samsung keycode 10009
+      if (
+        e.key === 'Escape' || 
+        e.key === 'Backspace' || 
+        e.key === 'BrowserBack' || 
+        e.keyCode === 461 ||
+        e.keyCode === 10009 ||
+        e.keyCode === 27 ||
+        e.keyCode === 8
+      ) {
         e.preventDefault()
-        navigate(-1)
+        e.stopPropagation()
+        
+        // Single fire on keydown event to prevent double navigations
+        if (e.type === 'keydown') {
+          if (showHUD) {
+            // Hide controls overlay if active instead of exiting the page!
+            setShowHUD(false)
+            if (document.activeElement) {
+              document.activeElement.blur()
+            }
+            if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
+          } else {
+            // Exit page only if HUD is already hidden
+            navigate(-1)
+          }
+        }
         return
       }
 
-      // Display HUD on any button click
-      triggerHUD()
+      // Display HUD on any other button click
+      if (e.type === 'keydown') {
+        triggerHUD()
+      }
 
       const videoEl = getVideoElement()
       if (!videoEl) return
 
-      switch (e.key) {
-        case 'Enter':
-        case ' ':
-          e.preventDefault()
-          if (videoEl.paused) {
-            videoEl.play().catch(err => console.error('Play failed:', err))
-            useNotificationStore.getState().addNotification('Play', { level: 'success' })
-          } else {
-            videoEl.pause()
-            useNotificationStore.getState().addNotification('Pause', { level: 'success' })
-          }
-          break
+      if (e.type === 'keydown') {
+        switch (e.key) {
+          case 'Enter':
+          case ' ':
+            e.preventDefault()
+            if (videoEl.paused) {
+              videoEl.play().catch(err => console.error('Play failed:', err))
+              useNotificationStore.getState().addNotification('Play', { level: 'success' })
+            } else {
+              videoEl.pause()
+              useNotificationStore.getState().addNotification('Pause', { level: 'success' })
+            }
+            break
 
-        case 'ArrowLeft':
-          e.preventDefault()
-          videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
-          useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
-          break
+          case 'ArrowLeft':
+            e.preventDefault()
+            videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
+            useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
+            break
 
-        case 'ArrowRight':
-          e.preventDefault()
-          videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10)
-          useNotificationStore.getState().addNotification('Seek +10s', { level: 'info' })
-          break
+          case 'ArrowRight':
+            e.preventDefault()
+            videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10)
+            useNotificationStore.getState().addNotification('Seek +10s', { level: 'info' })
+            break
 
-        default:
-          break
+          default:
+            break
+        }
       }
     }
 
@@ -174,6 +253,8 @@ export default function PlayerPage() {
         if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
         seekTimeoutRef.current = setTimeout(() => {
           videoEl.currentTime = newTime
+          // Explicitly play video once scroll seek completes
+          videoEl.play().catch(err => console.error('Auto-play after scroll seek failed:', err))
           setIsScrolling(false)
           seekTimeoutRef.current = null
         }, 450)
@@ -182,18 +263,23 @@ export default function PlayerPage() {
       })
     }
 
-    window.addEventListener('keydown', handleKeyDown)
+    // Register Back button capture listeners on window at highest capture-phase priority
+    window.addEventListener('keydown', handleKeyDown, true)
+    window.addEventListener('keyup', handleKeyDown, true)
     window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('pointermove', handleMouseMove)
     window.addEventListener('wheel', handleWheel, { passive: false })
     
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keydown', handleKeyDown, true)
+      window.removeEventListener('keyup', handleKeyDown, true)
       window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('pointermove', handleMouseMove)
       window.removeEventListener('wheel', handleWheel)
       if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
       if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
     }
-  }, [navigate, isDragging, dragTime, duration, isScrolling, scrollTime])
+  }, [navigate, isDragging, dragTime, duration, isScrolling, scrollTime, showHUD])
 
   // HTML5 Media Event Observers
   useEffect(() => {
@@ -248,6 +334,8 @@ export default function PlayerPage() {
       if (videoEl) {
         videoEl.currentTime = dragTime
         setCurrentTime(dragTime)
+        // Explicitly play video once drag pointer is released
+        videoEl.play().catch(err => console.error('Play after drag failed:', err))
       }
       setIsDragging(false)
       // Restart HUD hide timer on release
@@ -341,7 +429,13 @@ export default function PlayerPage() {
           transform: showHUD ? 'translateY(0)' : 'translateY(-20px)',
           pointerEvents: showHUD ? 'auto' : 'none'
         }}
-        onClick={() => navigate(-1)}
+        onClick={() => {
+          if (showHUD) {
+            setShowHUD(false)
+          } else {
+            navigate(-1)
+          }
+        }}
         className="player-back-btn"
       >
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
