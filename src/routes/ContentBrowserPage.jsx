@@ -38,6 +38,7 @@ function ContentBrowserPage() {
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
 
   const [loading, setLoading] = useState(true)
+  const [showExitDialog, setShowExitDialog] = useState(false)
 
   const ITEMS_PER_ROW = 6
 
@@ -183,6 +184,83 @@ function ContentBrowserPage() {
       window.removeEventListener('wheel', handleGlobalWheel)
     }
   }, [])
+
+  // Handle remote Back key / Escape / Backspace / Arrows to manage Exit Dialog focus
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Allow detail pages or player pages to handle their own back buttons
+      const path = window.location.pathname || ''
+      const hash = window.location.hash || ''
+      if (path.includes('/play') || path.includes('/details') || hash.includes('/play') || hash.includes('/details')) {
+        return
+      }
+
+      if (showExitDialog) {
+        // Intercept Arrow keys, Enter, Space and Back keys
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', ' ', 'Escape', 'Backspace', 'BrowserBack'].includes(e.key) || e.keyCode === 461 || e.keyCode === 10009) {
+          e.preventDefault()
+          e.stopPropagation()
+
+          const currentFocus = useFocusStore.getState().focusedId
+
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            // Toggle focus between Cancel and Exit
+            const nextFocus = currentFocus === 'exit-exit' ? 'exit-cancel' : 'exit-exit'
+            useFocusStore.setState({ focusedId: nextFocus, lastRemoteAction: Date.now() })
+          } else if (e.key === 'Enter' || e.key === ' ') {
+            if (currentFocus === 'exit-exit') {
+              handleExitApp()
+            } else {
+              setShowExitDialog(false)
+              // Reset focus to home navigation
+              useFocusStore.setState({ focusedId: 'nav-home', lastRemoteAction: Date.now() })
+            }
+          } else if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'BrowserBack' || e.keyCode === 461 || e.keyCode === 10009) {
+            setShowExitDialog(false)
+            useFocusStore.setState({ focusedId: 'nav-home', lastRemoteAction: Date.now() })
+          }
+          return
+        }
+      }
+
+      // If dialog is not open, check if they pressed the back button to show it
+      if (
+        e.key === 'Escape' || 
+        e.key === 'Backspace' || 
+        e.key === 'BrowserBack' || 
+        e.keyCode === 461 ||
+        e.keyCode === 10009 ||
+        e.keyCode === 27 ||
+        e.keyCode === 8
+      ) {
+        // If typing in inputs, let default browser behavior handle it
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+          return
+        }
+
+        e.preventDefault()
+        e.stopPropagation()
+        setShowExitDialog(true)
+        useFocusStore.setState({ focusedId: 'exit-cancel', lastRemoteAction: Date.now() })
+      }
+    }
+
+    // Use capture phase to override the global spatial FocusManager Arrow key navigation completely while modal is open
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true)
+    }
+  }, [showExitDialog])
+
+  const handleExitApp = () => {
+    console.log('[ExitDialog] Closing application...')
+    if (window.close) {
+      window.close()
+    }
+    if (window.webOS && window.webOS.toApp) {
+      window.webOS.toApp('close')
+    }
+  }
 
   const handleItemClick = (item) => {
     console.log('Selected item:', item)
@@ -400,6 +478,48 @@ function ContentBrowserPage() {
         .unwatched-episode-ribbon:hover .unwatched-tick {
           display: block !important;
         }
+        .exit-overlay {
+          animation: fadeIn 0.25s ease forwards;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .exit-modal {
+          animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideUp {
+          from { transform: translateY(30px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .exit-btn {
+          cursor: pointer;
+          color: #ffffff;
+          padding: 14px 44px;
+          border-radius: 9999px; /* Capsule pill */
+          background-color: rgba(255, 255, 255, 0.08);
+          border: 1.5px solid rgba(255, 255, 255, 0.15);
+          font-size: 24px;
+          font-weight: 600;
+          font-family: 'Outfit', 'Inter', sans-serif;
+          transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .exit-btn[style] {
+          transform: scale(1) !important;
+        }
+        .exit-btn.focused, .exit-btn:hover {
+          background-color: rgba(255, 255, 255, 0.25) !important;
+          border-color: rgba(255, 255, 255, 0.5) !important;
+          transform: scale(1.08) !important;
+          outline: none;
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+        }
+        .exit-btn:active {
+          transform: scale(0.96) !important;
+        }
       `}</style>
 
       {libraries.length > 0 && (
@@ -544,6 +664,42 @@ function ContentBrowserPage() {
             </div>
           )}
         </>
+      )}
+
+      {showExitDialog && (
+        <div style={styles.exitOverlay} className="exit-overlay">
+          <div style={styles.exitModal} className="exit-modal">
+            <h2 style={styles.exitTitle}>Exit Application</h2>
+            <p style={styles.exitText}>Are you sure you want to exit the app?</p>
+            
+            <div style={styles.exitButtonRow}>
+              {/* Cancel Button */}
+              <FocusableItem
+                id="exit-cancel"
+                rowIndex={999}
+                colIndex={0}
+                onClick={() => {
+                  setShowExitDialog(false)
+                  useFocusStore.setState({ focusedId: 'nav-home', lastRemoteAction: Date.now() })
+                }}
+                className="exit-btn cancel"
+              >
+                Cancel
+              </FocusableItem>
+
+              {/* Exit Button */}
+              <FocusableItem
+                id="exit-exit"
+                rowIndex={999}
+                colIndex={1}
+                onClick={handleExitApp}
+                className="exit-btn confirm"
+              >
+                Exit
+              </FocusableItem>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -727,6 +883,55 @@ const styles = {
     justifyContent: 'center',
     paddingBottom: '16px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+  },
+  exitOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    zIndex: 999999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exitModal: {
+    backgroundColor: 'rgba(20, 20, 26, 0.85)', // Premium dark glassmorphism
+    backdropFilter: 'blur(25px) saturate(190%)',
+    WebkitBackdropFilter: 'blur(25px) saturate(190%)',
+    border: '1.5px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: '30px',
+    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
+    padding: '45px 65px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '24px',
+    minWidth: '550px',
+  },
+  exitTitle: {
+    fontSize: '32px',
+    fontWeight: '700',
+    color: '#ffffff',
+    margin: 0,
+    fontFamily: "'Outfit', 'Inter', sans-serif",
+    letterSpacing: '-0.5px',
+  },
+  exitText: {
+    fontSize: '22px',
+    fontWeight: '500',
+    color: '#a8a8af',
+    margin: '0 0 10px 0',
+    fontFamily: "'Outfit', 'Inter', sans-serif",
+  },
+  exitButtonRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: '24px',
   }
 }
 

@@ -9,6 +9,7 @@
   "splashBackground": "./splashScreen.png",
   "bgColor": "#262626",
   "supportPortraitMode": false,
+  "disableBackHistoryAPI": true,
   "requiredPermissions": [
     "db.operation"
   ],
