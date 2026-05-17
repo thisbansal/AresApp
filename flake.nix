@@ -25,12 +25,26 @@
         devShells.vite = pkgs.mkShell {
           buildInputs = [
             nodejsLatest
+            pkgs.git
+            pkgs.bashInteractive
           ];
 
           shellHook = ''
           echo "WebOS Development Environment"
           echo "Node (default): $(node --version)"
           echo "Node 16 available via: node16"
+
+          # Enable git tab autocompletion
+          if [ -n "$BASH_VERSION" ]; then
+            if [ -f ${pkgs.git}/share/bash-completion/completions/git ]; then
+              source ${pkgs.git}/share/bash-completion/completions/git
+            fi
+          elif [ -n "$ZSH_VERSION" ]; then
+            if [ -f ${pkgs.git}/share/git/contrib/completion/git-completion.zsh ]; then
+              fpath=(${pkgs.git}/share/git/contrib/completion $fpath)
+              autoload -Uz compinit && compinit
+            fi
+          fi
 
           # Add Node 16 binaries to a local bin directory
           mkdir -p .nix-bin
