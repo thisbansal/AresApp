@@ -33,11 +33,9 @@ export default function PlayerPage() {
   // HUD Visibility & Interaction State
   const [showHUD, setShowHUD] = useState(true)
   const [isDragging, setIsDragging] = useState(false)
-  const [dragTime, setDragTime] = useState(0)
   
   // Real-time Fluid Scrolling States
   const [isScrolling, setIsScrolling] = useState(false)
-  const [scrollTime, setScrollTime] = useState(0)
 
   useEffect(() => {
     if (!showHUD) {
@@ -215,22 +213,18 @@ export default function PlayerPage() {
             return
           }
 
-          triggerHUD()
-          useFocusStore.setState({ focusedId: 'player-play', lastRemoteAction: Date.now() })
-          
-          // Let arrow keys skip time on their initial press even when waking up the HUD
-          const videoEl = getVideoElement()
-          if (videoEl) {
-            if (e.key === 'ArrowLeft') {
-              videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
-              useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
-            } else if (e.key === 'ArrowRight') {
-              videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10)
-              useNotificationStore.getState().addNotification('Seek +10s', { level: 'info' })
-            }
+          // D-Pad buttons wake the HUD but do not trigger any seeks or focus jumps
+          if (
+            e.key === 'ArrowLeft' ||
+            e.key === 'ArrowRight' ||
+            e.key === 'ArrowUp' ||
+            e.key === 'ArrowDown'
+          ) {
+            e.preventDefault()
+            triggerHUD()
+            useFocusStore.setState({ focusedId: 'player-play', lastRemoteAction: Date.now() })
+            return
           }
-          e.preventDefault()
-          return
         }
       }
 
@@ -247,13 +241,15 @@ export default function PlayerPage() {
               if (videoEl) {
                 videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
                 useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
+                useFocusStore.setState({ focusedId: 'player-timeline', lastRemoteAction: Date.now() })
               }
               break
             case 'ArrowRight':
               e.preventDefault()
               if (videoEl) {
-                videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10)
-                useNotificationStore.getState().addNotification('Seek +10s', { level: 'info' })
+                videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 30)
+                useNotificationStore.getState().addNotification('Seek +30s', { level: 'info' })
+                useFocusStore.setState({ focusedId: 'player-timeline', lastRemoteAction: Date.now() })
               }
               break
             case 'ArrowUp':
@@ -296,31 +292,45 @@ export default function PlayerPage() {
 
     const handleWheel = (e) => {
       e.preventDefault()
-      triggerHUD()
+      if (!showHUD) return
+      
       const videoEl = getVideoElement()
       if (!videoEl) return
 
-      // Scroll UP -> Seek Forward (+5s), Scroll DOWN -> Seek Backward (-5s)
-      const seekAmount = e.deltaY < 0 ? 5 : -5
+      // Reset HUD inactivity hide timer
+      if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
+
+      // Calculate seek time based on wheel delta: precisely 1 second per tick!
+      const seekAmount = e.deltaY < 0 ? 1 : -1
+      
+      // Pause video instantly as scrolling starts
+      if (videoEl && !videoEl.paused && !isScrolling) {
+        videoEl.pause()
+      }
+
       setIsScrolling(true)
 
-      setScrollTime(prev => {
-        const isSequenceActive = seekTimeoutRef.current !== null
-        const baseTime = isSequenceActive ? prev : videoEl.currentTime
-        const newTime = Math.max(0, Math.min(duration || videoEl.duration || 0, baseTime + seekAmount))
+      const newTime = Math.max(0, Math.min(duration || videoEl.duration || 0, videoEl.currentTime + seekAmount))
 
-        // Debounce actual player scrobble by exactly 450ms of wheel stillness
-        if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
-        seekTimeoutRef.current = setTimeout(() => {
-          videoEl.currentTime = newTime
-          // Explicitly play video once scroll seek completes
-          videoEl.play().catch(err => console.error('Auto-play after scroll seek failed:', err))
-          setIsScrolling(false)
-          seekTimeoutRef.current = null
-        }, 450)
+      // Real-time scrubbing: update video frame immediately!
+      videoEl.currentTime = newTime
+      setCurrentTime(newTime)
 
-        return newTime
-      })
+      // Debounce actual playback resume by 500ms of wheel stillness
+      if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
+      seekTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false)
+        seekTimeoutRef.current = null
+        
+        // Resume video playback once scroll seek completes
+        videoEl.play().catch(err => console.error('Play after scroll seek failed:', err))
+
+        // Hide HUD after 4 seconds of inactivity
+        if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
+        hudTimeoutRef.current = setTimeout(() => {
+          setShowHUD(false)
+        }, 4000)
+      }, 500)
     }
 
     // Register Back button capture listeners on window at highest capture-phase priority
@@ -335,7 +345,7 @@ export default function PlayerPage() {
       if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
       if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
     }
-  }, [navigate, isDragging, dragTime, duration, isScrolling, scrollTime, showHUD])
+  }, [navigate, isDragging, duration, isScrolling, showHUD])
 
   // HTML5 Media Event Observers
   useEffect(() => {
@@ -382,14 +392,17 @@ export default function PlayerPage() {
       const clickX = e.clientX - rect.left
       const percentage = Math.max(0, Math.min(1, clickX / rect.width))
       const newTime = percentage * duration
-      setDragTime(newTime)
+      
+      const videoEl = videoRef.current || document.querySelector('video')
+      if (videoEl) {
+        videoEl.currentTime = newTime
+      }
+      setCurrentTime(newTime)
     }
 
     const handlePointerUp = () => {
       const videoEl = videoRef.current || document.querySelector('video')
       if (videoEl) {
-        videoEl.currentTime = dragTime
-        setCurrentTime(dragTime)
         // Explicitly play video once drag pointer is released
         videoEl.play().catch(err => console.error('Play after drag failed:', err))
       }
@@ -408,7 +421,7 @@ export default function PlayerPage() {
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
     }
-  }, [isDragging, dragTime, duration])
+  }, [isDragging, duration])
 
   const formatTime = (secs) => {
     if (isNaN(secs)) return '0:00'
@@ -460,7 +473,15 @@ export default function PlayerPage() {
     const clickX = e.clientX - rect.left
     const percentage = Math.max(0, Math.min(1, clickX / rect.width))
     const newTime = percentage * duration
-    setDragTime(newTime)
+    
+    const videoEl = videoRef.current || document.querySelector('video')
+    if (videoEl && !videoEl.paused) {
+      videoEl.pause()
+    }
+    if (videoEl) {
+      videoEl.currentTime = newTime
+    }
+    setCurrentTime(newTime)
   }
 
   if (loading) {
@@ -472,40 +493,12 @@ export default function PlayerPage() {
     )
   }
 
-  const displayTime = isDragging ? dragTime : (isScrolling ? scrollTime : currentTime)
+  const displayTime = currentTime
   const progressPercent = duration ? (displayTime / duration) * 100 : 0
 
   return (
     <div style={styles.container}>
-      {/* Premium Translucent Glass Back Button */}
-      <FocusableItem 
-        id="player-back"
-        rowIndex={0}
-        colIndex={1}
-        style={{
-          ...styles.backButton,
-          opacity: showHUD ? 1 : 0,
-          transform: showHUD ? 'translateY(0)' : 'translateY(-20px)',
-          pointerEvents: showHUD ? 'auto' : 'none'
-        }}
-        onClick={() => {
-          if (showHUD) {
-            setShowHUD(false)
-            if (document.activeElement) {
-              document.activeElement.blur()
-            }
-            useFocusStore.setState({ focusedId: null })
-          } else {
-            navigate(-1)
-          }
-        }}
-        className="player-back-btn"
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="19" y1="12" x2="5" y2="12"></line>
-          <polyline points="12 19 5 12 12 5"></polyline>
-        </svg>
-      </FocusableItem>
+
 
       {/* Video.js Provider (Raw clean Video element completely removing default black skin overlays) */}
       <Player.Provider>
@@ -547,17 +540,25 @@ export default function PlayerPage() {
         {/* Timeline Slider Track */}
         <div style={styles.timelineRow}>
           {/* Timeline starts flush from the left edge */}
-          <div 
-            style={styles.timelineTrack} 
+          <FocusableItem 
+            id="player-timeline"
+            rowIndex={0}
+            colIndex={0}
+            style={{
+              ...styles.timelineTrack,
+              transform: 'none', // Prevent default FocusableItem container scaling
+            }}
             onPointerDown={handleTimelinePointerDown}
             className="timeline-track"
           >
-            <div 
-              style={{
-                ...styles.timelineFill,
-                width: `${progressPercent}%`
-              }} 
-            />
+            <div style={styles.timelineVisualTrack} className="timeline-visual-track">
+              <div 
+                style={{
+                  ...styles.timelineFill,
+                  width: `${progressPercent}%`
+                }} 
+              />
+            </div>
             <div 
               style={{
                 ...styles.timelineKnob,
@@ -577,7 +578,7 @@ export default function PlayerPage() {
                 {formatTime(displayTime)}
               </div>
             )}
-          </div>
+          </FocusableItem>
           {/* Time Remaining exclusively on the right */}
           <span style={styles.timeText}>{formatRemainingTime(displayTime, duration)}</span>
         </div>
@@ -617,28 +618,25 @@ export default function PlayerPage() {
         .spinner {
           animation: spin 1s linear infinite;
         }
-        .player-back-btn {
-          transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, opacity 0.35s ease;
-        }
-        .player-back-btn.focused, .player-back-btn:hover {
-          background-color: rgba(255, 255, 255, 0.25) !important;
-          border-color: rgba(255, 255, 255, 0.5) !important;
-          transform: scale(1.08) !important;
-          outline: none;
-        }
         .player-hud-card {
           transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .timeline-track {
+          cursor: pointer;
+        }
+        .timeline-visual-track {
           transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .timeline-track:hover {
+        .timeline-track.focused .timeline-visual-track,
+        .timeline-track:hover .timeline-visual-track {
           height: 16px !important;
         }
+        .timeline-track.focused .timeline-knob,
         .timeline-track:hover .timeline-knob {
-          width: 24px !important;
-          height: 24px !important;
-          transform: translateX(-50%) scale(1.1) !important;
+          width: 30px !important;
+          height: 30px !important;
+          transform: translate(-50%, -50%) scale(1.15) !important;
+          box-shadow: 0 0 20px #e5a00d, 0 0 10px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0,0,0,0.6) !important;
         }
         .hud-play-btn {
           transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
@@ -711,23 +709,7 @@ const styles = {
     fontWeight: '500',
     fontFamily: "'Outfit', 'Inter', sans-serif",
   },
-  backButton: {
-    position: 'absolute',
-    top: '45px',
-    left: '45px',
-    zIndex: 10002,
-    width: '60px',
-    height: '60px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    border: '1.5px solid rgba(255, 255, 255, 0.2)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    backdropFilter: 'blur(15px)',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-  },
+
   video: {
     width: '100vw',
     height: '100vh',
@@ -795,49 +777,57 @@ const styles = {
   },
   timelineTrack: {
     flex: 1,
-    height: '12px',
-    backgroundColor: '#2e2e34', // Elegant dark grey seek bar track
-    borderRadius: '6px',
+    height: '40px', // Substantially enlarged hover zone area
+    backgroundColor: 'transparent', // Transparent backing
     position: 'relative',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     touchAction: 'none',
   },
+  timelineVisualTrack: {
+    width: '100%',
+    height: '8px', // Default sleek thickness
+    backgroundColor: '#2e2e34',
+    borderRadius: '4px',
+    position: 'relative',
+    overflow: 'hidden',
+  },
   timelineFill: {
     height: '100%',
     backgroundColor: '#a8a8af', // Elegant light grey progress fill
-    borderRadius: '6px',
+    borderRadius: '4px',
     boxShadow: '0 0 8px rgba(255, 255, 255, 0.15)',
   },
   timelineKnob: {
     position: 'absolute',
+    top: '50%',
     width: '20px',
     height: '20px',
     backgroundColor: '#ffffff', // Pure white knob
     borderRadius: '50%',
-    transform: 'translateX(-50%)',
-    boxShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 2px 8px rgba(0,0,0,0.5)', // Strong white outer glow to make it stand out beautifully!
+    transform: 'translate(-50%, -50%)', // Centered vertically
+    boxShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 2px 8px rgba(0,0,0,0.5)', // Strong white outer glow
     pointerEvents: 'none',
-    transition: 'width 0.15s ease, height 0.15s ease, transform 0.15s ease',
+    transition: 'width 0.15s ease, height 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease',
   },
   knobTooltip: {
     position: 'absolute',
-    top: '28px', // Sleek bubble directly under knob
+    top: '38px', // Positioned lower to prevent clipping the expanded seek bar
     transform: 'translateX(-50%)',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(0, 0, 0, 0.1)',
-    padding: '6px 14px',
-    borderRadius: '6px',
-    color: '#000000', // high contrast dark text
-    fontSize: '22px', // TV sized tooltip
+    backgroundColor: 'transparent', // Remove background completely
+    backdropFilter: 'none', // Remove backdrop blur
+    border: 'none', // Remove border completely
+    padding: '0', // No padding needed for raw text
+    color: '#ffffff', // Pure white text
+    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5)', // Strong drop shadow for high legibility
+    fontSize: '22px', // TV sized typography
     fontWeight: '600',
     fontFamily: "'Outfit', 'Inter', sans-serif",
     pointerEvents: 'none',
     whiteSpace: 'nowrap',
     zIndex: 10005,
-    boxShadow: '0 4px 15px rgba(0,0,0,0.4)',
+    boxShadow: 'none', // Remove container shadow
   },
   hudControls: {
     display: 'flex',
