@@ -162,7 +162,7 @@ function ContentBrowserPage() {
 
     fetchContent()
   }, [activeTab, serverInfo])
-  
+
   // Global Input Locking & Mode Management
   useEffect(() => {
     const handleGlobalMouseMove = () => {
@@ -225,9 +225,9 @@ function ContentBrowserPage() {
 
       // If dialog is not open, check if they pressed the back button to show it
       if (
-        e.key === 'Escape' || 
-        e.key === 'Backspace' || 
-        e.key === 'BrowserBack' || 
+        e.key === 'Escape' ||
+        e.key === 'Backspace' ||
+        e.key === 'BrowserBack' ||
         e.keyCode === 461 ||
         e.keyCode === 10009 ||
         e.keyCode === 27 ||
@@ -381,8 +381,8 @@ function ContentBrowserPage() {
           />
           {showUnwatchedIndicator && prefix !== 'cw' && (
             isUnwatched ? (
-              <div 
-                style={styles.unwatchedEpisodeRibbon} 
+              <div
+                style={styles.unwatchedEpisodeRibbon}
                 className="unwatched-episode-ribbon"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -395,8 +395,8 @@ function ContentBrowserPage() {
                 </svg>
               </div>
             ) : (
-              <div 
-                style={styles.watchedRibbon} 
+              <div
+                style={styles.watchedRibbon}
                 className="watched-ribbon"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -669,9 +669,12 @@ function ContentBrowserPage() {
       {showExitDialog && (
         <div style={styles.exitOverlay} className="exit-overlay">
           <div style={styles.exitModal} className="exit-modal">
-            <h2 style={styles.exitTitle}>Exit Application</h2>
-            <p style={styles.exitText}>Are you sure you want to exit the app?</p>
-            
+            <div style={styles.exitTextContainer}>
+              <span style={styles.exitTitle}>Exit Application?</span>
+              <span style={styles.exitDivider}>•</span>
+              <span style={styles.exitText}>Are you sure you want to exit?</span>
+            </div>
+
             <div style={styles.exitButtonRow}>
               {/* Cancel Button */}
               <FocusableItem
@@ -890,48 +893,62 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)', // Premium dark backdrop overlay
     backdropFilter: 'blur(10px)',
     WebkitBackdropFilter: 'blur(10px)',
     zIndex: 999999,
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'flex-end',
+    justifyContent: 'center', // Centers modal perfectly both horizontally and vertically
   },
   exitModal: {
     backgroundColor: 'rgba(20, 20, 26, 0.85)', // Premium dark glassmorphism
     backdropFilter: 'blur(25px) saturate(190%)',
     WebkitBackdropFilter: 'blur(25px) saturate(190%)',
     border: '1.5px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: '30px',
-    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
-    padding: '45px 65px',
+    borderRadius: '9999px', // Perfect horizontal capsule pill matching the Navbar!
+    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65)',
+    padding: '0 40px',
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row', // Horizontal one-liner layout!
     alignItems: 'center',
-    gap: '24px',
-    minWidth: '550px',
+    justifyContent: 'space-between',
+    gap: '60px',
+    height: '90px',
+    width: 'auto',
+    minWidth: '780px',
+    marginBottom: '25vh', // Raised beautifully by a quarter of screen height!
+  },
+  exitTextContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: '14px',
   },
   exitTitle: {
-    fontSize: '32px',
-    fontWeight: '700',
+    fontSize: '26px',
+    fontWeight: '600',
     color: '#ffffff',
     margin: 0,
     fontFamily: "'Outfit', 'Inter', sans-serif",
-    letterSpacing: '-0.5px',
+    letterSpacing: '-0.3px',
+  },
+  exitDivider: {
+    fontSize: '20px',
+    color: 'rgba(255, 255, 255, 0.25)',
   },
   exitText: {
-    fontSize: '22px',
+    fontSize: '20px',
     fontWeight: '500',
     color: '#a8a8af',
-    margin: '0 0 10px 0',
+    margin: 0,
     fontFamily: "'Outfit', 'Inter', sans-serif",
   },
   exitButtonRow: {
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: '24px',
+    gap: '20px',
   }
 }
 
