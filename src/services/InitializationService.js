@@ -114,7 +114,7 @@ class InitializationService {
 
   async downloadAndCacheImage(url, itemId) {
     try {
-      console.log('[Init] 📥 Downloading image:', itemId)
+      console.log('[Init] [DOWNLOADING] Downloading image:', itemId)
 
       const response = await fetch(url)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -130,16 +130,16 @@ class InitializationService {
         // Use MediaDB on webOS
         console.log('[Init] Storing to MediaDB...')
         await putImage(itemId, dataUrl)
-        console.log('[Init] ✓ Cached to MediaDB:', itemId)
+        console.log('[Init] [OK] Cached to MediaDB:', itemId)
       } else {
         // Use IndexedDB on browser
         console.log('[Init] Storing to IndexedDB...')
         await universalStorage.set(`image_${itemId}`, blob)
-        console.log('[Init] ✓ Cached to IndexedDB:', itemId)
+        console.log('[Init] [OK] Cached to IndexedDB:', itemId)
       }
 
     } catch (err) {
-      console.error('[Init] ✗ Failed to cache image:', itemId, err)
+      console.error('[Init] [ERROR] Failed to cache image:', itemId, err)
     }
   }
 
@@ -185,25 +185,25 @@ class InitializationService {
   }
 
   async getCachedImage(itemId) {
-    console.log('[Init] 🔍 Looking for cached image:', itemId)
+    console.log('[Init] [SEARCH] Looking for cached image:', itemId)
 
     if (this.useWebOS) {
       // Get from MediaDB
       const dataUrl = await getImage(itemId)
       if (dataUrl) {
-        console.log('[Init] ✓ Found in MediaDB:', itemId)
+        console.log('[Init] [OK] Found in MediaDB:', itemId)
         return dataUrl
       }
     } else {
       // Get from IndexedDB
       const blob = await universalStorage.get(`image_${itemId}`)
       if (blob) {
-        console.log('[Init] ✓ Found in IndexedDB:', itemId)
+        console.log('[Init] [OK] Found in IndexedDB:', itemId)
         return URL.createObjectURL(blob)
       }
     }
 
-    console.log('[Init] ✗ No cached image:', itemId)
+    console.log('[Init] [NOT_FOUND] No cached image:', itemId)
     return null
   }
 

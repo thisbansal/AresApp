@@ -249,7 +249,12 @@ function UserSelectPage() {
                     style={styles.avatar}
                   />
                   {user.protected && (
-                    <div style={styles.lockIcon}>🔒</div>
+                    <div style={styles.lockIcon}>
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={PLEX_YELLOW} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                    </div>
                   )}
                 </div>
                 <p style={styles.userName}>{user.name}</p>

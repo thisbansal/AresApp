@@ -23,28 +23,6 @@ export function SystemToaster() {
       }}
     >
       {notifications.map((notif) => {
-        let accentColor, icon
-        
-        switch (notif.level) {
-          case 'dev':
-            accentColor = '#eab308' // Yellow/Orange
-            icon = '🛠️'
-            break
-          case 'error':
-            accentColor = '#ef4444' // Red
-            icon = '⚠️'
-            break
-          case 'success':
-            accentColor = '#22c55e' // Green
-            icon = '✅'
-            break
-          case 'info':
-          default:
-            accentColor = '#3b82f6' // Blue
-            icon = 'ℹ️'
-            break
-        }
-
         return (
           <div
             key={notif.id}
@@ -67,12 +45,10 @@ export function SystemToaster() {
               wordBreak: 'break-word',
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               animation: 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           >
-            <span style={{ fontSize: '20px', lineHeight: '1' }}>{icon}</span>
             <div style={{ flex: 1, lineHeight: '1.4' }}>
               {notif.message}
             </div>

@@ -5,7 +5,7 @@ function AuthRoute({
   requireAuth = true,
   isAuthenticated,
   hasSession,
-  allowIncompleteSession = false  // 👈 NEW PROP
+  allowIncompleteSession = false  // NEW PROP
 }) {
   const location = useLocation()
 

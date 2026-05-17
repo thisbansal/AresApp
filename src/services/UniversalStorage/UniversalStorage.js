@@ -121,11 +121,11 @@ class UniversalStorage {
       this.webOSAvailable = await waitForWebOS()
 
       if (this.webOSAvailable) {
-        console.log('[Storage] ✓ Using webOS storage APIs (native TV storage)')
+        console.log('[Storage] [OK] Using webOS storage APIs (native TV storage)')
         this.initialized = true
         return
       } else {
-        console.warn('[Storage] ⚠️ webOS APIs not available, falling back to IndexedDB')
+        console.warn('[Storage] [WARN] webOS APIs not available, falling back to IndexedDB')
         this.shouldUseWebOS = false
       }
     }
@@ -134,11 +134,11 @@ class UniversalStorage {
     try {
       console.log('[Storage] Initializing IndexedDB...')
       this.db = await this.openDatabase()
-      console.log('[Storage] ✓ IndexedDB initialized successfully')
+      console.log('[Storage] [OK] IndexedDB initialized successfully')
       this.initialized = true
     } catch (err) {
-      console.error('[Storage] ✗ Failed to init IndexedDB:', err)
-      console.warn('[Storage] ⚠️ Falling back to localStorage (limited quota)')
+      console.error('[Storage] [ERROR] Failed to init IndexedDB:', err)
+      console.warn('[Storage] [WARN] Falling back to localStorage (limited quota)')
       this.initialized = true // Mark as initialized to use localStorage fallback
     }
   }
@@ -173,7 +173,7 @@ class UniversalStorage {
       if (this.shouldUseWebOS && this.webOSAvailable) {
         const value = await webOSGet(key, defaultValue)
         if (value !== defaultValue) {
-          console.log('[Storage] ✓ Retrieved from webOS:', key, '(size:', value?.length || 0, 'chars)')
+          console.log('[Storage] [OK] Retrieved from webOS:', key, '(size:', value?.length || 0, 'chars)')
         }
         return value
       }
@@ -181,7 +181,7 @@ class UniversalStorage {
       if (this.db) {
         const value = await this.getFromIndexedDB(key, defaultValue)
         if (value !== defaultValue) {
-          console.log('[Storage] ✓ Retrieved from IndexedDB:', key)
+          console.log('[Storage] [OK] Retrieved from IndexedDB:', key)
         }
         return value
       }
@@ -189,7 +189,7 @@ class UniversalStorage {
       // Fallback to localStorage
       return this.getFromLocalStorage(key, defaultValue)
     } catch (err) {
-      console.error('[Storage] ✗ Get failed:', key, err)
+      console.error('[Storage] [ERROR] Get failed:', key, err)
       return defaultValue
     }
   }
@@ -203,20 +203,20 @@ class UniversalStorage {
     try {
       if (this.shouldUseWebOS && this.webOSAvailable) {
         await webOSSet(key, value)
-        console.log('[Storage] ✓ Saved to webOS:', key, '(size:', value?.length || 0, 'chars)')
+        console.log('[Storage] [OK] Saved to webOS:', key, '(size:', value?.length || 0, 'chars)')
         return
       }
 
       if (this.db) {
         await this.setToIndexedDB(key, value)
-        console.log('[Storage] ✓ Saved to IndexedDB:', key)
+        console.log('[Storage] [OK] Saved to IndexedDB:', key)
         return
       }
 
       // Fallback to localStorage
       return this.setToLocalStorage(key, value)
     } catch (err) {
-      console.error('[Storage] ✗ Set failed:', key, err)
+      console.error('[Storage] [ERROR] Set failed:', key, err)
       throw err
     }
   }
@@ -238,7 +238,7 @@ class UniversalStorage {
 
       localStorage.removeItem(key)
     } catch (err) {
-      console.error('[Storage] ✗ Delete failed:', err)
+      console.error('[Storage] [ERROR] Delete failed:', err)
     }
   }
 

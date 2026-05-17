@@ -69,11 +69,11 @@ export const putImage = async (itemId, base64Data) => {
         }]
       },
       onSuccess: (res) => {
-        console.log('[MediaDB] ✓ Stored image:', itemId)
+        console.log('[MediaDB] [OK] Stored image:', itemId)
         resolve(true)
       },
       onFailure: (err) => {
-        console.error('[MediaDB] ✗ Failed to store:', itemId, err)
+        console.error('[MediaDB] [ERROR] Failed to store:', itemId, err)
         reject(err)
       }
     })
@@ -103,15 +103,15 @@ export const getImage = async (itemId) => {
       onSuccess: (res) => {
         if (res.results && res.results.length > 0) {
           const imageData = res.results[0].imageData
-          console.log('[MediaDB] ✓ Retrieved image:', itemId)
+          console.log('[MediaDB] [OK] Retrieved image:', itemId)
           resolve(imageData)
         } else {
-          console.log('[MediaDB] ✗ No image found:', itemId)
+          console.log('[MediaDB] [NOT_FOUND] No image found:', itemId)
           resolve(null)
         }
       },
       onFailure: (err) => {
-        console.error('[MediaDB] ✗ Query failed:', itemId, err)
+        console.error('[MediaDB] [ERROR] Query failed:', itemId, err)
         resolve(null)
       }
     })
@@ -138,11 +138,11 @@ export const deleteImage = async (itemId) => {
         }
       },
       onSuccess: (res) => {
-        console.log('[MediaDB] ✓ Deleted image:', itemId)
+        console.log('[MediaDB] [OK] Deleted image:', itemId)
         resolve(true)
       },
       onFailure: (err) => {
-        console.error('[MediaDB] ✗ Delete failed:', itemId, err)
+        console.error('[MediaDB] [ERROR] Delete failed:', itemId, err)
         resolve(false)
       }
     })
@@ -172,7 +172,7 @@ export const getAllImageIds = async () => {
         resolve(ids)
       },
       onFailure: (err) => {
-        console.error('[MediaDB] ✗ Query failed:', err)
+        console.error('[MediaDB] [ERROR] Query failed:', err)
         resolve([])
       }
     })
@@ -194,11 +194,11 @@ export const clearAllImages = async () => {
         id: KIND_ID
       },
       onSuccess: (res) => {
-        console.log('[MediaDB] ✓ Cleared all images')
+        console.log('[MediaDB] [OK] Cleared all images')
         resolve(true)
       },
       onFailure: (err) => {
-        console.error('[MediaDB] ✗ Clear failed:', err)
+        console.error('[MediaDB] [ERROR] Clear failed:', err)
         resolve(false)
       }
     })

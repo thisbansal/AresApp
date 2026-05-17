@@ -93,7 +93,7 @@ function App() {
                 requireAuth={true}
                 isAuthenticated={authState.isAuthenticated}
                 hasSession={authState.hasSession}
-                allowIncompleteSession={true}  // 👈 NEW PROP
+                allowIncompleteSession={true}  // NEW PROP
               >
                 <ServerSelectPage />
               </AuthRoute>
@@ -107,7 +107,7 @@ function App() {
                 requireAuth={true}
                 isAuthenticated={authState.isAuthenticated}
                 hasSession={authState.hasSession}
-                allowIncompleteSession={true}  // 👈 NEW PROP
+                allowIncompleteSession={true}  // NEW PROP
               >
                 <UserSelectPage />
               </AuthRoute>

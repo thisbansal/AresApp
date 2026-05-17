@@ -15,7 +15,7 @@ const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
  * Get all libraries from the Plex server
  */
 export const getLibraries = async (serverUri, token) => {
-  console.log('📚 [getLibraries] Fetching libraries from:', serverUri)
+  console.log('[Plex] [getLibraries] Fetching libraries from:', serverUri)
   const url = `${serverUri}/library/sections/all`
   console.log(`url: ${url}`)
 
@@ -32,7 +32,7 @@ export const getLibraries = async (serverUri, token) => {
   }
 
   const data = await response.json()
-  console.log('📚 [getLibraries] Raw response:', data)
+  console.log('[Plex] [getLibraries] Raw response:', data)
 
   return data.MediaContainer.Directory
     .filter(lib => lib.type !== 'photo')
@@ -318,7 +318,7 @@ export const formatDuration = (ms) => {
 export const markAsWatched = async (serverUri, token, ratingKey) => {
   try {
     const url = `${serverUri}/:/scrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library&X-Plex-Token=${token}`
-    console.log('🎬 [markAsWatched] Scrobbling item:', ratingKey)
+    console.log('[Plex] [markAsWatched] Scrobbling item:', ratingKey)
     const response = await fetch(url, { method: 'GET' })
     if (!response.ok) {
       throw new Error(`Failed to mark as watched: ${response.status}`)
@@ -337,7 +337,7 @@ export const markAsWatched = async (serverUri, token, ratingKey) => {
 export const markAsUnwatched = async (serverUri, token, ratingKey) => {
   try {
     const url = `${serverUri}/:/unscrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library&X-Plex-Token=${token}`
-    console.log('🎬 [markAsUnwatched] Unscrobbling item:', ratingKey)
+    console.log('[Plex] [markAsUnwatched] Unscrobbling item:', ratingKey)
     const response = await fetch(url, { method: 'GET' })
     if (!response.ok) {
       throw new Error(`Failed to mark as unwatched: ${response.status}`)
