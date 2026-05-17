@@ -505,7 +505,7 @@ function ContentBrowserPage() {
           transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
           display: flex;
           align-items: center;
-          justify-content: center;
+          justifyContent: center;
         }
         .exit-btn[style] {
           transform: scale(1) !important;
@@ -516,6 +516,15 @@ function ContentBrowserPage() {
           transform: scale(1.08) !important;
           outline: none;
           box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+        }
+        .exit-btn.confirm {
+          background-color: rgba(10, 132, 255, 0.25);
+          border-color: rgba(10, 132, 255, 0.4);
+        }
+        .exit-btn.confirm.focused, .exit-btn.confirm:hover {
+          background-color: rgba(10, 132, 255, 0.85) !important;
+          border-color: #0a84ff !important;
+          box-shadow: 0 0 25px rgba(10, 132, 255, 0.65) !important;
         }
         .exit-btn:active {
           transform: scale(0.96) !important;
@@ -669,11 +678,7 @@ function ContentBrowserPage() {
       {showExitDialog && (
         <div style={styles.exitOverlay} className="exit-overlay">
           <div style={styles.exitModal} className="exit-modal">
-            <div style={styles.exitTextContainer}>
-              <span style={styles.exitTitle}>Exit Application?</span>
-              <span style={styles.exitDivider}>•</span>
-              <span style={styles.exitText}>Are you sure you want to exit?</span>
-            </div>
+            <span style={styles.exitTitle}>Are you sure you want to exit?</span>
 
             <div style={styles.exitButtonRow}>
               {/* Cancel Button */}
@@ -698,7 +703,7 @@ function ContentBrowserPage() {
                 onClick={handleExitApp}
                 className="exit-btn confirm"
               >
-                Exit
+                Yes
               </FocusableItem>
             </div>
           </div>
@@ -908,41 +913,24 @@ const styles = {
     border: '1.5px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '9999px', // Perfect horizontal capsule pill matching the Navbar!
     boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65)',
-    padding: '0 40px',
+    padding: '0 45px',
     display: 'flex',
     flexDirection: 'row', // Horizontal one-liner layout!
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '60px',
-    height: '90px',
+    height: '100px', // Enlarged slightly to look gorgeous on high-res TVs
     width: 'auto',
-    minWidth: '780px',
+    minWidth: '820px', // Spacious breathing room for larger text
     marginBottom: '25vh', // Raised beautifully by a quarter of screen height!
   },
-  exitTextContainer: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: '14px',
-  },
   exitTitle: {
-    fontSize: '26px',
+    fontSize: '32px', // Larger, highly legible text for large TV layouts!
     fontWeight: '600',
     color: '#ffffff',
     margin: 0,
     fontFamily: "'Outfit', 'Inter', sans-serif",
     letterSpacing: '-0.3px',
-  },
-  exitDivider: {
-    fontSize: '20px',
-    color: 'rgba(255, 255, 255, 0.25)',
-  },
-  exitText: {
-    fontSize: '20px',
-    fontWeight: '500',
-    color: '#a8a8af',
-    margin: 0,
-    fontFamily: "'Outfit', 'Inter', sans-serif",
   },
   exitButtonRow: {
     display: 'flex',

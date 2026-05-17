@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('LG webOS Premium Exit Confirmation Dialog', () => {
   let showExitDialog;
@@ -100,5 +100,66 @@ describe('LG webOS Premium Exit Confirmation Dialog', () => {
     handleKeyDown({ key: 'Enter' });
 
     expect(exitCallbackCalled).toBe(true);
+  });
+});
+
+describe('Unified Global Remote Back Key Interceptor', () => {
+  let currentPath;
+
+  beforeEach(() => {
+    currentPath = '/details/12345';
+  });
+
+  const handleGlobalKeyDown = (e, navigateReactRouter) => {
+    if (
+      e.key === 'Escape' ||
+      e.key === 'Backspace' ||
+      e.key === 'BrowserBack' ||
+      e.keyCode === 461
+    ) {
+      if (
+        currentPath.includes('/browse') ||
+        currentPath.includes('/play')
+      ) {
+        return; // Let route-specific capture listeners handle them
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      navigateReactRouter(-1); // Back navigation trigger!
+    }
+  };
+
+  it('should trigger router back navigation on a details route when Back key is pressed', () => {
+    const mockNavigate = vi.fn();
+    const mockEvent = {
+      key: 'BrowserBack',
+      keyCode: 461,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    };
+
+    handleGlobalKeyDown(mockEvent, mockNavigate);
+
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(mockEvent.stopPropagation).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(-1);
+  });
+
+  it('should bypass global router navigation on the home browse route to allow custom exit modal handling', () => {
+    currentPath = '/browse';
+    const mockNavigate = vi.fn();
+    const mockEvent = {
+      key: 'BrowserBack',
+      keyCode: 461,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    };
+
+    handleGlobalKeyDown(mockEvent, mockNavigate);
+
+    expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+    expect(mockEvent.stopPropagation).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
