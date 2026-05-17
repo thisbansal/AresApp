@@ -866,10 +866,8 @@ const styles = {
     right: '-70px',
     width: '140px',
     height: '140px',
-    backgroundColor: 'rgba(229, 160, 13, 0.85)', // Opaque Plex Gold translucent glass
-    backdropFilter: 'blur(15px)',
-    WebkitBackdropFilter: 'blur(15px)',
-    border: '1.5px solid rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(229, 160, 13, 0.75)', // Elegant Plex Gold translucent glass (0.75 opacity)
+    border: '1px solid rgba(255, 255, 255, 0.15)',
     transform: 'rotate(45deg)',
     zIndex: 5,
     display: 'flex',
@@ -884,10 +882,8 @@ const styles = {
     right: '-70px',
     width: '140px',
     height: '140px',
-    backgroundColor: 'rgba(255, 255, 255, 0.25)', // Elegant frosted white glass overlay (never looks cut-off against black background!)
-    backdropFilter: 'blur(15px)', // High-blur completely hides poster sharp corner edges underneath!
-    WebkitBackdropFilter: 'blur(15px)',
-    border: '1.5px solid rgba(255, 255, 255, 0.35)',
+    backgroundColor: 'rgba(90, 90, 90, 0.75)', // Matte slate grey translucent glass (0.75 opacity)
+    border: '1px solid rgba(255, 255, 255, 0.2)',
     transform: 'rotate(45deg)',
     zIndex: 5,
     display: 'flex',
