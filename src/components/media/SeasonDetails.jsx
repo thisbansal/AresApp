@@ -28,6 +28,9 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
 
   const handlePlay = () => {
     console.log('Play season:', item.id)
+    if (episodes && episodes.length > 0) {
+      navigate(`/play/${episodes[0].id}`, { state: { serverInfo } })
+    }
   }
 
   const handleEpisodeClick = (episodeId) => {

@@ -79,7 +79,7 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
 
   const handleEpisodeClick = (episode) => {
     console.log('Play episode:', episode.title)
-    useNotificationStore.getState().addNotification(`Playing: ${episode.title}`, { level: 'success' })
+    navigate(`/play/${episode.id}`, { state: { serverInfo } })
   }
 
   const handleToggleWatched = async (episode) => {

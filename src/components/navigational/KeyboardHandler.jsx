@@ -9,6 +9,10 @@ export function KeyboardHandler() {
     console.log('KeyboardHandler mounted');
 
     const handleKeyDown = (e) => {
+      // If we are on the player page, bypass spatial focus navigation
+      if (window.location.pathname.startsWith('/play')) {
+        return;
+      }
       console.log('Key pressed:', e.key);
 
       switch (e.key) {

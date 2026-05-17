@@ -13,6 +13,7 @@ import UserSelectPage from './routes/UserSelectPage'
 import ContentBrowserPage from './routes/ContentBrowserPage'
 import ServerSelectPage from './routes/ServerSelectPage'
 import MediaDetailsPage from './routes/MediaDetailsPage'
+import PlayerPage from './routes/PlayerPage'
 
 if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual'
@@ -135,6 +136,19 @@ function App() {
                 hasSession={authState.hasSession}
               >
                 <MediaDetailsPage />
+              </AuthRoute>
+            }
+          />
+
+          <Route
+            path="/play/:ratingKey"
+            element={
+              <AuthRoute
+                requireAuth={true}
+                isAuthenticated={authState.isAuthenticated}
+                hasSession={authState.hasSession}
+              >
+                <PlayerPage />
               </AuthRoute>
             }
           />

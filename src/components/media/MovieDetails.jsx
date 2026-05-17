@@ -1,10 +1,13 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import ActionButtons from './ActionButtons'
 
 export default function MovieDetails({ item, serverInfo, onFocusItem }) {
+  const navigate = useNavigate()
+
   const handlePlay = () => {
     console.log('Play movie:', item.id)
-    // TODO: Navigate to player route
+    navigate(`/play/${item.id}`, { state: { serverInfo } })
   }
 
   return (

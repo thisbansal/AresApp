@@ -1,10 +1,13 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import ActionButtons from './ActionButtons'
 
 export default function EpisodeDetails({ item, serverInfo }) {
+  const navigate = useNavigate()
   
   const handlePlay = () => {
     console.log('Play episode:', item.id)
+    navigate(`/play/${item.id}`, { state: { serverInfo } })
   }
 
   return (
