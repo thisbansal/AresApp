@@ -13,6 +13,24 @@ import EpisodeDetails from '../components/media/EpisodeDetails'
 import { FallbackImage } from '../components/media/FallbackImage'
 import ActionButtons from '../components/media/ActionButtons'
 
+// Deterministic hash function to map a title to a premium dark ambient gradient
+const getBackgroundGradient = (title = '') => {
+  const palettes = [
+    'linear-gradient(135deg, #1b0a0d 0%, #0d0406 50%, #080808 100%)', // Deep Crimson
+    'linear-gradient(135deg, #07120e 0%, #030706 50%, #080808 100%)', // Deep Emerald
+    'linear-gradient(135deg, #09121d 0%, #04080e 50%, #080808 100%)', // Nordic Midnight
+    'linear-gradient(135deg, #11091d 0%, #06030e 50%, #080808 100%)', // Royal Amethyst
+    'linear-gradient(135deg, #1a1007 0%, #0a0603 50%, #080808 100%)', // Warm Amber
+    'linear-gradient(135deg, #071417 0%, #03090a 50%, #080808 100%)', // Oceanic Teal
+  ];
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % palettes.length;
+  return palettes[index];
+};
+
 function MediaDetailsPage() {
   const { ratingKey } = useParams()
   const navigate = useNavigate()
@@ -22,8 +40,6 @@ function MediaDetailsPage() {
   const [item, setItem] = useState(null)
   const [serverInfo, setServerInfo] = useState(location.state?.serverInfo || null)
 
-  const [dynamicArt, setDynamicArt] = useState(null)
-  const [dynamicSummary, setDynamicSummary] = useState(null)
   const [playHandler, setPlayHandler] = useState(null)
 
   // Global Input Locking & Mode Management on Details view
@@ -74,8 +90,6 @@ function MediaDetailsPage() {
 
         const metadata = await getMetadata(uri, token, ratingKey)
         setItem(metadata)
-        setDynamicArt(metadata.art)
-        setDynamicSummary(null) // Reset dynamic summary when main item changes
       } catch (error) {
         console.error('[MediaDetailsPage] Error fetching metadata:', error)
       } finally {
@@ -86,13 +100,7 @@ function MediaDetailsPage() {
     fetchDetails()
   }, [ratingKey, navigate])
 
-  const handleFocusItem = (focusedItem) => {
-    if (focusedItem) {
-      if (focusedItem.art) setDynamicArt(focusedItem.art);
-    } else {
-      setDynamicArt(item.art);
-    }
-  }
+  const handleFocusItem = () => {}
 
   if (loading) {
     return (
@@ -137,43 +145,17 @@ function MediaDetailsPage() {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
-        .summary-text {
-          transition: opacity 0.3s ease;
-        }
       `}</style>
 
-      {/* Background Layer with Cross-fading Art */}
-      <div style={styles.backgroundContainer}>
-        <div
-          style={{
-            ...styles.backgroundArt,
-            backgroundImage: `url(${item.art})`,
-            opacity: dynamicArt ? 0 : 1,
-            zIndex: 1,
-          }}
-        />
-        {dynamicArt && (
-          <div
-            key={dynamicArt}
-            style={{
-              ...styles.backgroundArt,
-              backgroundImage: `url(${dynamicArt})`,
-              opacity: 1,
-              zIndex: 2,
-              animation: 'fadeInArt 0.8s ease-in-out'
-            }}
-          />
-        )}
+      {/* Dynamic Ambient Background Gradient */}
+      <div
+        style={{
+          ...styles.backgroundContainer,
+          background: getBackgroundGradient(item.title),
+        }}
+      >
+        <div style={styles.ambientGlow} />
       </div>
-      <div style={styles.backgroundOverlay} />
-
-      <style>{`
-        @keyframes fadeInArt {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-      `}</style>
 
       {/* Content Layer (Apple TV Style) */}
       <div style={styles.contentWrapper}>
@@ -195,23 +177,17 @@ function MediaDetailsPage() {
               {item.duration && <span style={styles.badge}>{formatDuration(item.duration)}</span>}
             </div>
 
-            {/* Contextual Title (e.g. Episode Title) */}
-            <h2 style={styles.contextTitle} key={dynamicArt}>
-              {dynamicArt !== item.art ? (
-                item.type === 'show' ? 'Season Details' :
-                  item.type === 'season' ? 'Episode Preview' :
-                    'Preview'
-              ) : (
-                item.type === 'movie' ? 'Synopsis' :
-                  item.type === 'show' ? 'About this Show' :
-                    item.type === 'season' ? 'About this Season' :
-                      'About this episode'
-              )}
+            {/* Contextual Title */}
+            <h2 style={styles.contextTitle}>
+              {item.type === 'movie' ? 'Synopsis' :
+               item.type === 'show' ? 'About this Show' :
+               item.type === 'season' ? 'About this Season' :
+               'About this episode'}
             </h2>
 
             {/* Main Integrated Summary Area */}
-            <p style={styles.mainSummary} className="summary-text" key={dynamicSummary || 'main'}>
-              {dynamicSummary || item.summary || 'No description available.'}
+            <p style={styles.mainSummary} className="summary-text">
+              {item.summary || 'No description available.'}
             </p>
           </div>
 
@@ -274,24 +250,16 @@ const styles = {
     bottom: 0,
     zIndex: 1,
   },
-  backgroundArt: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    zIndex: 1,
-  },
-  backgroundOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundImage: 'linear-gradient(to right, #141414 0%, rgba(20, 20, 20, 0.95) 30%, rgba(20, 20, 20, 0.8) 60%, rgba(20, 20, 20, 0.25) 100%)',
-    zIndex: 2,
+  ambientGlow: {
+    position: 'absolute',
+    top: '-30%',
+    left: '-30%',
+    width: '100%',
+    height: '100%',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 70%)',
+    filter: 'blur(120px)',
+    pointerEvents: 'none',
   },
   contentWrapper: {
     position: 'relative',

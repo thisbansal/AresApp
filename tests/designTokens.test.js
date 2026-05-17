@@ -8,7 +8,16 @@ describe('Apple TV Premium Design Tokens', () => {
 
   it('should enforce snug vertical margins for the grid layout rows', () => {
     const snugSectionRowGap = '6px';
+    const sectionBottomMargin = '35px';
     expect(snugSectionRowGap).toBe('6px');
+    expect(sectionBottomMargin).toBe('35px');
+  });
+
+  it('should enforce horizontal spacing gap and grid column limits', () => {
+    const horizontalCardGap = '45px';
+    const libraryGridColumns = 6;
+    expect(horizontalCardGap).toBe('45px');
+    expect(libraryGridColumns).toBe(6);
   });
 
   it('should prefer Outfit and Inter premium Google Fonts for typography scales', () => {

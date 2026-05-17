@@ -38,7 +38,7 @@ function ContentBrowserPage() {
 
   const [loading, setLoading] = useState(true)
 
-  const ITEMS_PER_ROW = 7
+  const ITEMS_PER_ROW = 6
 
   // 1. Initialise Server Info and Libraries
   useEffect(() => {
@@ -501,6 +501,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '6px',
+    marginBottom: '35px',
   },
   sectionTitle: {
     fontSize: '34px',
@@ -513,18 +514,18 @@ const styles = {
   row: {
     display: 'flex',
     flexWrap: 'nowrap',
-    gap: '30px',
+    gap: '45px',
     overflowX: 'auto',
-    padding: '30px', // Room for focus scale
-    margin: '-10px -30px 0 -30px',
+    padding: '30px 45px', // Expand horizontal padding for focus zoom room
+    margin: '-10px -45px 0 -45px', // Expand negative margins to screen edges to prevent early clipping
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(7, 220px)',
+    gridTemplateColumns: 'repeat(6, 240px)', // Beautiful centered 6 columns
     justifyContent: 'center',
-    gap: '30px',
+    gap: '45px',
     padding: '20px 0',
   },
   card: {
@@ -535,8 +536,8 @@ const styles = {
     flexShrink: 0,
   },
   poster: {
-    width: '220px',
-    height: '330px',
+    width: '240px',
+    height: '360px',
     objectFit: 'cover',
     borderRadius: '12px',
     background: '#222',
