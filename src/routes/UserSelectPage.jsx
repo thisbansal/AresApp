@@ -135,7 +135,6 @@ function UserSelectPage() {
           }
           .numpad-btn.focused {
             transform: scale(1.15) !important;
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.45) !important;
           }
           .numpad-btn.focused div {
             background-color: #ffffff !important;
@@ -159,7 +158,7 @@ function UserSelectPage() {
             color: #ffffff !important;
           }
         `}</style>
-        
+
         <div style={styles.pinCard}>
           <div style={styles.pinAvatarWrapper}>
             <img
@@ -459,7 +458,7 @@ const styles = {
     color: '#bdc1c6',
     fontFamily: "'Outfit', 'Inter', sans-serif"
   },
-  
+
   // PIN code dialog overlays
   pinCard: {
     padding: '50px 60px 40px',

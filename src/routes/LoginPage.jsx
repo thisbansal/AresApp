@@ -1,11 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { generatePin, checkPinAuth } from '../services/plex/plexAuthService'
 import { saveMainToken, getMainToken } from '../services/luna/tokenStorage'
 
 function LoginPage() {
-  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [code, setCode] = useState('')
   const [qrUrl, setQrUrl] = useState('')
@@ -36,7 +34,7 @@ function LoginPage() {
 
       console.log(`[AUTH FLOW] LoginPage: Generated PIN code: "${pin.code}" | Pin ID: ${pin.id}`)
       setCode(pin.code)
-      setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent('https://plex.tv/link')}`)
+      setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://www.plex.tv/link/?pin=${pin.code}`)}`)
       setLoading(false)
 
       startPolling()
@@ -60,7 +58,7 @@ function LoginPage() {
           const maskedToken = result.authToken ? `${result.authToken.substring(0, 4)}...${result.authToken.substring(result.authToken.length - 4)}` : 'null'
           console.log(`[AUTH FLOW] LoginPage: PIN validation succeeded! Received token: ${maskedToken}. Saving main account token...`)
           clearInterval(pollIntervalRef.current)
-          
+
           const saveResult = await saveMainToken(result.authToken)
           console.log("[AUTH FLOW] LoginPage: saveMainToken result:", JSON.stringify(saveResult))
 
