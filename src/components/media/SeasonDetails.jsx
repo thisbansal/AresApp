@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../navigational/FocusableItem'
-import { getChildren, formatDuration } from '../../services/plex/plexContentService'
-import { toggleWatchedState } from '../../services/plex/plexWatchedService'
+import { formatDuration } from '../../services/plex/plexContentService'
+import { useToggleWatched } from '../../hooks/useToggleWatched'
+import { useEpisodes } from '../../hooks/useEpisodes'
 import { FallbackImage } from './FallbackImage'
 import ActionButtons from './ActionButtons'
 import { useBrowserStore } from '../../stores/browserStore'
@@ -11,20 +12,8 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
   const navigate = useNavigate()
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   
-  const [episodes, setEpisodes] = useState([])
-
-  useEffect(() => {
-    const fetchEpisodes = async () => {
-      try {
-        if (!serverInfo?.uri || !serverInfo?.token || !item.id) return
-        const children = await getChildren(serverInfo.uri, serverInfo.token, item.id)
-        setEpisodes(children)
-      } catch (err) {
-        console.error('Failed to fetch episodes:', err)
-      }
-    }
-    fetchEpisodes()
-  }, [item.id, serverInfo])
+  const [episodes, setEpisodes, loadingEpisodes] = useEpisodes(serverInfo, item.id)
+  const toggleWatched = useToggleWatched(serverInfo)
 
   const handlePlay = () => {
     console.log('Play season:', item.id)
@@ -38,18 +27,14 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
   }
 
   const handleToggleWatched = async (episode) => {
-    try {
-      if (!serverInfo?.uri || !serverInfo?.token) return
-      
-      const newWatchedState = await toggleWatchedState(serverInfo.uri, serverInfo.token, episode)
+    const newWatchedState = await toggleWatched(episode)
+    if (newWatchedState !== null) {
       const viewCount = newWatchedState ? 1 : 0
       
       // Update episodes local state instantly
       setEpisodes(prev => prev.map(ep => 
         ep.id === episode.id ? { ...ep, viewCount } : ep
       ))
-    } catch (err) {
-      console.error('Failed to toggle watched state:', err)
     }
   }
 

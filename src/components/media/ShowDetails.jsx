@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import ActionButtons from './ActionButtons'
 import { FocusableItem } from '../navigational/FocusableItem'
 import { getChildren } from '../../services/plex/plexContentService'
-import { toggleWatchedState } from '../../services/plex/plexWatchedService'
+import { useToggleWatched } from '../../hooks/useToggleWatched'
+import { useEpisodes } from '../../hooks/useEpisodes'
 import { FallbackImage } from './FallbackImage'
 import { findTargetSeason } from '../../utils/seasonSelector'
 import { useBrowserStore } from '../../stores/browserStore'
@@ -13,9 +14,9 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const [seasons, setSeasons] = useState([])
   const [activeSeasonId, setActiveSeasonId] = useState(null)
-  const [episodes, setEpisodes] = useState([])
-  const [loadingEpisodes, setLoadingEpisodes] = useState(false)
+  const [episodes, setEpisodes, loadingEpisodes] = useEpisodes(serverInfo, activeSeasonId)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const toggleWatched = useToggleWatched(serverInfo)
 
   // 1. Fetch Seasons
   useEffect(() => {
@@ -43,22 +44,7 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
     fetchSeasons()
   }, [item.id, serverInfo])
 
-  // 2. Fetch Episodes when Active Season changes
-  useEffect(() => {
-    const fetchEpisodes = async () => {
-      if (!activeSeasonId || !serverInfo?.uri) return
-      setLoadingEpisodes(true)
-      try {
-        const children = await getChildren(serverInfo.uri, serverInfo.token, activeSeasonId)
-        setEpisodes(children)
-      } catch (err) {
-        console.error('Failed to fetch episodes:', err)
-      } finally {
-        setLoadingEpisodes(false)
-      }
-    }
-    fetchEpisodes()
-  }, [activeSeasonId, serverInfo])
+
 
   const handlePlay = () => {
     if (episodes.length > 0) {
@@ -83,10 +69,8 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
   }
 
   const handleToggleWatched = async (episode) => {
-    try {
-      if (!serverInfo?.uri || !serverInfo?.token) return
-      
-      const newWatchedState = await toggleWatchedState(serverInfo.uri, serverInfo.token, episode)
+    const newWatchedState = await toggleWatched(episode)
+    if (newWatchedState !== null) {
       const viewCount = newWatchedState ? 1 : 0
       
       // 1. Update episodes local state instantly
@@ -108,8 +92,6 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
         }
         return s
       }))
-    } catch (err) {
-      console.error('Failed to toggle watched state:', err)
     }
   }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { getActiveServerInfo } from '../services/plex/plexConnectionService'
+import { useActiveServer } from '../hooks/useActiveServer'
 import { getMetadata, formatDuration } from '../services/plex/plexContentService'
 import { useFocusStore } from '../stores/FocusStore'
 
@@ -36,7 +36,7 @@ function MediaDetailsPage() {
 
   const [loading, setLoading] = useState(true)
   const [item, setItem] = useState(null)
-  const [serverInfo, setServerInfo] = useState(location.state?.serverInfo || null)
+  const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
 
   const [playHandler, setPlayHandler] = useState(null)
 
@@ -73,15 +73,12 @@ function MediaDetailsPage() {
   }, [])
 
   useEffect(() => {
+    if (serverLoading || !serverInfo) return
+
     const fetchDetails = async () => {
       setLoading(true)
       try {
-        const { uri, token } = await getActiveServerInfo(serverInfo)
-        if (!serverInfo) {
-          setServerInfo({ uri, token })
-        }
-
-        const metadata = await getMetadata(uri, token, ratingKey)
+        const metadata = await getMetadata(serverInfo.uri, serverInfo.token, ratingKey)
         
         // Unified Details: Redirect season/episode views to the main parent/grandparent Show details page
         if (metadata.type === 'episode' && metadata.grandparentRatingKey) {
@@ -103,7 +100,7 @@ function MediaDetailsPage() {
     }
 
     fetchDetails()
-  }, [ratingKey, navigate])
+  }, [ratingKey, serverInfo, serverLoading, navigate])
 
   const handleFocusItem = () => {}
 

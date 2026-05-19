@@ -8,7 +8,8 @@ import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { getServers, getBestServerConnection, testConnectionToServer } from '../services/plex/plexAPIServer'
 import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
-import { isMediaWatched, toggleWatchedState } from '../services/plex/plexWatchedService'
+import { isMediaWatched } from '../services/plex/plexWatchedService'
+import { useToggleWatched } from '../hooks/useToggleWatched'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useBrowserStore } from '../stores/browserStore'
 import { useFocusStore } from '../stores/FocusStore'
@@ -40,6 +41,7 @@ function ContentBrowserPage() {
 
   const [loading, setLoading] = useState(true)
   const [showExitDialog, setShowExitDialog] = useState(false)
+  const toggleWatched = useToggleWatched(serverInfo)
 
   const ITEMS_PER_ROW = 6
 
@@ -275,11 +277,8 @@ function ContentBrowserPage() {
   }
 
   const handleToggleWatched = async (item) => {
-    try {
-      if (!serverInfo?.uri || !serverInfo?.token) return
-
-      const newWatchedState = await toggleWatchedState(serverInfo.uri, serverInfo.token, item)
-      
+    const newWatchedState = await toggleWatched(item)
+    if (newWatchedState !== null) {
       const updateItem = (i) => {
         if (i.id === item.id) {
           if (newWatchedState) {
@@ -307,8 +306,6 @@ function ContentBrowserPage() {
       setLibraryContent({
         all: (libraryContent.all || []).map(updateItem)
       })
-    } catch (err) {
-      console.error('Failed to toggle watched state:', err)
     }
   }
 

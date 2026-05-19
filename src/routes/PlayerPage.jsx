@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { getMetadata } from '../services/plex/plexContentService'
-import { getActiveServerInfo } from '../services/plex/plexConnectionService'
+import { useActiveServer } from '../hooks/useActiveServer'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useFocusStore } from '../stores/FocusStore'
 import { FocusableItem } from '../components/navigational/FocusableItem'
@@ -20,7 +20,7 @@ export default function PlayerPage() {
 
   const [loading, setLoading] = useState(true)
   const [streamUrl, setStreamUrl] = useState('')
-  const [serverInfo, setServerInfo] = useState(location.state?.serverInfo || null)
+  const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
 
   // Media Playback State
   const [currentTime, setCurrentTime] = useState(0)
@@ -58,15 +58,12 @@ export default function PlayerPage() {
   }
 
   useEffect(() => {
+    if (serverLoading || !serverInfo) return
+
     const fetchStreamDetails = async () => {
       setLoading(true)
       try {
-        const { uri, token } = await getActiveServerInfo(serverInfo)
-        if (!serverInfo) {
-          setServerInfo({ uri, token })
-        }
-
-        const metadata = await getMetadata(uri, token, ratingKey)
+        const metadata = await getMetadata(serverInfo.uri, serverInfo.token, ratingKey)
         const sub = metadata.grandparentTitle
           ? `${metadata.grandparentTitle} • ${metadata.parentTitle} • Episode ${metadata.index}`
           : metadata.year || ''
@@ -82,7 +79,7 @@ export default function PlayerPage() {
           throw new Error('No playable stream file found for this item.')
         }
 
-        const absoluteUrl = `${uri}${partKey}?X-Plex-Token=${token}`
+        const absoluteUrl = `${serverInfo.uri}${partKey}?X-Plex-Token=${serverInfo.token}`
         setStreamUrl(absoluteUrl)
       } catch (err) {
         console.error('[PlayerPage] Playback startup failure:', err)
@@ -94,7 +91,7 @@ export default function PlayerPage() {
     }
 
     fetchStreamDetails()
-  }, [ratingKey, navigate])
+  }, [ratingKey, serverInfo, serverLoading, navigate])
 
   // Sync controls HUD visibility with native webOS cursorStateChange events
   useEffect(() => {
