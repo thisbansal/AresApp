@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { getMetadata } from '../services/plex/plexContentService'
-import { getMainToken } from '../services/luna/tokenStorage'
-import { DB_KINDS, getData } from '../services/luna/lunaService'
-import { KINDS } from '../config/app'
+import { getActiveServerInfo } from '../services/plex/plexConnectionService'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useFocusStore } from '../stores/FocusStore'
 import { FocusableItem } from '../components/navigational/FocusableItem'
@@ -63,17 +61,8 @@ export default function PlayerPage() {
     const fetchStreamDetails = async () => {
       setLoading(true)
       try {
-        let uri = serverInfo?.uri
-        let token = serverInfo?.token
-
-        if (!uri || !token) {
-          token = await getMainToken()
-          uri = await getData(DB_KINDS.SERVER, KINDS.server)
-
-          if (!token || !uri) {
-            navigate('/')
-            return
-          }
+        const { uri, token } = await getActiveServerInfo(serverInfo)
+        if (!serverInfo) {
           setServerInfo({ uri, token })
         }
 

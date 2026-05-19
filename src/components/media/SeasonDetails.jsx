@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../navigational/FocusableItem'
-import { getChildren, formatDuration, markAsWatched, markAsUnwatched } from '../../services/plex/plexContentService'
+import { getChildren, formatDuration } from '../../services/plex/plexContentService'
+import { toggleWatchedState } from '../../services/plex/plexWatchedService'
 import { FallbackImage } from './FallbackImage'
 import ActionButtons from './ActionButtons'
-import { useNotificationStore } from '../../services/notifications/notificationStore'
 import { useBrowserStore } from '../../stores/browserStore'
 
 export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
@@ -41,29 +41,13 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
     try {
       if (!serverInfo?.uri || !serverInfo?.token) return
       
-      const isCurrentlyWatched = Number(episode.viewCount || 0) > 0
+      const newWatchedState = await toggleWatchedState(serverInfo.uri, serverInfo.token, episode)
+      const viewCount = newWatchedState ? 1 : 0
       
-      if (isCurrentlyWatched) {
-        // Mark as Unwatched
-        await markAsUnwatched(serverInfo.uri, serverInfo.token, episode.id)
-        
-        // Update episodes local state instantly
-        setEpisodes(prev => prev.map(ep => 
-          ep.id === episode.id ? { ...ep, viewCount: 0 } : ep
-        ))
-        
-        useNotificationStore.getState().addNotification(`Marked as unwatched: ${episode.title}`, { level: 'success' })
-      } else {
-        // Mark as Watched
-        await markAsWatched(serverInfo.uri, serverInfo.token, episode.id)
-        
-        // Update episodes local state instantly
-        setEpisodes(prev => prev.map(ep => 
-          ep.id === episode.id ? { ...ep, viewCount: 1 } : ep
-        ))
-        
-        useNotificationStore.getState().addNotification(`Marked as watched: ${episode.title}`, { level: 'success' })
-      }
+      // Update episodes local state instantly
+      setEpisodes(prev => prev.map(ep => 
+        ep.id === episode.id ? { ...ep, viewCount } : ep
+      ))
     } catch (err) {
       console.error('Failed to toggle watched state:', err)
     }

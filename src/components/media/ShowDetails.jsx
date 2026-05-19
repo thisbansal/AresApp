@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ActionButtons from './ActionButtons'
 import { FocusableItem } from '../navigational/FocusableItem'
-import { getChildren, markAsUnwatched, markAsWatched } from '../../services/plex/plexContentService'
+import { getChildren } from '../../services/plex/plexContentService'
+import { toggleWatchedState } from '../../services/plex/plexWatchedService'
 import { FallbackImage } from './FallbackImage'
-import { useNotificationStore } from '../../services/notifications/notificationStore'
 import { findTargetSeason } from '../../utils/seasonSelector'
 import { useBrowserStore } from '../../stores/browserStore'
 
@@ -86,54 +86,28 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
     try {
       if (!serverInfo?.uri || !serverInfo?.token) return
       
-      const isCurrentlyWatched = Number(episode.viewCount || 0) > 0
+      const newWatchedState = await toggleWatchedState(serverInfo.uri, serverInfo.token, episode)
+      const viewCount = newWatchedState ? 1 : 0
       
-      if (isCurrentlyWatched) {
-        // Mark as Unwatched
-        await markAsUnwatched(serverInfo.uri, serverInfo.token, episode.id)
-        
-        // 1. Update episodes local state instantly
-        setEpisodes(prev => prev.map(ep => 
-          ep.id === episode.id ? { ...ep, viewCount: 0 } : ep
-        ))
-        
-        // 2. Decrement viewedLeafCount in seasons state
-        setSeasons(prev => prev.map(s => {
-          if (s.id === activeSeasonId) {
-            const currentViewed = Number(s.viewedLeafCount || 0)
-            return {
-              ...s,
-              viewedLeafCount: Math.max(0, currentViewed - 1)
-            }
+      // 1. Update episodes local state instantly
+      setEpisodes(prev => prev.map(ep => 
+        ep.id === episode.id ? { ...ep, viewCount } : ep
+      ))
+      
+      // 2. Update viewedLeafCount in seasons state
+      setSeasons(prev => prev.map(s => {
+        if (s.id === activeSeasonId) {
+          const currentViewed = Number(s.viewedLeafCount || 0)
+          const leafCount = Number(s.leafCount || 0)
+          return {
+            ...s,
+            viewedLeafCount: newWatchedState
+              ? Math.min(leafCount, currentViewed + 1)
+              : Math.max(0, currentViewed - 1)
           }
-          return s
-        }))
-        
-        useNotificationStore.getState().addNotification(`Marked as unwatched: ${episode.title}`, { level: 'success' })
-      } else {
-        // Mark as Watched
-        await markAsWatched(serverInfo.uri, serverInfo.token, episode.id)
-        
-        // 1. Update episodes local state instantly
-        setEpisodes(prev => prev.map(ep => 
-          ep.id === episode.id ? { ...ep, viewCount: 1 } : ep
-        ))
-        
-        // 2. Increment viewedLeafCount in seasons state
-        setSeasons(prev => prev.map(s => {
-          if (s.id === activeSeasonId) {
-            const currentViewed = Number(s.viewedLeafCount || 0)
-            const leafCount = Number(s.leafCount || 0)
-            return {
-              ...s,
-              viewedLeafCount: Math.min(leafCount, currentViewed + 1)
-            }
-          }
-          return s
-        }))
-        
-        useNotificationStore.getState().addNotification(`Marked as watched: ${episode.title}`, { level: 'success' })
-      }
+        }
+        return s
+      }))
     } catch (err) {
       console.error('Failed to toggle watched state:', err)
     }

@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { getMainToken } from '../services/luna/tokenStorage'
-import { DB_KINDS, getData } from '../services/luna/lunaService'
-import { KINDS } from '../config/app'
+import { getActiveServerInfo } from '../services/plex/plexConnectionService'
 import { getMetadata, formatDuration } from '../services/plex/plexContentService'
 import { useFocusStore } from '../stores/FocusStore'
 
@@ -78,17 +76,8 @@ function MediaDetailsPage() {
     const fetchDetails = async () => {
       setLoading(true)
       try {
-        let uri = serverInfo?.uri
-        let token = serverInfo?.token
-
-        if (!uri || !token) {
-          token = await getMainToken()
-          uri = await getData(DB_KINDS.SERVER, KINDS.server)
-
-          if (!token || !uri) {
-            navigate('/')
-            return
-          }
+        const { uri, token } = await getActiveServerInfo(serverInfo)
+        if (!serverInfo) {
           setServerInfo({ uri, token })
         }
 

@@ -7,7 +7,8 @@ import { getMainToken } from '../services/luna/tokenStorage'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { getServers, getBestServerConnection, testConnectionToServer } from '../services/plex/plexAPIServer'
-import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems, markAsWatched, markAsUnwatched } from '../services/plex/plexContentService'
+import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
+import { isMediaWatched, toggleWatchedState } from '../services/plex/plexWatchedService'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useBrowserStore } from '../stores/browserStore'
 import { useFocusStore } from '../stores/FocusStore'
@@ -277,22 +278,18 @@ function ContentBrowserPage() {
     try {
       if (!serverInfo?.uri || !serverInfo?.token) return
 
-      let isCurrentlyWatched = false
-      if (item.type === 'show' || item.type === 'season') {
-        isCurrentlyWatched = item.leafCount
-          ? ((item.viewedLeafCount || 0) === item.leafCount)
-          : (Number(item.viewCount || 0) > 0 || Number(item.viewedLeafCount || 0) > 0)
-      } else {
-        isCurrentlyWatched = Number(item.viewCount || 0) > 0
-      }
-
-      if (isCurrentlyWatched) {
-        // Mark as Unwatched
-        await markAsUnwatched(serverInfo.uri, serverInfo.token, item.id)
-
-        // Helper to update local store items
-        const updateItem = (i) => {
-          if (i.id === item.id) {
+      const newWatchedState = await toggleWatchedState(serverInfo.uri, serverInfo.token, item)
+      
+      const updateItem = (i) => {
+        if (i.id === item.id) {
+          if (newWatchedState) {
+            return {
+              ...i,
+              viewCount: 1,
+              viewedLeafCount: i.leafCount || 1,
+              viewOffset: 0
+            }
+          } else {
             return {
               ...i,
               viewCount: 0,
@@ -300,43 +297,16 @@ function ContentBrowserPage() {
               viewOffset: 0
             }
           }
-          return i
         }
-
-        setContinueWatching((continueWatching || []).map(updateItem))
-        setRecentMovies((recentMovies || []).map(updateItem))
-        setRecentTv((recentTv || []).map(updateItem))
-        setLibraryContent({
-          all: (libraryContent.all || []).map(updateItem)
-        })
-
-        useNotificationStore.getState().addNotification(`Marked as unwatched: ${item.title}`, { level: 'success' })
-      } else {
-        // Mark as Watched
-        await markAsWatched(serverInfo.uri, serverInfo.token, item.id)
-
-        // Helper to update local store items
-        const updateItem = (i) => {
-          if (i.id === item.id) {
-            return {
-              ...i,
-              viewCount: 1,
-              viewedLeafCount: i.leafCount || 1,
-              viewOffset: 0
-            }
-          }
-          return i
-        }
-
-        setContinueWatching((continueWatching || []).map(updateItem))
-        setRecentMovies((recentMovies || []).map(updateItem))
-        setRecentTv((recentTv || []).map(updateItem))
-        setLibraryContent({
-          all: (libraryContent.all || []).map(updateItem)
-        })
-
-        useNotificationStore.getState().addNotification(`Marked as watched: ${item.title}`, { level: 'success' })
+        return i
       }
+
+      setContinueWatching((continueWatching || []).map(updateItem))
+      setRecentMovies((recentMovies || []).map(updateItem))
+      setRecentTv((recentTv || []).map(updateItem))
+      setLibraryContent({
+        all: (libraryContent.all || []).map(updateItem)
+      })
     } catch (err) {
       console.error('Failed to toggle watched state:', err)
     }
@@ -352,14 +322,7 @@ function ContentBrowserPage() {
     // Never show the unwatched ribbon on items in the "Continue Watching" (cw) row,
     // or items that are partially watched (have a viewOffset).
     if (prefix !== 'cw') {
-      if (item.type === 'show' || item.type === 'season') {
-        // Use leafCount if available, otherwise fallback to checking if any views exist
-        isUnwatched = item.leafCount
-          ? ((item.viewedLeafCount || 0) < item.leafCount)
-          : (!item.viewCount && !item.viewedLeafCount)
-      } else {
-        isUnwatched = !item.viewCount && !item.viewOffset
-      }
+      isUnwatched = !isMediaWatched(item) && !item.viewOffset
     }
 
     return (
