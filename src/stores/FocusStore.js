@@ -6,6 +6,14 @@ export const useFocusStore = create((set, get) => ({
   navigationMode: 'remote', // 'remote' or 'cursor'
   lastRemoteAction: 0,
   itemsRef: new Map(),
+  showExitDialog: false,
+  setShowExitDialog: (show) => {
+    if (show) {
+      set({ showExitDialog: true, focusedId: 'exit-cancel', lastRemoteAction: Date.now() });
+    } else {
+      set({ showExitDialog: false, focusedId: 'nav-home', lastRemoteAction: Date.now() });
+    }
+  },
 
   registerItem: (id, element, rowIndex, colIndex) => {
     const { itemsRef, focusedId } = get();

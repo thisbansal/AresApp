@@ -8,7 +8,7 @@
 const KIND_ID = 'com.plex.posters:1'
 const OWNER_ID = 'com.plex.app'
 
-const isWebOS = () => !!webos?.service
+const isWebOS = () => typeof window !== 'undefined' && (!!window.webOS || !!window.webos || typeof PalmSystem !== 'undefined')
 
 /**
  * Initialize MediaDB kind (run once on first use)
@@ -20,7 +20,7 @@ export const initMediaDB = async () => {
   }
 
   return new Promise((resolve) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.mediadb', {
+    window?.webos?.service.request('luna://com.webos.service.mediadb', {
       method: 'putKind',
       parameters: {
         id: KIND_ID,
@@ -58,7 +58,7 @@ export const putImage = async (itemId, base64Data) => {
   await initMediaDB()
 
   return new Promise((resolve, reject) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.mediadb', {
+    window?.webos?.service.request('luna://com.webos.service.mediadb', {
       method: 'put',
       parameters: {
         objects: [{
@@ -90,7 +90,7 @@ export const getImage = async (itemId) => {
   }
 
   return new Promise((resolve) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.mediadb', {
+    window?.webos?.service.request('luna://com.webos.service.mediadb', {
       method: 'find',
       parameters: {
         query: {
@@ -127,7 +127,7 @@ export const deleteImage = async (itemId) => {
   }
 
   return new Promise((resolve) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.mediadb', {
+    window?.webos?.service.request('luna://com.webos.service.mediadb', {
       method: 'del',
       parameters: {
         query: {
@@ -158,7 +158,7 @@ export const getAllImageIds = async () => {
   }
 
   return new Promise((resolve) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.mediadb', {
+    window?.webos?.service.request('luna://com.webos.service.mediadb', {
       method: 'find',
       parameters: {
         query: {
@@ -188,7 +188,7 @@ export const clearAllImages = async () => {
   }
 
   return new Promise((resolve) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.mediadb', {
+    window?.webos?.service.request('luna://com.webos.service.mediadb', {
       method: 'delKind',
       parameters: {
         id: KIND_ID

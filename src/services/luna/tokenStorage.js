@@ -1,4 +1,5 @@
 import { getData, setData, deleteData, DB_KINDS, initDB8Kind } from './lunaService'
+import { KINDS } from '../../config/app'
 
 const MAIN_TOKEN_KEY = 'plexMainToken'
 const IS_VALID_USER = 'validPlexUser'
@@ -37,6 +38,7 @@ export const getDB8Kind = async (kind, key) => {
   return await getData(kind, key)
 }
 
+// User-specific profile settings
 export const saveUserProfile = async (userProfile) => {
   return await setData(DB_KINDS.USER, USER_TOKEN_KEY, userProfile)
 }
@@ -48,4 +50,13 @@ export const deleteUserData = async () => {
 export const clearTokens = async () => {
   await deleteData(DB_KINDS.CONFIG, MAIN_TOKEN_KEY)
   await deleteData(DB_KINDS.CONFIG, USER_TOKEN_KEY)
+}
+
+export const clearAllStoredInfo = async () => {
+  await Promise.all([
+    deleteData(DB_KINDS.CONFIG, MAIN_TOKEN_KEY),
+    deleteData(DB_KINDS.USER, USER_TOKEN_KEY),
+    deleteData(DB_KINDS.SERVER, KINDS.server),
+    deleteData(DB_KINDS.PREFERENCES, KINDS.preferences)
+  ])
 }

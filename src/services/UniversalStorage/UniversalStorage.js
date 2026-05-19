@@ -16,7 +16,7 @@ const STORE_NAME = 'storage'
 // Wait for webOS to be ready
 const waitForWebOS = () => {
   return new Promise((resolve) => {
-    if (webos) {
+    if (typeof window !== 'undefined' && window.webos) {
       console.log('[Storage] webOS already available')
       resolve(true)
       return
@@ -24,7 +24,7 @@ const waitForWebOS = () => {
 
     // Wait for webOSReady event
     const checkWebOS = () => {
-      if (webos) {
+      if (typeof window !== 'undefined' && window.webos) {
         console.log('[Storage] webOS became available')
         document.removeEventListener('webOSReady', checkWebOS)
         resolve(true)
@@ -35,7 +35,7 @@ const waitForWebOS = () => {
 
     // Fallback timeout - if webOS doesn't load in 2 seconds, assume it's not available
     setTimeout(() => {
-      if (!webos) {
+      if (typeof window === 'undefined' || !window.webos) {
         console.warn('[Storage] webOS not available after timeout, using browser storage')
         document.removeEventListener('webOSReady', checkWebOS)
         resolve(false)
@@ -46,14 +46,14 @@ const waitForWebOS = () => {
 
 // webOS storage functions (using LS2 API)
 const webOSGet = async (key, defaultValue = null) => {
-  if (!webos || !window?.webos?.service) {
+  if (typeof window === 'undefined' || !window.webos || !window.webos.service) {
     // Fallback to localStorage
     const value = localStorage.getItem(key)
     return value !== null ? value : defaultValue
   }
 
   return new Promise((resolve) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.systemservice', {
+    window.webos.service.request('luna://com.webos.service.systemservice', {
       method: 'getPreferences',
       parameters: {
         keys: [key]
@@ -73,14 +73,14 @@ const webOSGet = async (key, defaultValue = null) => {
 }
 
 const webOSSet = async (key, value) => {
-  if (!webos || !window?.webos?.service) {
+  if (typeof window === 'undefined' || !window.webos || !window.webos.service) {
     // Fallback to localStorage
     localStorage.setItem(key, value)
     return
   }
 
   return new Promise((resolve, reject) => {
-    window?.webos?.service.request('luna://com.window?.webos?.service.systemservice', {
+    window.webos.service.request('luna://com.webos.service.systemservice', {
       method: 'setPreferences',
       parameters: {
         [key]: value

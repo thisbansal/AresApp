@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
 import { FallbackImage } from '../components/media/FallbackImage'
-import { getMainToken } from '../services/luna/tokenStorage'
+import { getMainToken, clearAllStoredInfo } from '../services/luna/tokenStorage'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { getServers, getBestServerConnection, testConnectionToServer } from '../services/plex/plexAPIServer'
@@ -40,7 +40,6 @@ function ContentBrowserPage() {
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
 
   const [loading, setLoading] = useState(true)
-  const [showExitDialog, setShowExitDialog] = useState(false)
   const toggleWatched = useToggleWatched(serverInfo)
 
   const ITEMS_PER_ROW = 6
@@ -188,83 +187,6 @@ function ContentBrowserPage() {
     }
   }, [])
 
-  // Handle remote Back key / Escape / Backspace / Arrows to manage Exit Dialog focus
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Allow detail pages or player pages to handle their own back buttons
-      const path = window.location.pathname || ''
-      const hash = window.location.hash || ''
-      if (path.includes('/play') || path.includes('/details') || hash.includes('/play') || hash.includes('/details')) {
-        return
-      }
-
-      if (showExitDialog) {
-        // Intercept Arrow keys, Enter, Space and Back keys
-        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', ' ', 'Escape', 'Backspace', 'BrowserBack'].includes(e.key) || e.keyCode === 461 || e.keyCode === 10009) {
-          e.preventDefault()
-          e.stopPropagation()
-
-          const currentFocus = useFocusStore.getState().focusedId
-
-          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-            // Toggle focus between Cancel and Exit
-            const nextFocus = currentFocus === 'exit-exit' ? 'exit-cancel' : 'exit-exit'
-            useFocusStore.setState({ focusedId: nextFocus, lastRemoteAction: Date.now() })
-          } else if (e.key === 'Enter' || e.key === ' ') {
-            if (currentFocus === 'exit-exit') {
-              handleExitApp()
-            } else {
-              setShowExitDialog(false)
-              // Reset focus to home navigation
-              useFocusStore.setState({ focusedId: 'nav-home', lastRemoteAction: Date.now() })
-            }
-          } else if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'BrowserBack' || e.keyCode === 461 || e.keyCode === 10009) {
-            setShowExitDialog(false)
-            useFocusStore.setState({ focusedId: 'nav-home', lastRemoteAction: Date.now() })
-          }
-          return
-        }
-      }
-
-      // If dialog is not open, check if they pressed the back button to show it
-      if (
-        e.key === 'Escape' ||
-        e.key === 'Backspace' ||
-        e.key === 'BrowserBack' ||
-        e.keyCode === 461 ||
-        e.keyCode === 10009 ||
-        e.keyCode === 27 ||
-        e.keyCode === 8
-      ) {
-        // If typing in inputs, let default browser behavior handle it
-        if (document.activeElement && document.activeElement.tagName === 'INPUT') {
-          return
-        }
-
-        e.preventDefault()
-        e.stopPropagation()
-        setShowExitDialog(true)
-        useFocusStore.setState({ focusedId: 'exit-cancel', lastRemoteAction: Date.now() })
-      }
-    }
-
-    // Use capture phase to override the global spatial FocusManager Arrow key navigation completely while modal is open
-    window.addEventListener('keydown', handleKeyDown, true)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown, true)
-    }
-  }, [showExitDialog])
-
-  const handleExitApp = () => {
-    console.log('[ExitDialog] Closing application...')
-    if (window.close) {
-      window.close()
-    }
-    if (window.webOS && window.webOS.toApp) {
-      window.webOS.toApp('close')
-    }
-  }
-
   const handleItemClick = (item) => {
     console.log('Selected item:', item)
     let targetId = item.id
@@ -405,6 +327,11 @@ function ContentBrowserPage() {
           color: #fff !important;
           box-shadow: inset 0 0 10px rgba(255,255,255,0.2) !important;
         }
+        .setting-toggle.focused > .signout-red {
+          background-color: rgba(217, 56, 56, 0.6) !important;
+          color: #fff !important;
+          box-shadow: 0 0 20px rgba(217, 56, 56, 0.6) !important;
+        }
         .setting-toggle[style] {
           transform: scale(1) !important;
         }
@@ -437,57 +364,6 @@ function ContentBrowserPage() {
         }
         .unwatched-episode-ribbon:hover .unwatched-tick {
           display: block !important;
-        }
-        .exit-overlay {
-          animation: fadeIn 0.25s ease forwards;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .exit-modal {
-          animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes slideUp {
-          from { transform: translateY(30px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        .exit-btn {
-          cursor: pointer;
-          color: #ffffff;
-          padding: 14px 44px;
-          border-radius: 9999px; /* Capsule pill */
-          background-color: rgba(255, 255, 255, 0.08);
-          border: 1.5px solid rgba(255, 255, 255, 0.15);
-          font-size: 24px;
-          font-weight: 600;
-          font-family: 'Outfit', 'Inter', sans-serif;
-          transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
-          display: flex;
-          align-items: center;
-          justifyContent: center;
-        }
-        .exit-btn[style] {
-          transform: scale(1) !important;
-        }
-        .exit-btn.focused, .exit-btn:hover {
-          background-color: rgba(255, 255, 255, 0.25) !important;
-          border-color: rgba(255, 255, 255, 0.5) !important;
-          transform: scale(1.08) !important;
-          outline: none;
-          box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
-        }
-        .exit-btn.confirm {
-          background-color: rgba(10, 132, 255, 0.25);
-          border-color: rgba(10, 132, 255, 0.4);
-        }
-        .exit-btn.confirm.focused, .exit-btn.confirm:hover {
-          background-color: rgba(10, 132, 255, 0.85) !important;
-          border-color: #0a84ff !important;
-          box-shadow: 0 0 25px rgba(10, 132, 255, 0.65) !important;
-        }
-        .exit-btn:active {
-          transform: scale(0.96) !important;
         }
       `}</style>
 
@@ -629,45 +505,33 @@ function ContentBrowserPage() {
                     </div>
                   </FocusableItem>
                 </div>
+
+                <div style={styles.settingItemRow}>
+                  <div style={styles.settingLabel}>Account Session</div>
+
+                  <FocusableItem
+                    id="btn-signout"
+                    rowIndex={2}
+                    colIndex={0}
+                    onClick={async () => {
+                      try {
+                        await clearAllStoredInfo()
+                        window.location.reload()
+                      } catch (err) {
+                        console.error('Failed to sign out:', err)
+                      }
+                    }}
+                    className="setting-toggle"
+                  >
+                    <div className="signout-red" style={styles.signoutButtonContent}>
+                      Sign Out
+                    </div>
+                  </FocusableItem>
+                </div>
               </div>
             </div>
           )}
         </>
-      )}
-
-      {showExitDialog && (
-        <div style={styles.exitOverlay} className="exit-overlay">
-          <div style={styles.exitModal} className="exit-modal">
-            <span style={styles.exitTitle}>Are you sure you want to exit?</span>
-
-            <div style={styles.exitButtonRow}>
-              {/* Cancel Button */}
-              <FocusableItem
-                id="exit-cancel"
-                rowIndex={999}
-                colIndex={0}
-                onClick={() => {
-                  setShowExitDialog(false)
-                  useFocusStore.setState({ focusedId: 'nav-home', lastRemoteAction: Date.now() })
-                }}
-                className="exit-btn cancel"
-              >
-                Cancel
-              </FocusableItem>
-
-              {/* Exit Button */}
-              <FocusableItem
-                id="exit-exit"
-                rowIndex={999}
-                colIndex={1}
-                onClick={handleExitApp}
-                className="exit-btn confirm"
-              >
-                Yes
-              </FocusableItem>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   )
@@ -735,6 +599,20 @@ const styles = {
     minWidth: '160px',
     textAlign: 'center',
     transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
+  },
+  signoutButtonContent: {
+    backgroundColor: 'rgba(217, 56, 56, 0.2)',
+    backdropFilter: 'blur(20px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    border: '1px solid rgba(217, 56, 56, 0.45)',
+    borderRadius: '9999px',
+    padding: '12px 32px',
+    fontSize: '24px',
+    fontWeight: '700',
+    minWidth: '160px',
+    textAlign: 'center',
+    transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
+    color: '#ff6666',
   },
   loadingContainer: {
     display: 'flex',

@@ -103,35 +103,46 @@ describe('LG webOS Premium Exit Confirmation Dialog', () => {
   });
 });
 
-describe('Unified Global Remote Back Key Interceptor', () => {
+describe('Unified Global Remote Back Key Router & Exit Interceptor', () => {
   let currentPath;
+  let showExitDialog;
+  let setShowExitDialogCalled;
+  let navigateReactRouter;
 
   beforeEach(() => {
     currentPath = '/details/12345';
+    showExitDialog = false;
+    setShowExitDialogCalled = null;
+    navigateReactRouter = vi.fn();
   });
 
-  const handleGlobalKeyDown = (e, navigateReactRouter) => {
+  const handleGlobalKeyDown = (e) => {
     if (
       e.key === 'Escape' ||
       e.key === 'Backspace' ||
       e.key === 'BrowserBack' ||
-      e.keyCode === 461
+      e.keyCode === 461 ||
+      e.keyCode === 27 ||
+      e.keyCode === 8
     ) {
-      if (
-        currentPath.includes('/browse') ||
-        currentPath.includes('/play')
-      ) {
-        return; // Let route-specific capture listeners handle them
-      }
-
       e.preventDefault();
       e.stopPropagation();
-      navigateReactRouter(-1); // Back navigation trigger!
+
+      const isLoginRoute = currentPath.includes('/login');
+      const isHomeRoute = currentPath.includes('/browse') || currentPath.includes('/home');
+
+      if (isLoginRoute || isHomeRoute) {
+        setShowExitDialogCalled = true;
+      } else if (currentPath.includes('/play')) {
+        return; // Video player handles internally
+      } else {
+        navigateReactRouter(-1); // Back in history
+      }
     }
   };
 
-  it('should trigger router back navigation on a details route when Back key is pressed', () => {
-    const mockNavigate = vi.fn();
+  it('should trigger global exit dialog on the login page ("/login")', () => {
+    currentPath = '/login';
     const mockEvent = {
       key: 'BrowserBack',
       keyCode: 461,
@@ -139,16 +150,16 @@ describe('Unified Global Remote Back Key Interceptor', () => {
       stopPropagation: vi.fn(),
     };
 
-    handleGlobalKeyDown(mockEvent, mockNavigate);
+    handleGlobalKeyDown(mockEvent);
 
     expect(mockEvent.preventDefault).toHaveBeenCalled();
     expect(mockEvent.stopPropagation).toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith(-1);
+    expect(setShowExitDialogCalled).toBe(true);
+    expect(navigateReactRouter).not.toHaveBeenCalled();
   });
 
-  it('should bypass global router navigation on the home browse route to allow custom exit modal handling', () => {
-    currentPath = '/browse';
-    const mockNavigate = vi.fn();
+  it('should naturally traverse back in history on setup/onboarding pages ("/server-select")', () => {
+    currentPath = '/server-select';
     const mockEvent = {
       key: 'BrowserBack',
       keyCode: 461,
@@ -156,10 +167,45 @@ describe('Unified Global Remote Back Key Interceptor', () => {
       stopPropagation: vi.fn(),
     };
 
-    handleGlobalKeyDown(mockEvent, mockNavigate);
+    handleGlobalKeyDown(mockEvent);
 
-    expect(mockEvent.preventDefault).not.toHaveBeenCalled();
-    expect(mockEvent.stopPropagation).not.toHaveBeenCalled();
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(mockEvent.stopPropagation).toHaveBeenCalled();
+    expect(setShowExitDialogCalled).toBeNull();
+    expect(navigateReactRouter).toHaveBeenCalledWith(-1);
+  });
+
+  it('should trigger global exit dialog on the homepage/browse page ("/browse")', () => {
+    currentPath = '/browse';
+    const mockEvent = {
+      key: 'BrowserBack',
+      keyCode: 461,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    };
+
+    handleGlobalKeyDown(mockEvent);
+
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(mockEvent.stopPropagation).toHaveBeenCalled();
+    expect(setShowExitDialogCalled).toBe(true);
+    expect(navigateReactRouter).not.toHaveBeenCalled();
+  });
+
+  it('should naturally traverse back in history on user select page ("/user-select")', () => {
+    currentPath = '/user-select';
+    const mockEvent = {
+      key: 'BrowserBack',
+      keyCode: 461,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    };
+
+    handleGlobalKeyDown(mockEvent);
+
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(mockEvent.stopPropagation).toHaveBeenCalled();
+    expect(setShowExitDialogCalled).toBeNull();
+    expect(navigateReactRouter).toHaveBeenCalledWith(-1);
   });
 });

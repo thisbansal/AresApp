@@ -3,11 +3,13 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { WebOSInputProvider } from './services/navigation/WebOSInputProvider'
 import { EdgeScrollTriggers } from './components/navigational/EdgeScrollTriggers'
 import { KeyboardHandler } from './components/navigational/KeyboardHandler'
+import { ExitDialog } from './components/navigational/ExitDialog'
 import { getMainToken, initialiseDatabase } from './services/luna/tokenStorage'
 import { hasCompleteSession } from './utils/appSettings'
 import { SystemToaster } from './components/navigational/SystemToaster'
 import { useServerStore } from './stores/serverStore'
 import { plexBridge } from './services/plex/plexBridge'
+import { isWebOS } from './services/Environment/environment'
 
 import AuthRoute from './pages/Auth'
 import LoginPage from './routes/LoginPage'
@@ -31,14 +33,31 @@ function App() {
   const isOnline = useServerStore(state => state.isOnline)
 
   useEffect(() => {
-    initialiseDatabase()
-    initialiseApplication()
+    const boot = async () => {
+      try {
+        await initialiseDatabase()
+      } catch (e) {
+        console.error('[AUTH FLOW] App.jsx: Failed to initialize DB8 kinds:', e)
+      }
+      await initialiseApplication()
+    }
+    boot()
   }, [])
 
   const initialiseApplication = async () => {
+    console.log('[AUTH FLOW] App.jsx: Starting application initialization...')
+    const runtimeEnv = isWebOS() ? 'webOS TV / Emulator' : 'Desktop Browser'
+    console.log(`[AUTH FLOW] App.jsx: Detected runtime environment: ${runtimeEnv}`)
+    
     try {
+      console.log('[AUTH FLOW] App.jsx: Fetching main token via getMainToken()...')
       const token = await getMainToken()
+      const maskedToken = token ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : 'MISSING'
+      console.log(`[AUTH FLOW] App.jsx: Raw token check resolved: ${maskedToken}`)
+
+      console.log('[AUTH FLOW] App.jsx: Checking session completion status...')
       const sessionComplete = await hasCompleteSession()
+      console.log(`[AUTH FLOW] App.jsx: Final resolved state: token = ${token ? 'PRESENT' : 'MISSING'} | sessionComplete = ${sessionComplete}`)
 
       setAuthState({
         isAuthenticated: !!token,
@@ -46,6 +65,7 @@ function App() {
         isLoading: false
       })
     } catch (err) {
+      console.error('[AUTH FLOW] App.jsx: Initialization error:', err)
       setAuthState({
         isAuthenticated: false,
         hasSession: false,
@@ -93,6 +113,7 @@ function App() {
       `}</style>
 
       <KeyboardHandler />
+      <ExitDialog />
       <EdgeScrollTriggers />
       <SystemToaster />
 

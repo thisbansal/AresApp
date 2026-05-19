@@ -2,11 +2,15 @@ import { getUserToken } from '../services/luna/tokenStorage'
 
 export const hasCompleteSession = async () => {
   const lastProfile = await getUserToken()
-  // console.log('Last profile:', lastProfile)
 
   if (!lastProfile || !lastProfile.userId) {
-    // console.log('profile:', !!lastProfile, 'userId:', lastProfile?.userId)
     return false
+  }
+
+  // If the profile is unprotected, the session is always complete
+  if (lastProfile.isProtected === false) {
+    console.log('Has complete session: true (unprotected profile)')
+    return true
   }
 
   const result = !lastProfile.rememberPin || !!lastProfile.userPin
@@ -14,8 +18,6 @@ export const hasCompleteSession = async () => {
 
   return result
 }
-
-
 
 export const shouldAutoLogin = async () => {
   return await hasCompleteSession()

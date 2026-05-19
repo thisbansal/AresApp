@@ -4,7 +4,7 @@
  */
 
 export const isWebOS = () => {
-  return typeof window !== 'undefined' && !!webos
+  return typeof window !== 'undefined' && (!!window.webOS || !!window.webos || typeof PalmSystem !== 'undefined')
 }
 
 export const isBrowser = () => {
