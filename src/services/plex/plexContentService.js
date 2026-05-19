@@ -1,4 +1,4 @@
-import { useNotificationStore } from '../notifications/notificationStore'
+import { plexBridge } from './plexBridge'
 
 /**
  * Build optimized image URL with specific size and format
@@ -15,24 +15,8 @@ const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
  * Get all libraries from the Plex server
  */
 export const getLibraries = async (serverUri, token) => {
-  console.log('[Plex] [getLibraries] Fetching libraries from:', serverUri)
-  const url = `${serverUri}/library/sections/all`
-  console.log(`url: ${url}`)
-
-  const response = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'X-Plex-Token': token
-    }
-  })
-
-  if (!response.ok) {
-    useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/sections/all`, { level: 'dev' })
-    throw new Error(`Failed to fetch libraries: ${response.status}`)
-  }
-
+  const response = await plexBridge.request('/library/sections/all')
   const data = await response.json()
-  console.log('[Plex] [getLibraries] Raw response:', data)
 
   return data.MediaContainer.Directory
     .filter(lib => lib.type !== 'photo')
@@ -40,7 +24,6 @@ export const getLibraries = async (serverUri, token) => {
       id: lib.key,
       title: lib.title,
       type: lib.type,
-      // thumb: buildImageUrl(serverUri, lib.thumb, token, 100, 100),
     }))
 }
 
@@ -48,105 +31,67 @@ export const getLibraries = async (serverUri, token) => {
  * Get recently added items from a specific library
  */
 export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit = 20) => {
-  try {
-    // If no library specified, get from all libraries
-    const endpoint = libraryId
-      ? `/library/sections/${libraryId}/recentlyAdded`
-      : '/library/recentlyAdded'
+  const endpoint = libraryId
+    ? `/library/sections/${libraryId}/recentlyAdded`
+    : '/library/recentlyAdded'
 
-    const url = `${serverUri}${endpoint}?X-Plex-Token=${token}`
+  const response = await plexBridge.request(endpoint)
+  const data = await response.json()
 
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      }
-    })
+  const items = (data.MediaContainer.Metadata || []).slice(0, limit).map(item => ({
+    id: item.ratingKey,
+    title: item.title,
+    type: item.type,
+    year: item.year,
+    thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Grid thumbnail
+    art: buildImageUrl(serverUri, item.art, token, 800, 450), // Detail view
+    rating: item.contentRating,
+    summary: item.summary,
+    duration: item.duration,
+    addedAt: item.addedAt,
+    updatedAt: item.updatedAt,
+    // For TV shows
+    grandparentTitle: item.grandparentTitle,
+    parentTitle: item.parentTitle,
+    index: item.index,
+    parentIndex: item.parentIndex,
+    grandparentRatingKey: item.grandparentRatingKey,
+    parentRatingKey: item.parentRatingKey,
+    // View state
+    viewCount: item.viewCount,
+    viewOffset: item.viewOffset,
+    viewedLeafCount: item.viewedLeafCount,
+    leafCount: item.leafCount,
+  }))
 
-    if (!response.ok) {
-      useNotificationStore.getState().addNotification(`API Error: ${response.status} - ${endpoint}`, { level: 'dev' })
-      throw new Error(`Failed to fetch recently added: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    // Parse media items with optimized image sizes
-    const items = (data.MediaContainer.Metadata || []).slice(0, limit).map(item => ({
-      id: item.ratingKey,
-      title: item.title,
-      type: item.type,
-      year: item.year,
-      thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Grid thumbnail
-      art: buildImageUrl(serverUri, item.art, token, 800, 450), // Detail view
-      rating: item.contentRating,
-      summary: item.summary,
-      duration: item.duration,
-      addedAt: item.addedAt,
-      updatedAt: item.updatedAt,
-      // For TV shows
-      grandparentTitle: item.grandparentTitle,
-      parentTitle: item.parentTitle,
-      index: item.index,
-      parentIndex: item.parentIndex,
-      grandparentRatingKey: item.grandparentRatingKey,
-      parentRatingKey: item.parentRatingKey,
-      // View state
-      viewCount: item.viewCount,
-      viewOffset: item.viewOffset,
-      viewedLeafCount: item.viewedLeafCount,
-      leafCount: item.leafCount,
-    }))
-
-    return items
-  } catch (error) {
-    console.error('Error fetching recently added:', error)
-    useNotificationStore.getState().addNotification(`Network Error: ${error.message}`, { level: 'dev' })
-    throw error
-  }
+  return items
 }
 
 /**
  * Get on deck (continue watching) items
  */
 export const getOnDeck = async (serverUri, token, limit = 20) => {
-  try {
-    const url = `${serverUri}/library/onDeck?X-Plex-Token=${token}`
+  const response = await plexBridge.request('/library/onDeck')
+  const data = await response.json()
 
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      }
-    })
+  const items = (data.MediaContainer.Metadata || []).slice(0, limit).map(item => ({
+    id: item.ratingKey,
+    title: item.title,
+    type: item.type,
+    year: item.year,
+    thumb: buildImageUrl(serverUri, item.type === 'episode' ? (item.grandparentThumb || item.thumb) : item.thumb, token, 400, 600),
+    art: buildImageUrl(serverUri, item.art, token, 800, 450),
+    viewOffset: item.viewOffset,
+    duration: item.duration,
+    grandparentTitle: item.grandparentTitle,
+    parentTitle: item.parentTitle,
+    index: item.index,
+    parentIndex: item.parentIndex,
+    grandparentRatingKey: item.grandparentRatingKey,
+    parentRatingKey: item.parentRatingKey,
+  }))
 
-    if (!response.ok) {
-      useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/onDeck`, { level: 'dev' })
-      throw new Error(`Failed to fetch on deck: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    const items = (data.MediaContainer.Metadata || []).slice(0, limit).map(item => ({
-      id: item.ratingKey,
-      title: item.title,
-      type: item.type,
-      year: item.year,
-      thumb: buildImageUrl(serverUri, item.type === 'episode' ? (item.grandparentThumb || item.thumb) : item.thumb, token, 400, 600),
-      art: buildImageUrl(serverUri, item.art, token, 800, 450),
-      viewOffset: item.viewOffset,
-      duration: item.duration,
-      grandparentTitle: item.grandparentTitle,
-      parentTitle: item.parentTitle,
-      index: item.index,
-      parentIndex: item.parentIndex,
-      grandparentRatingKey: item.grandparentRatingKey,
-      parentRatingKey: item.parentRatingKey,
-    }))
-
-    return items
-  } catch (error) {
-    console.error('Error fetching on deck:', error)
-    useNotificationStore.getState().addNotification(`Network Error: ${error.message}`, { level: 'dev' })
-    throw error
-  }
+  return items
 }
 
 /**
@@ -154,24 +99,8 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
  * OPTIMIZED: Returns small thumbnails for grid view
  */
 export const getLibraryItems = async (serverUri, token, libraryId) => {
-
-  const url = `${serverUri}/library/sections/${libraryId}/all`
-  console.log(`gettingItems: ${url}`)
-
-  const response = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'X-Plex-Token': token,
-    }
-  })
-
-  if (!response.ok) {
-    useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/sections/${libraryId}/all`, { level: 'dev' })
-    throw new Error(`Failed to fetch library items: ${response.status}`)
-  }
-
+  const response = await plexBridge.request(`/library/sections/${libraryId}/all`)
   const data = await response.json()
-
 
   const items = (data.MediaContainer.Metadata || []).map(item => ({
     id: item.ratingKey,
@@ -195,61 +124,43 @@ export const getLibraryItems = async (serverUri, token, libraryId) => {
  * Get detailed metadata for a specific item
  */
 export const getMetadata = async (serverUri, token, ratingKey) => {
-  try {
-    const url = `${serverUri}/library/metadata/${ratingKey}?X-Plex-Token=${token}`
+  const response = await plexBridge.request(`/library/metadata/${ratingKey}`)
+  const data = await response.json()
+  const item = data.MediaContainer.Metadata[0]
 
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      }
-    })
-
-    if (!response.ok) {
-      useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/metadata/${ratingKey}`, { level: 'dev' })
-      throw new Error(`Failed to fetch metadata: ${response.status}`)
-    }
-
-    const data = await response.json()
-    const item = data.MediaContainer.Metadata[0]
-
-    return {
-      id: item.ratingKey,
-      title: item.title,
-      type: item.type,
-      year: item.year,
-      thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Larger for detail view
-      art: buildImageUrl(serverUri, item.art, token, 1280, 720), // Full art for background
-      rating: item.contentRating,
-      summary: item.summary,
-      duration: item.duration,
-      studio: item.studio,
-      tagline: item.tagline,
-      genres: item.Genre?.map(g => g.tag) || [],
-      directors: item.Director?.map(d => d.tag) || [],
-      writers: item.Writer?.map(w => w.tag) || [],
-      actors: item.Role?.map(r => ({ name: r.tag, role: r.role, thumb: r.thumb })) || [],
-      grandparentRatingKey: item.grandparentRatingKey,
-      parentRatingKey: item.parentRatingKey,
-      media: item.Media?.map(m => ({
-        videoResolution: m.videoResolution,
-        bitrate: m.bitrate,
-        audioChannels: m.audioChannels,
-        audioCodec: m.audioCodec,
-        videoCodec: m.videoCodec,
-        container: m.container,
-        duration: m.duration,
-        parts: m.Part?.map(p => ({
-          file: p.file,
-          size: p.size,
-          duration: p.duration,
-          key: p.key,
-        })) || []
+  return {
+    id: item.ratingKey,
+    title: item.title,
+    type: item.type,
+    year: item.year,
+    thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Larger for detail view
+    art: buildImageUrl(serverUri, item.art, token, 1280, 720), // Full art for background
+    rating: item.contentRating,
+    summary: item.summary,
+    duration: item.duration,
+    studio: item.studio,
+    tagline: item.tagline,
+    genres: item.Genre?.map(g => g.tag) || [],
+    directors: item.Director?.map(d => d.tag) || [],
+    writers: item.Writer?.map(w => w.tag) || [],
+    actors: item.Role?.map(r => ({ name: r.tag, role: r.role, thumb: r.thumb })) || [],
+    grandparentRatingKey: item.grandparentRatingKey,
+    parentRatingKey: item.parentRatingKey,
+    media: item.Media?.map(m => ({
+      videoResolution: m.videoResolution,
+      bitrate: m.bitrate,
+      audioChannels: m.audioChannels,
+      audioCodec: m.audioCodec,
+      videoCodec: m.videoCodec,
+      container: m.container,
+      duration: m.duration,
+      parts: m.Part?.map(p => ({
+        file: p.file,
+        size: p.size,
+        duration: p.duration,
+        key: p.key,
       })) || []
-    }
-  } catch (error) {
-    console.error('Error fetching metadata:', error)
-    useNotificationStore.getState().addNotification(`Network Error: ${error.message}`, { level: 'dev' })
-    throw error
+    })) || []
   }
 }
 
@@ -257,43 +168,26 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
  * Get children for a specific item (e.g. Seasons for a Show, Episodes for a Season)
  */
 export const getChildren = async (serverUri, token, ratingKey) => {
-  try {
-    const url = `${serverUri}/library/metadata/${ratingKey}/children?X-Plex-Token=${token}`
+  const response = await plexBridge.request(`/library/metadata/${ratingKey}/children`)
+  const data = await response.json()
+  
+  const items = (data.MediaContainer.Metadata || []).map(item => ({
+    id: item.ratingKey,
+    title: item.title,
+    type: item.type,
+    year: item.year,
+    index: item.index,
+    parentIndex: item.parentIndex,
+    thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600),
+    rating: item.contentRating,
+    summary: item.summary,
+    viewCount: item.viewCount,
+    viewOffset: item.viewOffset,
+    viewedLeafCount: item.viewedLeafCount,
+    leafCount: item.leafCount,
+  }))
 
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      }
-    })
-
-    if (!response.ok) {
-      useNotificationStore.getState().addNotification(`API Error: ${response.status} - /library/metadata/${ratingKey}/children`, { level: 'dev' })
-      throw new Error(`Failed to fetch children: ${response.status}`)
-    }
-
-    const data = await response.json()
-    const items = (data.MediaContainer.Metadata || []).map(item => ({
-      id: item.ratingKey,
-      title: item.title,
-      type: item.type,
-      year: item.year,
-      index: item.index,
-      parentIndex: item.parentIndex,
-      thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600),
-      rating: item.contentRating,
-      summary: item.summary,
-      viewCount: item.viewCount,
-      viewOffset: item.viewOffset,
-      viewedLeafCount: item.viewedLeafCount,
-      leafCount: item.leafCount,
-    }))
-
-    return items
-  } catch (error) {
-    console.error('Error fetching children:', error)
-    useNotificationStore.getState().addNotification(`Network Error: ${error.message}`, { level: 'dev' })
-    throw error
-  }
+  return items
 }
 
 /**
@@ -316,36 +210,14 @@ export const formatDuration = (ms) => {
  * Mark a specific item as watched (scrobble) on Plex
  */
 export const markAsWatched = async (serverUri, token, ratingKey) => {
-  try {
-    const url = `${serverUri}/:/scrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library&X-Plex-Token=${token}`
-    console.log('[Plex] [markAsWatched] Scrobbling item:', ratingKey)
-    const response = await fetch(url, { method: 'GET' })
-    if (!response.ok) {
-      throw new Error(`Failed to mark as watched: ${response.status}`)
-    }
-    return true
-  } catch (error) {
-    console.error('Error scrobbling item:', error)
-    useNotificationStore.getState().addNotification(`Error scrobbling item: ${error.message}`, { level: 'dev' })
-    throw error
-  }
+  await plexBridge.request(`/:/scrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library`, { method: 'GET' })
+  return true
 }
 
 /**
  * Mark a specific item as unwatched (unscrobble) on Plex
  */
 export const markAsUnwatched = async (serverUri, token, ratingKey) => {
-  try {
-    const url = `${serverUri}/:/unscrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library&X-Plex-Token=${token}`
-    console.log('[Plex] [markAsUnwatched] Unscrobbling item:', ratingKey)
-    const response = await fetch(url, { method: 'GET' })
-    if (!response.ok) {
-      throw new Error(`Failed to mark as unwatched: ${response.status}`)
-    }
-    return true
-  } catch (error) {
-    console.error('Error unscrobbling item:', error)
-    useNotificationStore.getState().addNotification(`Error unscrobbling item: ${error.message}`, { level: 'dev' })
-    throw error
-  }
+  await plexBridge.request(`/:/unscrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library`, { method: 'GET' })
+  return true
 }

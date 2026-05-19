@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { markAsWatched, markAsUnwatched } from '../src/services/plex/plexContentService'
 
+vi.mock('../src/services/plex/plexConnectionService', () => ({
+  getActiveServerInfo: vi.fn().mockResolvedValue({ uri: 'http://localhost:32400', token: 'fake-token' })
+}))
+
 // Helper functions that represent the state updates executed inside components
 const toggleWatchedInEpisodes = (episodes, episodeId, nextWatchedState) => {
   return episodes.map(ep => ep.id === episodeId ? { ...ep, viewCount: nextWatchedState ? 1 : 0 } : ep)
@@ -46,7 +50,12 @@ describe('Plex Scrobble & Unscrobble API Service', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:32400/:/scrobble?key=12345&identifier=com.plexapp.plugins.library&X-Plex-Token=fake-token',
-      { method: 'GET' }
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          'Accept': 'application/json'
+        })
+      })
     )
   })
 
@@ -67,7 +76,12 @@ describe('Plex Scrobble & Unscrobble API Service', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:32400/:/unscrobble?key=12345&identifier=com.plexapp.plugins.library&X-Plex-Token=fake-token',
-      { method: 'GET' }
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          'Accept': 'application/json'
+        })
+      })
     )
   })
 
@@ -82,7 +96,7 @@ describe('Plex Scrobble & Unscrobble API Service', () => {
     const token = 'fake-token'
     const ratingKey = '12345'
 
-    await expect(markAsWatched(serverUri, token, ratingKey)).rejects.toThrow('Failed to mark as watched: 500')
+    await expect(markAsWatched(serverUri, token, ratingKey)).rejects.toThrow('HTTP 500')
   })
 })
 
