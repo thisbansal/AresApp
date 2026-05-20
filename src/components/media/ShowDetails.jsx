@@ -312,31 +312,34 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
           transition: none !important;
         }
         .season-dropdown-btn.focused:not(.dropdown-open) {
-          transform: scale(1.05) !important;
+          transform: scale(1.05) translate3d(0, 0, 0) !important;
         }
         .season-dropdown-btn.focused > div {
           background-color: rgba(255, 255, 255, 0.25) !important;
           border-color: rgba(255, 255, 255, 0.3) !important;
         }
         .season-dropdown-item {
-          transition: transform 0.2s ease;
+          transition: transform 0.1s ease;
+          will-change: transform;
+          transform: translate3d(0, 0, 0);
         }
         .season-dropdown-item.focused {
-          transform: scale(1.02) !important;
+          transform: scale(1.02) translate3d(0, 0, 0) !important;
         }
         .season-dropdown-item.focused > div {
           background-color: rgba(255, 255, 255, 0.2) !important;
         }
         .episode-card {
           border-radius: 12px;
-          transition: transform 0.2s ease;
+          transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: transform;
+          transform: translate3d(0, 0, 0);
         }
         .episode-card.focused {
-          transform: scale(1.05);
+          transform: scale(1.05) translate3d(0, 0, 0) !important;
           z-index: 10;
         }
         .episode-card.focused .episode-thumb-container {
-          box-shadow: 0 10px 30px rgba(255, 255, 255, 0.25) !important;
           border-color: #fff !important;
         }
         .watched-ribbon {
