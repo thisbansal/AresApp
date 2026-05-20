@@ -51,7 +51,7 @@ function App() {
     console.log('[AUTH FLOW] App.jsx: Starting application initialization...')
     const runtimeEnv = isWebOS() ? 'webOS TV / Emulator' : 'Desktop Browser'
     console.log(`[AUTH FLOW] App.jsx: Detected runtime environment: ${runtimeEnv}`)
-    
+
     try {
       console.log('[AUTH FLOW] App.jsx: Fetching main token via getMainToken()...')
       const token = await getMainToken()
@@ -156,7 +156,7 @@ function App() {
                 hasSession={authState.hasSession}
                 allowIncompleteSession={true}
               >
-                <ServerSelectPage />
+                <ServerSelectPage setAuthState={setAuthState}/>
               </AuthRoute>
             }
           />
@@ -167,8 +167,8 @@ function App() {
               <AuthRoute
                 requireAuth={true}
                 isAuthenticated={authState.isAuthenticated}
-                hasServer={authState.hasServer}
-                hasSession={authState.hasSession}
+                // hasServer={authState.hasServer}
+                // hasSession={authState.hasSession}
                 allowIncompleteSession={true}
               >
                 <UserSelectPage />
@@ -240,8 +240,8 @@ function App() {
             <p style={styles.offlineSubtitle}>
               We lost our connection to your Plex Media Server. Please make sure your server is running and connected to the same network.
             </p>
-            <button 
-              onClick={() => plexBridge.ping()} 
+            <button
+              onClick={() => plexBridge.ping()}
               style={styles.retryButton}
             >
               Retry Connection

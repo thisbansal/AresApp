@@ -47,7 +47,7 @@ function ServerSelectPage() {
 
       console.log(`[AUTH FLOW] ServerSelectPage: Probing server connections for "${server.name}" to select the fastest path...`)
       const bestUri = await getBestServerConnection(server, server.accessToken)
-      
+
       if (bestUri) {
         console.log(`[AUTH FLOW] ServerSelectPage: Connection resolved! Saving working connection URI: "${bestUri}"`)
         await setData(DB_KINDS.SERVER, KINDS.server, bestUri)
@@ -186,12 +186,6 @@ function ServerSelectPage() {
                   </svg>
                 </div>
                 <p style={styles.serverName}>{server.name}</p>
-                <div style={styles.connectionBadge}>
-                  <span style={styles.badgeDot}></span>
-                  <span style={styles.serverConnections}>
-                    {server.connections.length} path{server.connections.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
               </div>
             </FocusableItem>
           ))}

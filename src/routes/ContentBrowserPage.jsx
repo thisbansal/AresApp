@@ -965,7 +965,7 @@ function ContentBrowserPage() {
                       </svg>
                       <div className="setting-card-title" style={{ color: '#0a84ff' }}>Sign Out</div>
                       <div className="setting-card-subtext" style={{ color: '#0a84ff', opacity: 0.8, marginTop: '10px' }}>
-                        Clear server and token cache
+                        Back to login screen
                       </div>
                     </div>
                   </FocusableItem>

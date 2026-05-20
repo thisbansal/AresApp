@@ -37,13 +37,13 @@ function AuthRoute({
     }
 
     // If session is NOT complete, but we are on setup pages
-    if (!hasSession && allowIncompleteSession) {
-      // If server is not selected but trying to access user-select
-      if (!hasServer && location.pathname === "/user-select") {
-        console.log(`[AUTH ROUTE] Denied user-select setup page (No server selected). Redirecting to /server-select`)
-        return <Navigate to="/server-select" replace />
-      }
-    }
+    // if (!hasSession && allowIncompleteSession) {
+    //   // If server is not selected but trying to access user-select
+    //   if (!hasServer && location.pathname === "/user-select") {
+    //     console.log(`[AUTH ROUTE] Denied user-select setup page (No server selected). Redirecting to /server-select`)
+    //     return <Navigate to="/server-select" replace />
+    //   }
+    // }
 
     console.log(`[AUTH ROUTE] Granted protected route "${location.pathname}"`)
     return children
@@ -55,7 +55,7 @@ function AuthRoute({
       console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with valid session. Redirecting to /browse`)
       return <Navigate to="/browse" replace />
     }
-    
+
     if (!hasServer) {
       console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with no server. Redirecting to /server-select`)
       return <Navigate to="/server-select" replace />
