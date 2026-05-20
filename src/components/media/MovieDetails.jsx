@@ -45,27 +45,28 @@ const styles = {
     flexDirection: 'column',
   },
   tagline: {
-    fontSize: '24px',
+    fontSize: '26px',
     fontStyle: 'italic',
     color: '#ccc',
-    margin: '0 0 20px 0',
+    margin: '0 0 24px 0',
     fontWeight: '400',
   },
   summary: {
-    fontSize: '20px',
+    fontSize: '22px',
     lineHeight: '1.6',
     color: '#e8eaed',
     marginBottom: '24px',
     maxWidth: '900px',
   },
   metaRow: {
-    fontSize: '18px',
-    color: '#ccc',
-    marginBottom: '8px',
+    fontSize: '22px',
+    color: '#e8eaed',
+    marginBottom: '12px',
+    lineHeight: '1.5',
   },
   metaLabel: {
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#fff',
-    marginRight: '8px',
+    marginRight: '10px',
   }
 }
