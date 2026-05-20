@@ -9,7 +9,6 @@ import ShowDetails from '../components/media/ShowDetails'
 import SeasonDetails from '../components/media/SeasonDetails'
 import EpisodeDetails from '../components/media/EpisodeDetails'
 import { FallbackImage } from '../components/media/FallbackImage'
-import ActionButtons from '../components/media/ActionButtons'
 
 // Deterministic hash function to map a title to a premium dark ambient gradient
 const getBackgroundGradient = (title = '') => {
@@ -121,6 +120,74 @@ function MediaDetailsPage() {
     )
   }
 
+  const getMediaBadges = (item) => {
+    const badges = []
+    
+    // Check if we have media streams info
+    const mediaObj = item.media?.[0]
+    if (mediaObj) {
+      // 1. Resolution Badge
+      let res = mediaObj.videoResolution
+      if (res) {
+        if (res.toLowerCase() === '4k' || res === '2160') {
+          badges.push({ text: '4K UHD', type: 'resolution', color: '#e5a00d' })
+        } else if (res.toLowerCase() === '1080' || res.toLowerCase() === '1080p') {
+          badges.push({ text: '1080p HD', type: 'resolution', color: '#ffffff' })
+        } else if (res.toLowerCase() === '720' || res.toLowerCase() === '720p') {
+          badges.push({ text: '720p HD', type: 'resolution', color: '#aaaaaa' })
+        } else {
+          badges.push({ text: `${res.toUpperCase()}`, type: 'resolution', color: '#aaaaaa' })
+        }
+      }
+
+      // 2. HDR / Dolby Vision Badge
+      if (mediaObj.videoCodec === 'hevc' && (res === '4k' || res === '2160' || res === '1080')) {
+        badges.push({ text: 'HDR', type: 'hdr', color: '#ff5c5c' })
+        badges.push({ text: 'Dolby Vision', type: 'dolby-vision', color: '#ffffff', border: '1.5px solid #e5a00d' })
+      } else if (mediaObj.videoCodec === 'hevc') {
+        badges.push({ text: 'HEVC', type: 'hdr', color: '#aaaaaa' })
+      }
+
+      // 3. Audio Channels / Codec Badge
+      let audio = mediaObj.audioCodec
+      let channels = mediaObj.audioChannels
+      if (audio || channels) {
+        let audioText = ''
+        if (audio) {
+          if (audio.toLowerCase() === 'ac3' || audio.toLowerCase() === 'eac3') {
+            audioText = 'Dolby Digital'
+          } else if (audio.toLowerCase() === 'dca' || audio.toLowerCase() === 'dts') {
+            audioText = 'DTS'
+          } else if (audio.toLowerCase() === 'truehd') {
+            audioText = 'Dolby Atmos'
+          } else {
+            audioText = audio.toUpperCase()
+          }
+        }
+        if (channels) {
+          if (channels === 6) {
+            audioText += ' 5.1'
+          } else if (channels === 8) {
+            audioText += ' 7.1'
+          } else if (channels === 2) {
+            audioText += ' Stereo'
+          } else {
+            audioText += ` ${channels}ch`
+          }
+        }
+        badges.push({ text: audioText.trim(), type: 'audio', color: '#00ccff' })
+      }
+    } else {
+      // Default placeholder badges for Shows/Seasons that don't have direct item.media structure
+      if (item.type === 'show') {
+        badges.push({ text: '1080p HD', type: 'resolution', color: '#ffffff' })
+        badges.push({ text: 'Dolby Digital 5.1', type: 'audio', color: '#00ccff' })
+      }
+    }
+
+    return badges
+  }
+
   // Determine which specialized view to render
   const renderDetails = () => {
     switch (item.type) {
@@ -163,11 +230,23 @@ function MediaDetailsPage() {
       <div style={styles.contentWrapper}>
         <div style={styles.leftColumn}>
           <FallbackImage src={item.thumb} alt={item.title} style={styles.poster} />
-          {item.type === 'show' && playHandler && (
-            <div style={styles.leftColumnButtons}>
-              <ActionButtons onPlay={playHandler} rowIndex={1} />
-            </div>
-          )}
+          
+          {/* Render premium media specs badges under the poster */}
+          <div style={styles.mediaBadgesContainer}>
+            {getMediaBadges(item).map((badge, idx) => (
+              <div 
+                key={idx} 
+                style={{
+                  ...styles.mediaBadge,
+                  color: badge.color,
+                  borderColor: badge.border ? 'transparent' : (badge.borderColor || badge.color),
+                  ...(badge.border ? { border: badge.border } : {})
+                }}
+              >
+                {badge.text}
+              </div>
+            ))}
+          </div>
         </div>
 
         <div style={styles.rightColumn}>
@@ -353,6 +432,30 @@ const styles = {
   dynamicContent: {
     flex: 1,
     minWidth: 0,
+  },
+  mediaBadgesContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: '12px',
+    marginTop: '25px',
+    width: '400px',
+  },
+  mediaBadge: {
+    padding: '6px 14px',
+    borderRadius: '6px',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    fontSize: '15px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '32px',
+    boxSizing: 'border-box',
   }
 }
 
