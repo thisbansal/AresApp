@@ -236,11 +236,7 @@ function MediaDetailsPage() {
             {getMediaBadges(item).map((badge, idx) => (
               <div 
                 key={idx} 
-                style={{
-                  ...styles.mediaBadge,
-                  color: '#ffffff',
-                  borderColor: badge.color || 'rgba(255, 255, 255, 0.15)',
-                }}
+                style={styles.mediaBadge}
               >
                 {badge.text}
               </div>
@@ -445,7 +441,7 @@ const styles = {
     padding: '6px 14px',
     borderRadius: '6px',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
+    border: '1.5px solid #e5a00d',
     fontSize: '15px',
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -455,6 +451,7 @@ const styles = {
     justifyContent: 'center',
     height: '32px',
     boxSizing: 'border-box',
+    color: '#ffffff',
   }
 }
 
