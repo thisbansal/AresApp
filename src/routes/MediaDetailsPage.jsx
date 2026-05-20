@@ -33,8 +33,13 @@ function MediaDetailsPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [loading, setLoading] = useState(true)
-  const [item, setItem] = useState(null)
+  const stateItem = (location.state?.item && String(location.state.item.id || location.state.item.ratingKey) === String(ratingKey))
+    ? location.state.item
+    : null
+
+  const [loading, setLoading] = useState(!stateItem)
+  const [item, setItem] = useState(stateItem)
+  const [metadataLoaded, setMetadataLoaded] = useState(false)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
 
   const [playHandler, setPlayHandler] = useState(null)
@@ -75,7 +80,9 @@ function MediaDetailsPage() {
     if (serverLoading || !serverInfo) return
 
     const fetchDetails = async () => {
-      setLoading(true)
+      if (!stateItem) {
+        setLoading(true)
+      }
       try {
         const metadata = await getMetadata(serverInfo.uri, serverInfo.token, ratingKey)
         
@@ -91,6 +98,7 @@ function MediaDetailsPage() {
         }
 
         setItem(metadata)
+        setMetadataLoaded(true)
       } catch (error) {
         console.error('[MediaDetailsPage] Error fetching metadata:', error)
       } finally {
@@ -99,7 +107,7 @@ function MediaDetailsPage() {
     }
 
     fetchDetails()
-  }, [ratingKey, serverInfo, serverLoading, navigate])
+  }, [ratingKey, serverInfo, serverLoading, navigate, stateItem])
 
   const handleFocusItem = () => {}
 
@@ -214,7 +222,24 @@ function MediaDetailsPage() {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+
+        @keyframes pageFadeIn {
+          from { opacity: 0; transform: scale(0.985) translate3d(0, 8px, 0); }
+          to { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
+        }
+
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(330%); }
+        }
       `}</style>
+
+      {/* Shimmer loading bar when background pre-populating */}
+      {!metadataLoaded && stateItem && (
+        <div style={styles.backgroundProgressBar}>
+          <div style={styles.progressBarFill}></div>
+        </div>
+      )}
 
       {/* Dynamic Ambient Background Gradient */}
       <div
@@ -284,6 +309,8 @@ const styles = {
     backgroundColor: '#141414',
     color: '#fff',
     overflowX: 'hidden',
+    animation: 'pageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+    opacity: 0,
   },
   loadingContainer: {
     height: '100vh',
@@ -452,6 +479,21 @@ const styles = {
     height: '42px',
     boxSizing: 'border-box',
     color: '#ffffff',
+  },
+  backgroundProgressBar: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    zIndex: 9999,
+  },
+  progressBarFill: {
+    height: '100%',
+    width: '30%',
+    background: 'linear-gradient(90deg, transparent, #e5a00d, transparent)',
+    animation: 'shimmer 1.5s infinite linear',
   }
 }
 

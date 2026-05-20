@@ -337,7 +337,7 @@ function ContentBrowserPage() {
   const handleItemClick = (item, isContinueWatching = false) => {
     console.log('Selected item:', item, 'isContinueWatching:', isContinueWatching)
     const { path } = resolveMediaNavigation(item, isContinueWatching)
-    navigate(path, { state: { serverInfo } })
+    navigate(path, { state: { serverInfo, item } })
   }
 
   const handleToggleWatched = async (item) => {
