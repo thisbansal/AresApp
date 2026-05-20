@@ -648,11 +648,28 @@ export default function PlayerPage() {
 
         {/* Playback Buttons Row */}
         <div style={styles.hudControls}>
+          {/* Capsule-style Restart Button */}
+          <FocusableItem 
+            id="player-restart"
+            rowIndex={1}
+            colIndex={0}
+            style={styles.restartBtn} 
+            onClick={handleRestartClick}
+            className="hud-restart-btn"
+          >
+            {/* Double rewind arrow SVG */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 19 2 12 11 5 11 19"></polygon>
+              <polygon points="22 19 13 12 22 5 22 19"></polygon>
+            </svg>
+            <span style={styles.capsuleLabel}>Restart</span>
+          </FocusableItem>
+
           {/* Capsule-style Continue/Pause Button */}
           <FocusableItem 
             id="player-play"
             rowIndex={1}
-            colIndex={0}
+            colIndex={1}
             style={styles.playPauseBtn} 
             onClick={handlePlayPauseClick}
             className="hud-play-btn"
@@ -685,23 +702,6 @@ export default function PlayerPage() {
             <span style={styles.capsuleLabel}>
               {isBuffering ? 'Buffering...' : isPlaying ? 'Pause' : 'Continue'}
             </span>
-          </FocusableItem>
-
-          {/* Capsule-style Restart Button */}
-          <FocusableItem 
-            id="player-restart"
-            rowIndex={1}
-            colIndex={1}
-            style={styles.playPauseBtn} 
-            onClick={handleRestartClick}
-            className="hud-restart-btn"
-          >
-            {/* Double rewind arrow SVG */}
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 19 2 12 11 5 11 19"></polygon>
-              <polygon points="22 19 13 12 22 5 22 19"></polygon>
-            </svg>
-            <span style={styles.capsuleLabel}>Restart</span>
           </FocusableItem>
         </div>
       </div>
@@ -978,6 +978,24 @@ const styles = {
     backdropFilter: 'blur(10px)',
   },
   playPauseBtn: {
+    width: '240px',
+    boxSizing: 'border-box',
+    padding: '14px 28px',
+    borderRadius: '9999px', // Pill capsule shape
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    border: '1.5px solid rgba(255, 255, 255, 0.25)',
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px',
+    cursor: 'pointer',
+    backdropFilter: 'blur(15px)',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.35)',
+  },
+  restartBtn: {
+    width: '180px',
+    boxSizing: 'border-box',
     padding: '14px 28px',
     borderRadius: '9999px', // Pill capsule shape
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
