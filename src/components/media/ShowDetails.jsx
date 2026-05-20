@@ -154,7 +154,12 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
                     borderBottomRightRadius: '0px',
                     borderTopLeftRadius: '16px',
                     borderTopRightRadius: '16px',
-                  } : {})
+                  } : {
+                    borderBottomLeftRadius: '9999px',
+                    borderBottomRightRadius: '9999px',
+                    borderTopLeftRadius: '9999px',
+                    borderTopRightRadius: '9999px',
+                  })
                 }}
               >
                 <div style={{
@@ -165,7 +170,13 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
                     borderTopLeftRadius: '16px',
                     borderTopRightRadius: '16px',
                     borderBottomColor: 'transparent',
-                  } : {})
+                  } : {
+                    borderBottomLeftRadius: '9999px',
+                    borderBottomRightRadius: '9999px',
+                    borderTopLeftRadius: '9999px',
+                    borderTopRightRadius: '9999px',
+                    borderBottomColor: 'rgba(255, 255, 255, 0.15)',
+                  })
                 }}>
                   <span>{seasons.find(s => s.id === activeSeasonId)?.title || 'Select Season'}</span>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '16px', transition: 'transform 0.2s ease', transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }}>
