@@ -148,7 +148,7 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className={`season-dropdown-btn ${isDropdownOpen ? 'dropdown-open' : ''}`}
                 style={{
-                  width: '100%',
+                  width: '320px',
                   ...(isDropdownOpen ? {
                     borderBottomLeftRadius: '0px',
                     borderBottomRightRadius: '0px',
@@ -437,7 +437,7 @@ const styles = {
     borderRadius: '16px',
     cursor: 'pointer',
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-    width: '100%',
+    width: '320px',
     transition: 'background-color 0.2s ease, border-color 0.2s ease',
     boxSizing: 'border-box',
   },
@@ -451,7 +451,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '16px',
     boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
-    width: '100%',
+    width: '320px',
     maxHeight: '400px',
     overflowY: 'auto',
     zIndex: 999,
