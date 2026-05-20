@@ -15,6 +15,7 @@ import { useBrowserStore } from '../stores/browserStore'
 import { useFocusStore } from '../stores/FocusStore'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { saveProfileSession, getLastProfile, updateRememberPinInSession } from '../services/luna/settingsStorage'
+import { resolveMediaNavigation } from '../utils/mediaNavigation'
 
 
 function ContentBrowserPage() {
@@ -341,15 +342,10 @@ function ContentBrowserPage() {
     }
   }, [])
 
-  const handleItemClick = (item) => {
-    console.log('Selected item:', item)
-    let targetId = item.id
-    if (item.type === 'episode' && item.grandparentRatingKey) {
-      targetId = item.grandparentRatingKey
-    } else if (item.type === 'season' && item.parentRatingKey) {
-      targetId = item.parentRatingKey
-    }
-    navigate(`/details/${targetId}`, { state: { serverInfo } })
+  const handleItemClick = (item, isContinueWatching = false) => {
+    console.log('Selected item:', item, 'isContinueWatching:', isContinueWatching)
+    const { path } = resolveMediaNavigation(item, isContinueWatching)
+    navigate(path, { state: { serverInfo } })
   }
 
   const handleToggleWatched = async (item) => {
@@ -404,17 +400,24 @@ function ContentBrowserPage() {
         id={`poster-${prefix}-${item.id}`}
         rowIndex={rowIndex}
         colIndex={colIndex}
-        onClick={() => handleItemClick(item)}
+        onClick={() => handleItemClick(item, prefix === 'cw')}
         style={{ flexShrink: 0 }}
       >
         <div style={styles.card}>
           <FallbackImage
             src={item.thumb}
-            alt={item.title}
+            alt={item.grandparentTitle || item.title}
             style={styles.poster}
             loading="lazy"
             decoding="async"
           />
+          {prefix === 'cw' && (
+            <div className="card-play-button">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#000000">
+                <polygon points="6 3 20 12 6 21 6 3"></polygon>
+              </svg>
+            </div>
+          )}
           {showUnwatchedIndicator && prefix !== 'cw' && (
             isUnwatched ? (
               <div
@@ -518,6 +521,28 @@ function ContentBrowserPage() {
         }
         .unwatched-episode-ribbon:hover .unwatched-tick {
           display: block !important;
+        }
+
+        .card-play-button {
+          position: absolute;
+          bottom: 16px;
+          left: 16px;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background-color: rgba(255, 255, 255, 0.95);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transform: translateY(10px) scale(0.9);
+          transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          z-index: 5;
+        }
+        .focusable-item.focused .card-play-button {
+          opacity: 1 !important;
+          transform: translateY(0) scale(1) !important;
         }
 
         /* Apple TV Settings Styles */
