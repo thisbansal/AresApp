@@ -8,6 +8,7 @@ import { useEpisodes } from '../../hooks/useEpisodes'
 import { FallbackImage } from './FallbackImage'
 import { findTargetSeason } from '../../utils/seasonSelector'
 import { useBrowserStore } from '../../stores/browserStore'
+import { useFocusStore } from '../../stores/FocusStore'
 
 export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterPlay }) {
   const navigate = useNavigate()
@@ -17,6 +18,34 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
   const [episodes, setEpisodes, loadingEpisodes] = useEpisodes(serverInfo, activeSeasonId)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const toggleWatched = useToggleWatched(serverInfo)
+
+  const dropdownRef = React.useRef(null)
+  const focusedId = useFocusStore((state) => state.focusedId)
+
+  // 2. Click outside listener to collapse dropdown
+  useEffect(() => {
+    if (!isDropdownOpen) return
+
+    const handleOutsideClick = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('click', handleOutsideClick)
+    return () => {
+      document.removeEventListener('click', handleOutsideClick)
+    }
+  }, [isDropdownOpen])
+
+  // 3. D-Pad / Focus loss listener to collapse dropdown when navigating away
+  useEffect(() => {
+    if (!isDropdownOpen) return
+
+    if (focusedId && focusedId !== 'season-dropdown-btn' && !focusedId.startsWith('season-option-')) {
+      setIsDropdownOpen(false)
+    }
+  }, [focusedId, isDropdownOpen])
 
   // 1. Fetch Seasons
   useEffect(() => {
@@ -111,15 +140,30 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
       {seasons.length > 0 && (
         <div style={styles.dropdownContainer} className="row">
           {hasDropdown ? (
-            <div style={{ position: 'relative', display: 'inline-block' }}>
+            <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
               <FocusableItem
                 id="season-dropdown-btn"
                 rowIndex={1}
                 colIndex={1}
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="season-dropdown-btn"
+                className={`season-dropdown-btn ${isDropdownOpen ? 'dropdown-open' : ''}`}
+                style={isDropdownOpen ? {
+                  borderBottomLeftRadius: '0px',
+                  borderBottomRightRadius: '0px',
+                  borderTopLeftRadius: '16px',
+                  borderTopRightRadius: '16px',
+                } : {}}
               >
-                <div style={styles.dropdownBtn}>
+                <div style={{
+                  ...styles.dropdownBtn,
+                  ...(isDropdownOpen ? {
+                    borderBottomLeftRadius: '0px',
+                    borderBottomRightRadius: '0px',
+                    borderTopLeftRadius: '16px',
+                    borderTopRightRadius: '16px',
+                    borderBottomColor: 'transparent',
+                  } : {})
+                }}>
                   <span>{seasons.find(s => s.id === activeSeasonId)?.title || 'Select Season'}</span>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '16px', transition: 'transform 0.2s ease', transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }}>
                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -129,7 +173,14 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
 
               {/* Dropdown Options (Glassmorphic Vertical Menu) */}
               {isDropdownOpen && (
-                <div style={styles.dropdownMenu} className="hide-scrollbar">
+                <div style={{
+                  ...styles.dropdownMenu,
+                  top: '100%',
+                  borderTopLeftRadius: '0px',
+                  borderTopRightRadius: '0px',
+                  borderTopColor: 'transparent',
+                  width: '100%',
+                }} className="hide-scrollbar">
                   {seasons.map((season, index) => (
                     <FocusableItem
                       key={season.id}
@@ -239,6 +290,12 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
         .season-dropdown-btn {
           border-radius: 9999px;
           transition: transform 0.2s ease;
+        }
+        .season-dropdown-btn.dropdown-open {
+          border-bottom-left-radius: 0px !important;
+          border-bottom-right-radius: 0px !important;
+          border-top-left-radius: 16px !important;
+          border-top-right-radius: 16px !important;
         }
         .season-dropdown-btn.focused {
           transform: scale(1.05) !important;
@@ -368,6 +425,7 @@ const styles = {
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
     minWidth: '280px',
     transition: 'background-color 0.2s ease, border-color 0.2s ease',
+    boxSizing: 'border-box',
   },
   dropdownMenu: {
     position: 'absolute',
@@ -384,6 +442,7 @@ const styles = {
     overflowY: 'auto',
     zIndex: 999,
     padding: '8px 0',
+    boxSizing: 'border-box',
   },
   dropdownItem: {
     padding: '14px 28px',

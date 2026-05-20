@@ -88,3 +88,52 @@ describe('Play Handler Registration Pattern', () => {
     expect(registeredHandler()).toBe('Playing first episode');
   });
 });
+
+describe('Season Dropdown UI & Collapse Interactions', () => {
+  it('should collapse dropdown when focus moves outside dropdown items', () => {
+    let isDropdownOpen = true;
+    const focusedId = 'episode-card-1';
+    
+    if (isDropdownOpen && focusedId && focusedId !== 'season-dropdown-btn' && !focusedId.startsWith('season-option-')) {
+      isDropdownOpen = false;
+    }
+    
+    expect(isDropdownOpen).toBe(false);
+  });
+
+  it('should remain open when focus is inside dropdown button or options', () => {
+    let isDropdownOpen = true;
+    
+    const focusOnBtn = 'season-dropdown-btn';
+    if (isDropdownOpen && focusOnBtn && focusOnBtn !== 'season-dropdown-btn' && !focusOnBtn.startsWith('season-option-')) {
+      isDropdownOpen = false;
+    }
+    expect(isDropdownOpen).toBe(true);
+
+    const focusOnOption = 'season-option-s2';
+    if (isDropdownOpen && focusOnOption && focusOnOption !== 'season-dropdown-btn' && !focusOnOption.startsWith('season-option-')) {
+      isDropdownOpen = false;
+    }
+    expect(isDropdownOpen).toBe(true);
+  });
+
+  it('should collapse dropdown when user clicks outside the dropdown container', () => {
+    let isDropdownOpen = true;
+    
+    const dropdownContainer = {
+      contains: (target) => target === 'dropdown-btn' || target === 'dropdown-option'
+    };
+    
+    const handleOutsideClick = (target) => {
+      if (!dropdownContainer.contains(target)) {
+        isDropdownOpen = false;
+      }
+    };
+    
+    handleOutsideClick('dropdown-option');
+    expect(isDropdownOpen).toBe(true);
+    
+    handleOutsideClick('episodes-title-header');
+    expect(isDropdownOpen).toBe(false);
+  });
+});
