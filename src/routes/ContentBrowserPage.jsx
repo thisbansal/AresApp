@@ -971,7 +971,7 @@ function ContentBrowserPage() {
 
                   {/* Sign-out Confirmation Dialog */}
                   {showSignoutConfirm && (
-                    <div style={styles.exitOverlay} className="exit-overlay">
+                    <div style={{ ...styles.exitOverlay, alignItems: 'flex-end' }} className="exit-overlay">
                       <div style={styles.exitModal} className="exit-modal">
                         <span style={styles.exitTitle}>Sign out of Plex?</span>
                         <div style={styles.exitButtonRow}>
