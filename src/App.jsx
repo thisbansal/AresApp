@@ -10,6 +10,8 @@ import { SystemToaster } from './components/navigational/SystemToaster'
 import { useServerStore } from './stores/serverStore'
 import { plexBridge } from './services/plex/plexBridge'
 import { isWebOS } from './services/Environment/environment'
+import { DB_KINDS, getData } from './services/luna/lunaService'
+import { KINDS } from './config/app'
 
 import AuthRoute from './pages/Auth'
 import LoginPage from './routes/LoginPage'
@@ -26,6 +28,7 @@ if ('scrollRestoration' in window.history) {
 function App() {
   const [authState, setAuthState] = useState({
     isAuthenticated: false,
+    hasServer: false,
     hasSession: false,
     isLoading: true
   })
@@ -55,12 +58,21 @@ function App() {
       const maskedToken = token ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : 'MISSING'
       console.log(`[AUTH FLOW] App.jsx: Raw token check resolved: ${maskedToken}`)
 
+      console.log('[AUTH FLOW] App.jsx: Checking server configuration...')
+      const serverUri = await getData(DB_KINDS.SERVER, KINDS.server)
+      console.log(`[AUTH FLOW] App.jsx: Server configuration check resolved: ${serverUri ? 'PRESENT' : 'MISSING'}`)
+
       console.log('[AUTH FLOW] App.jsx: Checking session completion status...')
       const sessionComplete = await hasCompleteSession()
-      console.log(`[AUTH FLOW] App.jsx: Final resolved state: token = ${token ? 'PRESENT' : 'MISSING'} | sessionComplete = ${sessionComplete}`)
+      console.log(`[AUTH FLOW] App.jsx: Final resolved state: token = ${token ? 'PRESENT' : 'MISSING'} | hasServer = ${!!serverUri} | sessionComplete = ${sessionComplete}`)
+
+      if (sessionComplete) {
+        sessionStorage.setItem('activeSession', 'true')
+      }
 
       setAuthState({
         isAuthenticated: !!token,
+        hasServer: !!serverUri,
         hasSession: sessionComplete,
         isLoading: false
       })
@@ -68,6 +80,7 @@ function App() {
       console.error('[AUTH FLOW] App.jsx: Initialization error:', err)
       setAuthState({
         isAuthenticated: false,
+        hasServer: false,
         hasSession: false,
         isLoading: false
       })
@@ -125,6 +138,7 @@ function App() {
               <AuthRoute
                 requireAuth={false}
                 isAuthenticated={authState.isAuthenticated}
+                hasServer={authState.hasServer}
                 hasSession={authState.hasSession}
               >
                 <LoginPage />
@@ -138,6 +152,7 @@ function App() {
               <AuthRoute
                 requireAuth={true}
                 isAuthenticated={authState.isAuthenticated}
+                hasServer={authState.hasServer}
                 hasSession={authState.hasSession}
                 allowIncompleteSession={true}
               >
@@ -152,6 +167,7 @@ function App() {
               <AuthRoute
                 requireAuth={true}
                 isAuthenticated={authState.isAuthenticated}
+                hasServer={authState.hasServer}
                 hasSession={authState.hasSession}
                 allowIncompleteSession={true}
               >
@@ -166,6 +182,7 @@ function App() {
               <AuthRoute
                 requireAuth={true}
                 isAuthenticated={authState.isAuthenticated}
+                hasServer={authState.hasServer}
                 hasSession={authState.hasSession}
               >
                 <ContentBrowserPage />
@@ -179,6 +196,7 @@ function App() {
               <AuthRoute
                 requireAuth={true}
                 isAuthenticated={authState.isAuthenticated}
+                hasServer={authState.hasServer}
                 hasSession={authState.hasSession}
               >
                 <MediaDetailsPage />
@@ -192,6 +210,7 @@ function App() {
               <AuthRoute
                 requireAuth={true}
                 isAuthenticated={authState.isAuthenticated}
+                hasServer={authState.hasServer}
                 hasSession={authState.hasSession}
               >
                 <PlayerPage />

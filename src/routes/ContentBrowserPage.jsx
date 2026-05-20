@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
 import { FallbackImage } from '../components/media/FallbackImage'
-import { getMainToken, clearAllStoredInfo } from '../services/luna/tokenStorage'
+import { getMainToken, clearAllStoredInfo, getUserToken } from '../services/luna/tokenStorage'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { getServers, getBestServerConnection, testConnectionToServer } from '../services/plex/plexAPIServer'
@@ -13,6 +13,9 @@ import { useToggleWatched } from '../hooks/useToggleWatched'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useBrowserStore } from '../stores/browserStore'
 import { useFocusStore } from '../stores/FocusStore'
+import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
+import { saveProfileSession, getLastProfile, updateRememberPinInSession } from '../services/luna/settingsStorage'
+
 
 function ContentBrowserPage() {
   const navigate = useNavigate()
@@ -41,6 +44,157 @@ function ContentBrowserPage() {
 
   const [loading, setLoading] = useState(true)
   const toggleWatched = useToggleWatched(serverInfo)
+
+  // Settings-specific and Profile Switcher State
+  const [currentProfile, setCurrentProfile] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_current_profile')
+      return cached ? JSON.parse(cached) : null
+    } catch {
+      return null
+    }
+  })
+  const [usersList, setUsersList] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_users_list')
+      return cached ? JSON.parse(cached) : []
+    } catch {
+      return []
+    }
+  })
+  const [pinDialogUser, setPinDialogUser] = useState(null)
+  const [enteredPin, setEnteredPin] = useState('')
+  const [pinError, setPinError] = useState('')
+
+  useEffect(() => {
+    if (activeTab.type === 'settings') {
+      const loadSettingsData = async () => {
+        try {
+          const profile = await getLastProfile()
+          if (profile) {
+            setCurrentProfile(profile)
+            localStorage.setItem('cached_current_profile', JSON.stringify(profile))
+          }
+
+          const token = await getMainToken()
+          if (token) {
+            const list = await getUsers(token)
+            setUsersList(list)
+            localStorage.setItem('cached_users_list', JSON.stringify(list))
+          }
+        } catch (e) {
+          console.error('[Settings] Error loading profiles:', e)
+        }
+      }
+      loadSettingsData()
+    }
+  }, [activeTab])
+
+  // Handle keypresses for D-pad numeric inputs in settings PIN dialog
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (pinDialogUser) {
+        if (e.key >= '0' && e.key <= '9') {
+          if (enteredPin.length < 4) {
+            const newPin = enteredPin + e.key
+            setEnteredPin(newPin)
+            if (newPin.length === 4) {
+              setTimeout(() => handlePinSubmit(newPin), 200)
+            }
+          }
+        } else if (e.key === 'Backspace') {
+          setEnteredPin(prev => prev.slice(0, -1))
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [pinDialogUser, enteredPin])
+
+  const handleProfileSwitch = async (user) => {
+    console.log('[Settings] Request to switch to user:', user.name)
+    if (user.protected) {
+      setPinDialogUser(user)
+      setEnteredPin('')
+      setPinError('')
+    } else {
+      try {
+        sessionStorage.setItem('activeSession', 'true')
+        await saveProfileSession(user.id, user.name, null, false, false)
+        const newProfile = { userId: user.id, userName: user.name, rememberPin: false, isProtected: false }
+        localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
+        window.location.reload()
+      } catch (err) {
+        console.error('[Settings] Failed to switch profile:', err)
+      }
+    }
+  }
+
+  const handlePinSubmit = async (pin) => {
+    if (pin.length !== 4) {
+      setPinError('Please enter a 4-digit PIN')
+      setEnteredPin('')
+      return
+    }
+
+    try {
+      const mainToken = await getMainToken()
+      const isValid = await verifyUserPin(mainToken, pinDialogUser.id, pin)
+
+      if (isValid) {
+        sessionStorage.setItem('activeSession', 'true')
+        await saveProfileSession(pinDialogUser.id, pinDialogUser.name, pin, false, true)
+        const newProfile = { userId: pinDialogUser.id, userName: pinDialogUser.name, rememberPin: false, isProtected: true, userPin: pin }
+        localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
+        window.location.reload()
+      } else {
+        setPinError('Incorrect PIN. Try again.')
+        setEnteredPin('')
+      }
+    } catch (err) {
+      console.error('[Settings] PIN verification failed:', err)
+      setPinError('Incorrect PIN. Try again.')
+      setEnteredPin('')
+    }
+  }
+
+  const handleToggleRememberPin = async () => {
+    if (!currentProfile) return
+    const newValue = currentProfile.rememberPin === false ? true : false
+    try {
+      await updateRememberPinInSession(newValue)
+      const updated = {
+        ...currentProfile,
+        rememberPin: newValue,
+        userPin: newValue ? currentProfile.userPin : null
+      }
+      setCurrentProfile(updated)
+      localStorage.setItem('cached_current_profile', JSON.stringify(updated))
+    } catch (err) {
+      console.error('[Settings] Failed to update remember pin:', err)
+    }
+  }
+
+  const handleSwitchProfileClick = async () => {
+    console.log('[Settings] Switch profile clicked. Disabling auto-login/rememberPin for current session...')
+    try {
+      await updateRememberPinInSession(false)
+      if (currentProfile) {
+        const updated = {
+          ...currentProfile,
+          rememberPin: false,
+          userPin: null
+        }
+        setCurrentProfile(updated)
+        localStorage.setItem('cached_current_profile', JSON.stringify(updated))
+      }
+      sessionStorage.removeItem('activeSession')
+      window.location.reload()
+    } catch (err) {
+      console.error('[Settings] Failed to switch profile:', err)
+    }
+  }
 
   const ITEMS_PER_ROW = 6
 
@@ -365,6 +519,124 @@ function ContentBrowserPage() {
         .unwatched-episode-ribbon:hover .unwatched-tick {
           display: block !important;
         }
+
+        /* Apple TV Settings Styles */
+        .settings-rows-container {
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+          padding: 20px 0;
+          width: 100%;
+        }
+        .setting-card {
+          width: 260px;
+          height: 260px;
+          border-radius: 18px;
+          background-color: rgba(255, 255, 255, 0.04);
+          backdrop-filter: blur(25px) saturate(180%);
+          -webkit-backdrop-filter: blur(25px) saturate(180%);
+          border: 1.5px solid rgba(255, 255, 255, 0.08);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 20px;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          cursor: pointer;
+        }
+        .setting-card[style] {
+          transform: scale(1) !important;
+        }
+        .setting-card.focused {
+          transform: scale(1.08) !important;
+          background-color: rgba(255, 255, 255, 0.2) !important;
+          border-color: #ffffff !important;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+        }
+        .setting-card.active-profile-fused {
+          border: 2px solid rgba(255, 255, 255, 0.25);
+          background-color: rgba(255, 255, 255, 0.05);
+          box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .setting-card.active-profile-fused.focused {
+          border-color: #ffffff !important;
+          background-color: rgba(255, 255, 255, 0.16) !important;
+          box-shadow: 0 15px 40px rgba(255, 255, 255, 0.15) !important;
+        }
+        .setting-card.major {
+          border: 1.5px solid rgba(10, 132, 255, 0.3) !important;
+          background-color: rgba(10, 132, 255, 0.08) !important;
+        }
+        .setting-card.major.focused {
+          background-color: rgba(10, 132, 255, 0.85) !important;
+          border-color: #0a84ff !important;
+          box-shadow: 0 10px 30px rgba(10, 132, 255, 0.6) !important;
+        }
+        .setting-card.major.focused .setting-card-title,
+        .setting-card.major.focused .setting-card-subtext,
+        .setting-card.major.focused svg {
+          color: #ffffff !important;
+          stroke: #ffffff !important;
+          opacity: 1 !important;
+        }
+        .setting-card-title {
+          font-size: 24px;
+          font-weight: 600;
+          color: #a8a8af;
+          margin-top: 15px;
+          font-family: 'Outfit', 'Inter', sans-serif;
+          transition: color 0.2s ease;
+        }
+        .setting-card.focused .setting-card-title {
+          color: #ffffff;
+        }
+        .setting-card-value {
+          font-size: 30px;
+          font-weight: 800;
+          margin-top: 5px;
+          font-family: 'Outfit', 'Inter', sans-serif;
+          transition: color 0.2s ease;
+        }
+        .setting-card-subtext {
+          font-size: 16px;
+          color: #888;
+          margin-top: 6px;
+          word-break: break-all;
+          max-width: 100%;
+          line-height: 1.3;
+        }
+        .numpad-btn {
+          border-radius: 50% !important;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .numpad-btn[style] {
+          transform: scale(1) !important;
+        }
+        .numpad-btn.focused {
+          transform: scale(1.15) !important;
+        }
+        .numpad-btn.focused div {
+          background-color: #ffffff !important;
+          border-color: #ffffff !important;
+          color: #0d0f11 !important;
+        }
+        .cancel-btn {
+          border-radius: 50px !important;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .cancel-btn[style] {
+          transform: scale(1) !important;
+        }
+        .cancel-btn.focused {
+          transform: scale(1.08) !important;
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.15) !important;
+        }
+        .cancel-btn.focused div {
+          background-color: rgba(255, 255, 255, 0.2) !important;
+          border-color: rgba(255, 255, 255, 0.4) !important;
+          color: #ffffff !important;
+        }
       `}</style>
 
       {libraries.length > 0 && (
@@ -445,28 +717,115 @@ function ContentBrowserPage() {
           )}
 
           {activeTab.type === 'settings' && (
-            <div style={styles.settingsContainer}>
-              <h2 style={styles.sectionTitle}>Settings</h2>
+            <div className="settings-rows-container">
+              {/* Row 10: Profiles */}
+              <div style={styles.section} className="row">
+                <h2 style={styles.sectionTitle}>Profiles</h2>
+                <div style={styles.row} className="hide-scrollbar row-items">
+                  {/* Current profile static card */}
+                  {/* Fused Active Profile + Remember PIN card */}
+                  <FocusableItem
+                    id="setting-active-profile-fused"
+                    rowIndex={10}
+                    colIndex={0}
+                    onClick={handleToggleRememberPin}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card active-profile-fused" style={{
+                      width: '460px',
+                      flexDirection: 'row',
+                      padding: '24px',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '24px'
+                    }}>
+                      {currentProfile && (
+                        <>
+                          {/* Left Profile Info Section */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '10px' }}>
+                            <img
+                              src={usersList.find(u => u.id === currentProfile.userId)?.avatar || ''}
+                              alt={currentProfile.userName}
+                              style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2.5px solid #ffffff' }}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                            <div style={{ fontSize: '24px', fontWeight: '700', color: '#ffffff', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>
+                              {currentProfile.userName}
+                            </div>
+                            <div style={{
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                              color: '#ffffff',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}>
+                              Active
+                            </div>
+                          </div>
 
-              <div style={styles.settingsSection}>
-                <h3 style={styles.settingsSubTitle}>Developer / Server</h3>
-                <div style={styles.settingItemRow}>
-                  <div style={styles.settingLabel}>Active Server URI</div>
-                  <div style={{ color: '#aaa', fontSize: '18px', fontFamily: 'monospace', wordBreak: 'break-all', maxWidth: '50%', textAlign: 'right' }}>
-                    {serverInfo ? serverInfo.uri : 'Not connected'}
-                  </div>
+                          {/* Vertical Divider Inside Fused Card */}
+                          <div style={{ width: '1.5px', height: '120px', backgroundColor: 'rgba(255, 255, 255, 0.15)', flexShrink: 0 }} />
+
+                          {/* Right Toggler Section */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '12px' }}>
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: currentProfile?.rememberPin !== false ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>
+                              {currentProfile?.rememberPin !== false ? (
+                                <>
+                                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </>
+                              ) : (
+                                <>
+                                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                  <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                                  <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" />
+                                </>
+                              )}
+                            </svg>
+                            <div style={{ fontSize: '18px', fontWeight: '600', color: '#a8a8af', textAlign: 'center', lineHeight: '1.2' }}>
+                              {currentProfile?.isProtected ? 'Remember PIN' : 'Auto-Login'}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </FocusableItem>
+
+                  <FocusableItem
+                    id="setting-switch-profile"
+                    rowIndex={10}
+                    colIndex={1}
+                    onClick={handleSwitchProfileClick}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card major">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                      <div className="setting-card-title" style={{ color: '#0a84ff' }}>Switch Profile</div>
+                      <div className="setting-card-subtext" style={{ color: '#0a84ff', opacity: 0.8, fontSize: '14px', marginTop: '10px' }}>
+                        Go to profile selection
+                      </div>
+                    </div>
+                  </FocusableItem>
                 </div>
               </div>
 
-              <div style={styles.settingsSection}>
-                <h3 style={styles.settingsSubTitle}>Appearance</h3>
-
-                <div style={styles.settingItemRow}>
-                  <div style={styles.settingLabel}>Show Unwatched Indicator</div>
-
+              {/* Row 11: Preferences */}
+              <div style={styles.section} className="row">
+                <h2 style={styles.sectionTitle}>Preferences</h2>
+                <div style={styles.row} className="hide-scrollbar row-items">
                   <FocusableItem
-                    id="toggle-unwatched"
-                    rowIndex={0} // D-Pad navigation grid row
+                    id="setting-toggle-unwatched"
+                    rowIndex={11}
                     colIndex={0}
                     onClick={() => {
                       const newValue = !showUnwatchedIndicator
@@ -476,20 +835,30 @@ function ContentBrowserPage() {
                         showNotifications
                       })
                     }}
-                    className="setting-toggle"
+                    style={{ flexShrink: 0 }}
                   >
-                    <div style={styles.toggleCapsule}>
-                      {showUnwatchedIndicator ? 'Enabled' : 'Disabled'}
+                    <div className="setting-card">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: showUnwatchedIndicator ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>
+                        {showUnwatchedIndicator ? (
+                          <>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" />
+                          </>
+                        )}
+                      </svg>
+                      <div className="setting-card-title">Unwatched Ribbon</div>
                     </div>
                   </FocusableItem>
-                </div>
-                <div style={styles.settingItemRow}>
-                  <div style={styles.settingLabel}>Show System Notifications</div>
 
                   <FocusableItem
-                    id="toggle-notifications"
-                    rowIndex={1}
-                    colIndex={0}
+                    id="setting-toggle-notifications"
+                    rowIndex={11}
+                    colIndex={1}
                     onClick={() => {
                       const newValue = !showNotifications
                       setShowNotifications(newValue)
@@ -498,20 +867,39 @@ function ContentBrowserPage() {
                         showNotifications: newValue
                       })
                     }}
-                    className="setting-toggle"
+                    style={{ flexShrink: 0 }}
                   >
-                    <div style={styles.toggleCapsule}>
-                      {showNotifications ? 'Enabled' : 'Disabled'}
+                    <div className="setting-card">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: showNotifications ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>
+                        {showNotifications ? (
+                          <>
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                            <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
+                            <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
+                            <path d="M18 8a6 6 0 0 0-9.33-5" />
+                            <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" />
+                          </>
+                        )}
+                      </svg>
+                      <div className="setting-card-title">Notifications</div>
                     </div>
                   </FocusableItem>
                 </div>
+              </div>
 
-                <div style={styles.settingItemRow}>
-                  <div style={styles.settingLabel}>Account Session</div>
+              {/* Row 12: System */}
+              <div style={styles.section} className="row">
+                <h2 style={styles.sectionTitle}>System</h2>
+                <div style={styles.row} className="hide-scrollbar row-items">
 
                   <FocusableItem
-                    id="btn-signout"
-                    rowIndex={2}
+                    id="setting-sign-out"
+                    rowIndex={12}
                     colIndex={0}
                     onClick={async () => {
                       try {
@@ -521,14 +909,153 @@ function ContentBrowserPage() {
                         console.error('Failed to sign out:', err)
                       }
                     }}
-                    className="setting-toggle"
+                    style={{ flexShrink: 0 }}
                   >
-                    <div className="signout-red" style={styles.signoutButtonContent}>
-                      Sign Out
+                    <div className="setting-card major">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      <div className="setting-card-title" style={{ color: '#0a84ff' }}>Sign Out</div>
+                      <div className="setting-card-subtext" style={{ color: '#0a84ff', opacity: 0.8, fontSize: '14px', marginTop: '10px' }}>
+                        Clear server and token cache
+                      </div>
                     </div>
                   </FocusableItem>
                 </div>
               </div>
+
+              {/* PIN Dialog Overlay */}
+              {pinDialogUser && (
+                <div style={styles.exitOverlay} className="exit-overlay">
+                  <div style={styles.pinCardSettings}>
+                    <div style={styles.pinAvatarWrapper}>
+                      <img
+                        src={pinDialogUser.avatar}
+                        alt={pinDialogUser.name}
+                        style={styles.pinAvatar}
+                      />
+                      <div style={styles.pinLockBadge}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" style={{ display: 'block' }}>
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                      </div>
+                    </div>
+                    <h2 style={styles.pinTitle}>Enter PIN for {pinDialogUser.name}</h2>
+
+                    <div style={styles.pinDisplay}>
+                      {[0, 1, 2, 3].map(i => (
+                        <div key={i} style={enteredPin.length > i ? styles.pinDotFilled : styles.pinDotEmpty}>
+                          {enteredPin.length > i && <span style={styles.pinDotInner}></span>}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={styles.pinErrorContainer}>
+                      {pinError && <p style={styles.pinError}>{pinError}</p>}
+                    </div>
+
+                    <div style={styles.numpad}>
+                      {[1, 2, 3].map((num, index) => (
+                        <FocusableItem
+                          key={num}
+                          id={`settings-numpad-${num}`}
+                          rowIndex={20}
+                          colIndex={index}
+                          onClick={() => {
+                            if (enteredPin.length < 4) {
+                              const newPin = enteredPin + num
+                              setEnteredPin(newPin)
+                              if (newPin.length === 4) {
+                                setTimeout(() => handlePinSubmit(newPin), 200)
+                              }
+                            }
+                          }}
+                          className="numpad-btn"
+                        >
+                          <div style={styles.numButton}>{num}</div>
+                        </FocusableItem>
+                      ))}
+
+                      {[4, 5, 6].map((num, index) => (
+                        <FocusableItem
+                          key={num}
+                          id={`settings-numpad-${num}`}
+                          rowIndex={21}
+                          colIndex={index}
+                          onClick={() => {
+                            if (enteredPin.length < 4) {
+                              const newPin = enteredPin + num
+                              setEnteredPin(newPin)
+                              if (newPin.length === 4) {
+                                setTimeout(() => handlePinSubmit(newPin), 200)
+                              }
+                            }
+                          }}
+                          className="numpad-btn"
+                        >
+                          <div style={styles.numButton}>{num}</div>
+                        </FocusableItem>
+                      ))}
+
+                      {[7, 8, 9].map((num, index) => (
+                        <FocusableItem
+                          key={num}
+                          id={`settings-numpad-${num}`}
+                          rowIndex={22}
+                          colIndex={index}
+                          onClick={() => {
+                            if (enteredPin.length < 4) {
+                              const newPin = enteredPin + num
+                              setEnteredPin(newPin)
+                              if (newPin.length === 4) {
+                                setTimeout(() => handlePinSubmit(newPin), 200)
+                              }
+                            }
+                          }}
+                          className="numpad-btn"
+                        >
+                          <div style={styles.numButton}>{num}</div>
+                        </FocusableItem>
+                      ))}
+
+                      <div></div>
+                      <FocusableItem
+                        id="settings-numpad-0"
+                        rowIndex={23}
+                        colIndex={1}
+                        onClick={() => {
+                          if (enteredPin.length < 4) {
+                            const newPin = enteredPin + 0
+                            setEnteredPin(newPin)
+                            if (newPin.length === 4) {
+                              setTimeout(() => handlePinSubmit(newPin), 200)
+                            }
+                          }
+                        }}
+                        className="numpad-btn"
+                      >
+                        <div style={styles.numButton}>0</div>
+                      </FocusableItem>
+                      <div></div>
+                    </div>
+
+                    <div style={styles.cancelRow}>
+                      <FocusableItem
+                        id="settings-cancel-btn"
+                        rowIndex={24}
+                        colIndex={1}
+                        onClick={() => setPinDialogUser(null)}
+                        className="cancel-btn"
+                      >
+                        <div style={styles.cancelButton}>Cancel</div>
+                      </FocusableItem>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -741,8 +1268,137 @@ const styles = {
     WebkitBackdropFilter: 'blur(10px)',
     zIndex: 999999,
     display: 'flex',
-    alignItems: 'flex-end',
+    alignItems: 'center', // Centered vertically for PIN dialog!
     justifyContent: 'center', // Centers modal perfectly both horizontally and vertically
+  },
+  pinCardSettings: {
+    padding: '40px 50px 30px',
+    background: 'rgba(20, 20, 26, 0.95)',
+    backdropFilter: 'blur(30px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+    border: '1.5px solid rgba(255, 255, 255, 0.12)',
+    borderRadius: '32px',
+    textAlign: 'center',
+    width: '650px',
+    boxShadow: '0 25px 60px rgba(0, 0, 0, 0.65)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    margin: 'auto',
+  },
+  pinAvatarWrapper: {
+    position: 'relative',
+    marginBottom: '20px',
+  },
+  pinAvatar: {
+    width: '120px',
+    height: '120px',
+    borderRadius: '50%',
+    border: '3px solid #ffffff',
+    objectFit: 'cover'
+  },
+  pinLockBadge: {
+    position: 'absolute',
+    bottom: '0',
+    right: '0',
+    background: '#1d2024',
+    borderRadius: '50%',
+    width: '38px',
+    height: '38px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '2px solid #ffffff'
+  },
+  pinTitle: {
+    fontSize: '32px',
+    color: '#ffffff',
+    marginBottom: '20px',
+    fontFamily: "'Outfit', 'Inter', sans-serif",
+    fontWeight: '700'
+  },
+  pinDisplay: {
+    display: 'flex',
+    gap: '20px',
+    justifyContent: 'center',
+    marginBottom: '15px'
+  },
+  pinDotEmpty: {
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    border: '2.5px solid rgba(255, 255, 255, 0.25)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.15s ease'
+  },
+  pinDotFilled: {
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    border: '2.5px solid #ffffff',
+    backgroundColor: 'transparent',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 0 15px rgba(255, 255, 255, 0.55)',
+    transition: 'all 0.15s ease'
+  },
+  pinDotInner: {
+    width: '18px',
+    height: '18px',
+    borderRadius: '50%',
+    backgroundColor: '#ffffff'
+  },
+  pinErrorContainer: {
+    minHeight: '36px',
+    marginBottom: '15px'
+  },
+  pinError: {
+    fontSize: '24px',
+    color: '#ea4335',
+    fontFamily: "'Outfit', 'Inter', sans-serif",
+    fontWeight: '600'
+  },
+  numpad: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '20px',
+    width: '380px',
+    margin: '0 auto 25px'
+  },
+  numButton: {
+    fontSize: '32px',
+    width: '80px',
+    height: '80px',
+    borderRadius: '50%',
+    background: 'rgba(255, 255, 255, 0.05)',
+    color: '#ffffff',
+    border: '1.5px solid rgba(255, 255, 255, 0.08)',
+    cursor: 'pointer',
+    fontWeight: '700',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    fontFamily: "'Outfit', 'Inter', sans-serif"
+  },
+  cancelRow: {
+    display: 'flex',
+    justifyContent: 'center'
+  },
+  cancelButton: {
+    fontSize: '24px',
+    padding: '12px 60px',
+    background: 'transparent',
+    color: '#9aa0a6',
+    border: '2px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: '50px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontFamily: "'Outfit', 'Inter', sans-serif",
+    transition: 'all 0.2s ease'
   },
   exitModal: {
     backgroundColor: 'rgba(20, 20, 26, 0.85)', // Premium dark glassmorphism

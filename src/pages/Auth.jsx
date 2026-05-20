@@ -4,12 +4,13 @@ function AuthRoute({
   children,
   requireAuth = true,
   isAuthenticated,
+  hasServer = false,
   hasSession,
   allowIncompleteSession = false
 }) {
   const location = useLocation()
 
-  console.log(`[AUTH ROUTE] Path: "${location.pathname}" | requireAuth: ${requireAuth} | isAuthenticated: ${isAuthenticated} | hasSession: ${hasSession} | allowIncompleteSession: ${allowIncompleteSession}`)
+  console.log(`[AUTH ROUTE] Path: "${location.pathname}" | requireAuth: ${requireAuth} | isAuthenticated: ${isAuthenticated} | hasServer: ${hasServer} | hasSession: ${hasSession} | allowIncompleteSession: ${allowIncompleteSession}`)
 
   // Protected routes
   if (requireAuth) {
@@ -24,10 +25,24 @@ function AuthRoute({
       return <Navigate to="/browse" replace />
     }
 
-    // Allow incomplete session for setup pages (server-select, user-select)
+    // If session is NOT complete, and we are not on setup pages
     if (!hasSession && !allowIncompleteSession) {
-      console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (No complete profile session). Redirecting to /server-select`)
-      return <Navigate to="/server-select" replace />
+      if (!hasServer) {
+        console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (No server selected). Redirecting to /server-select`)
+        return <Navigate to="/server-select" replace />
+      } else {
+        console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (Server exists, no profile session). Redirecting to /user-select`)
+        return <Navigate to="/user-select" replace />
+      }
+    }
+
+    // If session is NOT complete, but we are on setup pages
+    if (!hasSession && allowIncompleteSession) {
+      // If server is not selected but trying to access user-select
+      if (!hasServer && location.pathname === "/user-select") {
+        console.log(`[AUTH ROUTE] Denied user-select setup page (No server selected). Redirecting to /server-select`)
+        return <Navigate to="/server-select" replace />
+      }
     }
 
     console.log(`[AUTH ROUTE] Granted protected route "${location.pathname}"`)
@@ -35,14 +50,19 @@ function AuthRoute({
   }
 
   // Public route (Login page)
-  if (isAuthenticated && hasSession) {
-    console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with valid session. Redirecting to /browse`)
-    return <Navigate to="/browse" replace />
-  }
-
-  if (isAuthenticated && !hasSession) {
-    console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with incomplete session. Redirecting to /server-select`)
-    return <Navigate to="/server-select" replace />
+  if (isAuthenticated) {
+    if (hasSession) {
+      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with valid session. Redirecting to /browse`)
+      return <Navigate to="/browse" replace />
+    }
+    
+    if (!hasServer) {
+      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with no server. Redirecting to /server-select`)
+      return <Navigate to="/server-select" replace />
+    } else {
+      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with server, no profile session. Redirecting to /user-select`)
+      return <Navigate to="/user-select" replace />
+    }
   }
 
   console.log(`[AUTH ROUTE] Granted public route "${location.pathname}"`)

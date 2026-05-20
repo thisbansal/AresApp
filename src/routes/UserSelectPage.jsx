@@ -4,11 +4,26 @@ import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { saveProfileSession, getLastProfile } from '../services/luna/settingsStorage'
 import { getMainToken } from '../services/luna/tokenStorage'
+import { hasCompleteSession } from '../utils/appSettings'
 
 function UserSelectPage() {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_users_list')
+      return cached ? JSON.parse(cached) : []
+    } catch {
+      return []
+    }
+  })
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_users_list')
+      return !cached
+    } catch {
+      return true
+    }
+  })
   const [selectedUser, setSelectedUser] = useState(null)
   const [showPinPrompt, setShowPinPrompt] = useState(false)
   const [pin, setPin] = useState('')
@@ -21,12 +36,14 @@ function UserSelectPage() {
   const checkExistingSession = async () => {
     console.log('[AUTH FLOW] UserSelectPage: Checking for an existing, cached profile session...')
     try {
+      const sessionComplete = await hasCompleteSession()
       const lastProfile = await getLastProfile()
-      console.log('[AUTH FLOW] UserSelectPage: Loaded cached profile:', lastProfile)
+      console.log('[AUTH FLOW] UserSelectPage: Loaded cached profile:', lastProfile, 'sessionComplete:', sessionComplete)
 
-      // If we have a valid session, navigate to browse
-      if (lastProfile && lastProfile.userId) {
-        console.log('[AUTH FLOW] UserSelectPage: Valid session exists! Directing user to browse page...')
+      // If we have a valid session and user chose to auto-login (rememberPin is enabled), navigate to browse
+      if (sessionComplete && lastProfile && lastProfile.userId) {
+        sessionStorage.setItem('activeSession', 'true')
+        console.log('[AUTH FLOW] UserSelectPage: Valid session exists and auto-login is enabled! Directing user to browse page...')
         navigate('/browse')
         return
       }
@@ -47,6 +64,7 @@ function UserSelectPage() {
       const userList = await getUsers(token)
       console.log(`[AUTH FLOW] UserSelectPage: Discovered ${userList.length} user profile(s):`, userList.map(u => u.name))
       setUsers(userList)
+      localStorage.setItem('cached_users_list', JSON.stringify(userList))
       setLoading(false)
     } catch (err) {
       console.error('[AUTH FLOW] UserSelectPage: Failed to load profiles:', err)
@@ -83,7 +101,8 @@ function UserSelectPage() {
 
       if (isValidUser) {
         console.log('[AUTH FLOW] UserSelectPage: PIN verification succeeded! Saving profile session...')
-        await saveProfileSession(selectedUser.id, selectedUser.name, enteredPin, true, true)
+        sessionStorage.setItem('activeSession', 'true')
+        await saveProfileSession(selectedUser.id, selectedUser.name, enteredPin, false, true)
         console.log('[AUTH FLOW] UserSelectPage: Done! Reloading app to complete login...')
         window.location.reload()
       }
@@ -106,6 +125,7 @@ function UserSelectPage() {
   const saveUserSelection = async (user, pin) => {
     // Save profile session without PIN (unprotected)
     console.log(`[AUTH FLOW] UserSelectPage: Saving profile session for "${user.name}"...`)
+    sessionStorage.setItem('activeSession', 'true')
     await saveProfileSession(user.id, user.name, null, false, false)
     console.log('[AUTH FLOW] UserSelectPage: Done! Reloading app to complete login...')
     window.location.reload()

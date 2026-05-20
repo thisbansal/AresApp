@@ -49,3 +49,15 @@ export const saveProfileSession = async (profileId, userName, pin = null, rememb
 export const getLastProfile = async () => {
   return await getUserToken()
 }
+
+// Update rememberPin setting in active profile session
+export const updateRememberPinInSession = async (rememberPin) => {
+  const profile = await getUserToken()
+  if (profile) {
+    profile.rememberPin = rememberPin
+    if (!rememberPin) {
+      profile.userPin = null
+    }
+    await saveUserProfile(profile)
+  }
+}
