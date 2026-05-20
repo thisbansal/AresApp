@@ -583,6 +583,7 @@ function ContentBrowserPage() {
           gap: 40px;
           padding: 20px 0;
           width: 100%;
+          margin: 0vh 12vh;
         }
         .setting-card {
           width: 260px;
