@@ -37,9 +37,7 @@ export default function PlayerPage() {
   // Real-time Fluid Scrolling States
   const [isScrolling, setIsScrolling] = useState(false)
 
-  const showHUDRef = useRef(showHUD)
   useEffect(() => {
-    showHUDRef.current = showHUD
     if (!showHUD) {
       useFocusStore.setState({ focusedId: null })
     }
@@ -168,34 +166,6 @@ export default function PlayerPage() {
     }
   }, [loading])
 
-  // Smart-TV Browser History popstate overlay interception
-  useEffect(() => {
-    if (loading) return
-
-    // Push dummy history entry when page completes loading
-    window.history.pushState(null, null, window.location.pathname)
-
-    const handlePopState = (e) => {
-      // Prevent exit if controls or overlays are currently on screen
-      if (showHUDRef.current) {
-        e.preventDefault()
-        // Push dummy entry again to maintain stability in history length
-        window.history.pushState(null, null, window.location.pathname)
-        setShowHUD(false)
-        if (document.activeElement) {
-          document.activeElement.blur()
-        }
-      } else {
-        // Go back inside our React router
-        navigate(-1)
-      }
-    }
-
-    window.addEventListener('popstate', handlePopState)
-    return () => {
-      window.removeEventListener('popstate', handlePopState)
-    }
-  }, [loading, navigate])
 
   // Custom Playback D-pad, Wheel Scrolling, and Back Remote Key Binds
   useEffect(() => {
