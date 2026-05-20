@@ -1,4 +1,5 @@
 import { plexBridge } from './plexBridge'
+import { useAppStore } from '../../stores/AppStore'
 
 /**
  * Build optimized image URL with specific size and format
@@ -6,9 +7,11 @@ import { plexBridge } from './plexBridge'
 const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
   if (!path) return null
   const separator = path.includes('?') ? '&' : '?'
-  const innerUrl = `${serverUri}${path}${separator}X-Plex-Token=${token}`
+  // Use the admin/main token for image transcode authorization if available, fallback to the current session token
+  const imgToken = useAppStore.getState().mainToken || token
+  const innerUrl = `${serverUri}${path}${separator}X-Plex-Token=${imgToken}`
   // WebOS TVs often struggle with WebP or complex formats, forcing jpeg ensures compatibility
-  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${token}`
+  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${imgToken}`
 }
 
 /**
