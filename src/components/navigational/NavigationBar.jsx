@@ -99,9 +99,7 @@ const styles = {
     // Removed marginBottom to rely entirely on the parent container's gap for consistent spacing
   },
   capsule: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', 
-    backdropFilter: 'blur(20px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    backgroundColor: 'rgba(25, 25, 30, 0.85)', 
     border: '1px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '9999px',     
     maxWidth: '80%',            

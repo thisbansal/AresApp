@@ -733,16 +733,15 @@ export default function PlayerPage() {
           width: 30px !important;
           height: 30px !important;
           transform: translate(-50%, -50%) scale(1.15) !important;
-          box-shadow: 0 0 20px #e5a00d, 0 0 10px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0,0,0,0.6) !important;
+          box-shadow: 0 0 10px #e5a00d !important;
         }
         .hud-play-btn, .hud-restart-btn {
-          transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+          transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease !important;
         }
         .hud-play-btn.focused, .hud-play-btn:hover,
         .hud-restart-btn.focused, .hud-restart-btn:hover {
           background-color: rgba(255, 255, 255, 0.25) !important;
           border-color: rgba(255, 255, 255, 0.5) !important;
-          box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
           transform: scale(1.08) !important;
           outline: none;
         }
@@ -939,45 +938,40 @@ const styles = {
     width: '60px',
     height: '60px',
     borderRadius: '50%',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(30, 30, 30, 0.75)',
     border: '1.5px solid rgba(255, 255, 255, 0.12)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    backdropFilter: 'blur(10px)',
   },
   playPauseBtn: {
     width: '240px',
     boxSizing: 'border-box',
     padding: '14px 28px',
     borderRadius: '9999px', // Pill capsule shape
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    border: '1.5px solid rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(20, 20, 20, 0.75)',
+    border: '1.5px solid rgba(255, 255, 255, 0.2)',
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '12px',
     cursor: 'pointer',
-    backdropFilter: 'blur(15px)',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.35)',
   },
   restartBtn: {
     width: '180px',
     boxSizing: 'border-box',
     padding: '14px 28px',
     borderRadius: '9999px', // Pill capsule shape
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    border: '1.5px solid rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(20, 20, 20, 0.75)',
+    border: '1.5px solid rgba(255, 255, 255, 0.2)',
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '12px',
     cursor: 'pointer',
-    backdropFilter: 'blur(15px)',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.35)',
   },
   capsuleLabel: {
     fontSize: '24px',

@@ -587,9 +587,7 @@ function ContentBrowserPage() {
           width: 260px;
           height: 260px;
           border-radius: 18px;
-          background-color: rgba(255, 255, 255, 0.04);
-          backdrop-filter: blur(25px) saturate(180%);
-          -webkit-backdrop-filter: blur(25px) saturate(180%);
+          background-color: rgba(255, 255, 255, 0.08);
           border: 1.5px solid rgba(255, 255, 255, 0.08);
           display: flex;
           flex-direction: column;
@@ -597,27 +595,26 @@ function ContentBrowserPage() {
           justify-content: center;
           text-align: center;
           padding: 20px;
-          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease !important;
           cursor: pointer;
+          will-change: transform;
+          transform: translate3d(0, 0, 0);
         }
         .setting-card[style] {
-          transform: scale(1) !important;
+          transform: scale(1) translate3d(0, 0, 0) !important;
         }
         .setting-card.focused {
-          transform: scale(1.08) !important;
+          transform: scale(1.08) translate3d(0, 0, 0) !important;
           background-color: rgba(255, 255, 255, 0.2) !important;
           border-color: #ffffff !important;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
         }
         .setting-card.active-profile-fused {
           border: 2px solid rgba(255, 255, 255, 0.25);
           background-color: rgba(255, 255, 255, 0.05);
-          box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
         .setting-card.active-profile-fused.focused {
           border-color: #ffffff !important;
           background-color: rgba(255, 255, 255, 0.16) !important;
-          box-shadow: 0 15px 40px rgba(255, 255, 255, 0.15) !important;
         }
         .setting-card.major {
           border: 1.5px solid rgba(10, 132, 255, 0.3) !important;
@@ -626,7 +623,6 @@ function ContentBrowserPage() {
         .setting-card.major.focused {
           background-color: rgba(10, 132, 255, 0.85) !important;
           border-color: #0a84ff !important;
-          box-shadow: 0 10px 30px rgba(10, 132, 255, 0.6) !important;
         }
         .setting-card.major.focused .setting-card-title,
         .setting-card.major.focused .setting-card-subtext,
