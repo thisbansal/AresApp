@@ -72,6 +72,31 @@ export const verifyUserPin = async (authToken, userId, pin) => {
     throw new Error('PIN verification failed')
   }
 
-  const data = await res.json()
-  return data.user?.authToken || data.authToken || data.user?.authenticationToken || null
+  const text = await res.text()
+  
+  // 1. Try parsing XML attributes first
+  const xmlMatch = text.match(/authentication-token="([^"]+)"/) || 
+                   text.match(/authenticationToken="([^"]+)"/) ||
+                   text.match(/authToken="([^"]+)"/)
+  if (xmlMatch) {
+    return xmlMatch[1]
+  }
+
+  // 2. Try JSON parsing
+  try {
+    const data = JSON.parse(text)
+    const token = data.user?.authToken || data.authToken || data.user?.authenticationToken || null
+    if (token) return token
+  } catch (e) {
+    // Ignore JSON parse errors
+  }
+
+  // 3. Fallback: regex search for any token string in the text
+  const fallbackMatch = text.match(/"authToken"\s*:\s*"([^"]+)"/) || 
+                        text.match(/"authenticationToken"\s*:\s*"([^"]+)"/)
+  if (fallbackMatch) {
+    return fallbackMatch[1]
+  }
+
+  return null
 }

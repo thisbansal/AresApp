@@ -146,7 +146,7 @@ describe('Plex Auth Service', () => {
   })
 
   describe('verifyUserPin', () => {
-    it('should switch user profile and return the token when pin is correct', async () => {
+    it('should switch user profile and return the token when pin is correct (JSON response)', async () => {
       const mockResponseData = {
         user: {
           id: '1',
@@ -156,6 +156,7 @@ describe('Plex Auth Service', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
+        text: async () => JSON.stringify(mockResponseData),
         json: async () => mockResponseData
       })
 
@@ -175,6 +176,19 @@ describe('Plex Auth Service', () => {
       expect(token).toBe('profile-token-123')
     })
 
+    it('should switch user profile and return the token when XML response is returned', async () => {
+      const xmlResponse = '<?xml version="1.0" encoding="UTF-8"?><user id="1" authentication-token="xml-profile-token-456" />'
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: async () => xmlResponse
+      })
+
+      const token = await verifyUserPin('mock-token', '1', '1234')
+
+      expect(token).toBe('xml-profile-token-456')
+    })
+
     it('should handle empty/null PINs for unprotected profiles', async () => {
       const mockResponseData = {
         authToken: 'profile-token-abc'
@@ -182,6 +196,7 @@ describe('Plex Auth Service', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
+        text: async () => JSON.stringify(mockResponseData),
         json: async () => mockResponseData
       })
 
