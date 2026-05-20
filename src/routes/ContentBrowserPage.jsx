@@ -132,8 +132,14 @@ function ContentBrowserPage() {
       try {
         const mainToken = useAppStore.getState().mainToken || await getMainToken()
         const userToken = await verifyUserPin(mainToken, user.id, "")
+        const preferredUri = useAppStore.getState().serverUri
+        const resolvedServer = await resolveAccessibleServer(userToken, preferredUri)
+        const serverConnection = resolvedServer ? { uri: resolvedServer.uri, token: resolvedServer.token } : null
         sessionStorage.setItem('activeSession', 'true')
-        await useAppStore.getState().setProfileSession(user.id, user.name, userToken, null, false, false)
+        if (resolvedServer?.uri && resolvedServer.uri !== preferredUri) {
+          await useAppStore.getState().setServerUri(resolvedServer.uri)
+        }
+        await useAppStore.getState().setProfileSession(user.id, user.name, userToken, null, false, false, serverConnection)
         const newProfile = useAppStore.getState().userProfile
         localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
         window.location.reload()
@@ -155,8 +161,14 @@ function ContentBrowserPage() {
       const userToken = await verifyUserPin(mainToken, pinDialogUser.id, pin)
 
       if (userToken) {
+        const preferredUri = useAppStore.getState().serverUri
+        const resolvedServer = await resolveAccessibleServer(userToken, preferredUri)
+        const serverConnection = resolvedServer ? { uri: resolvedServer.uri, token: resolvedServer.token } : null
         sessionStorage.setItem('activeSession', 'true')
-        await useAppStore.getState().setProfileSession(pinDialogUser.id, pinDialogUser.name, userToken, pin, false, true)
+        if (resolvedServer?.uri && resolvedServer.uri !== preferredUri) {
+          await useAppStore.getState().setServerUri(resolvedServer.uri)
+        }
+        await useAppStore.getState().setProfileSession(pinDialogUser.id, pinDialogUser.name, userToken, pin, false, true, serverConnection)
         const newProfile = useAppStore.getState().userProfile
         localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
         window.location.reload()
@@ -208,6 +220,7 @@ function ContentBrowserPage() {
       try {
         const token = useAppStore.getState().token
         if (!token) return
+        const storedActiveServer = useServerStore.getState().activeServer
 
         // Load Settings
         let prefs = await getData(DB_KINDS.PREFERENCES, KINDS.preferences)
@@ -217,7 +230,8 @@ function ContentBrowserPage() {
         }
 
         // 1. Fast Path: Try to boot instantly using the last known server address
-        let currentUri = await getData(DB_KINDS.SERVER, KINDS.server)
+        let currentUri = storedActiveServer?.uri || await getData(DB_KINDS.SERVER, KINDS.server)
+        const currentToken = storedActiveServer?.token || token
         let isCurrentHealthy = false
 
         if (currentUri) {
@@ -225,16 +239,16 @@ function ContentBrowserPage() {
 
           // Test health quickly (1500ms timeout)
           const startTime = Date.now()
-          const healthy = await testConnectionToServer(currentUri, token, 1500)
+          const healthy = await testConnectionToServer(currentUri, currentToken, 1500)
           const duration = Date.now() - startTime
 
           if (healthy) {
             console.log(`[init] Fast path healthy (${duration}ms). Loading libraries...`)
             isCurrentHealthy = true
-            const fastPathServer = { uri: currentUri, token }
+            const fastPathServer = { uri: currentUri, token: currentToken }
             setServerInfo(fastPathServer)
             useServerStore.setState({ activeServer: fastPathServer })
-            getLibraries(currentUri, token).then(setLibraries).catch(e => console.warn('Fast path getLibraries failed:', e))
+            getLibraries(currentUri, currentToken).then(setLibraries).catch(e => console.warn('Fast path getLibraries failed:', e))
 
             // If it's a fast local connection, we're done. No need to hit Plex.tv.
             if (!currentUri.includes('relay')) {

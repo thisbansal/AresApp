@@ -4,6 +4,7 @@ import { saveProfileSession, getLastProfile, updateRememberPinInSession } from '
 import { hasCompleteSession } from '../utils/appSettings'
 import { getData, setData, DB_KINDS } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
+import { useServerStore } from './serverStore'
 
 export const useAppStore = create((set, get) => ({
   isAuthenticated: false,
@@ -26,6 +27,9 @@ export const useAppStore = create((set, get) => ({
       const userProfile = await getLastProfile()
 
       const activeToken = (sessionComplete && userProfile?.userToken) ? userProfile.userToken : mainToken
+      const activeServer = (sessionComplete && userProfile?.serverUri && userProfile?.serverToken)
+        ? { uri: userProfile.serverUri, token: userProfile.serverToken }
+        : null
 
       console.log('[AUTH STORE] Initialized:', {
         isAuthenticated: !!mainToken,
@@ -45,6 +49,7 @@ export const useAppStore = create((set, get) => ({
         userProfile,
         isLoading: false
       })
+      useServerStore.setState({ activeServer })
     } catch (err) {
       console.error('[AUTH STORE] Error during initializeAuth:', err)
       set({
@@ -57,6 +62,7 @@ export const useAppStore = create((set, get) => ({
         userProfile: null,
         isLoading: false
       })
+      useServerStore.setState({ activeServer: null })
     }
   },
 
@@ -101,10 +107,10 @@ export const useAppStore = create((set, get) => ({
     }
   },
 
-  setProfileSession: async (profileId, userName, token, pin = null, rememberPin = true, isProtected = false) => {
+  setProfileSession: async (profileId, userName, token, pin = null, rememberPin = true, isProtected = false, serverConnection = null) => {
     console.log('[AUTH STORE] setProfileSession starting for:', userName)
     try {
-      await saveProfileSession(profileId, userName, token, pin, rememberPin, isProtected)
+      await saveProfileSession(profileId, userName, token, pin, rememberPin, isProtected, serverConnection)
       const userProfile = await getLastProfile()
       const sessionComplete = await hasCompleteSession()
 
@@ -113,6 +119,7 @@ export const useAppStore = create((set, get) => ({
         userProfile,
         hasSession: sessionComplete
       })
+      useServerStore.setState({ activeServer: serverConnection })
       console.log('[AUTH STORE] setProfileSession completed')
     } catch (err) {
       console.error('[AUTH STORE] Failed to set profile session:', err)
@@ -135,6 +142,7 @@ export const useAppStore = create((set, get) => ({
         hasSession: false,
         userProfile: null
       })
+      useServerStore.setState({ activeServer: null })
       console.log('[AUTH STORE] signOut completed')
     } catch (err) {
       console.error('[AUTH STORE] Error during signout:', err)

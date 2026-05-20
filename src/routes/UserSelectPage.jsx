@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
+import { resolveAccessibleServer } from '../services/plex/plexAccessService'
 import { useAppStore } from '../stores/AppStore'
 import { getMainToken } from '../services/luna/tokenStorage'
 
@@ -27,6 +28,7 @@ function UserSelectPage() {
   const [showPinPrompt, setShowPinPrompt] = useState(false)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
+  const [loadingMessage, setLoadingMessage] = useState('Loading profiles...')
 
   useEffect(() => {
     checkExistingSession()
@@ -63,10 +65,53 @@ function UserSelectPage() {
       console.log(`[AUTH FLOW] UserSelectPage: Discovered ${userList.length} user profile(s):`, userList.map(u => u.name))
       setUsers(userList)
       localStorage.setItem('cached_users_list', JSON.stringify(userList))
+      setLoadingMessage('Loading profiles...')
       setLoading(false)
     } catch (err) {
       console.error('[AUTH FLOW] UserSelectPage: Failed to load profiles:', err)
+      setLoadingMessage('Loading profiles...')
       setLoading(false)
+    }
+  }
+
+  const completeProfileSignIn = async (user, pinValue, isProtected) => {
+    setLoadingMessage(`Opening ${user.name}...`)
+    setLoading(true)
+
+    try {
+      const mainToken = useAppStore.getState().mainToken || await getMainToken()
+      const userToken = await verifyUserPin(mainToken, user.id, pinValue || "")
+
+      if (!userToken) {
+        throw new Error('Profile token was not returned by Plex.')
+      }
+
+      const preferredUri = useAppStore.getState().serverUri
+      const resolvedServer = await resolveAccessibleServer(userToken, preferredUri)
+      const serverConnection = resolvedServer ? { uri: resolvedServer.uri, token: resolvedServer.token } : null
+
+      sessionStorage.setItem('activeSession', 'true')
+      if (resolvedServer?.uri && resolvedServer.uri !== preferredUri) {
+        await useAppStore.getState().setServerUri(resolvedServer.uri)
+      }
+
+      await useAppStore.getState().setProfileSession(
+        user.id,
+        user.name,
+        userToken,
+        pinValue,
+        false,
+        isProtected,
+        serverConnection
+      )
+
+      console.log('[AUTH FLOW] UserSelectPage: Done! Navigating to browse...')
+      navigate('/browse')
+    } catch (err) {
+      console.error('[AUTH FLOW] UserSelectPage: Profile sign-in failed:', err)
+      setLoadingMessage('Loading profiles...')
+      setLoading(false)
+      throw err
     }
   }
 
@@ -93,23 +138,11 @@ function UserSelectPage() {
     }
 
     try {
-      const mainToken = useAppStore.getState().mainToken || await getMainToken()
       console.log('[AUTH FLOW] UserSelectPage: Main token resolved. Requesting verification from Plex API...')
-      const userToken = await verifyUserPin(mainToken, selectedUser.id, enteredPin)
-
-      if (userToken) {
-        console.log('[AUTH FLOW] UserSelectPage: PIN verification succeeded! Saving profile session...')
-        sessionStorage.setItem('activeSession', 'true')
-        await useAppStore.getState().setProfileSession(selectedUser.id, selectedUser.name, userToken, enteredPin, false, true)
-        console.log('[AUTH FLOW] UserSelectPage: Done! Navigating to browse...')
-        navigate('/browse')
-      } else {
-        setPinError('Incorrect PIN. Try again.')
-        setPin('')
-      }
-
+      await completeProfileSignIn(selectedUser, enteredPin, true)
     } catch (err) {
       console.error('[AUTH FLOW] UserSelectPage: PIN verification failed:', err)
+      setShowPinPrompt(true)
       setPinError('Incorrect PIN. Try again.')
       setPin('')
     }
@@ -126,12 +159,7 @@ function UserSelectPage() {
   const saveUserSelection = async (user, pin) => {
     console.log(`[AUTH FLOW] UserSelectPage: Authenticating unprotected profile "${user.name}"...`)
     try {
-      const mainToken = useAppStore.getState().mainToken || await getMainToken()
-      const userToken = await verifyUserPin(mainToken, user.id, "")
-      sessionStorage.setItem('activeSession', 'true')
-      await useAppStore.getState().setProfileSession(user.id, user.name, userToken, null, false, false)
-      console.log('[AUTH FLOW] UserSelectPage: Done! Navigating to browse...')
-      navigate('/browse')
+      await completeProfileSignIn(user, null, false)
     } catch (err) {
       console.error('[AUTH FLOW] UserSelectPage: Unprotected user authentication failed:', err)
     }
@@ -142,7 +170,7 @@ function UserSelectPage() {
       <div style={styles.container}>
         <div style={styles.spinnerContainer}>
           <div className="spinner"></div>
-          <p style={styles.spinnerText}>Loading profiles...</p>
+          <p style={styles.spinnerText}>{loadingMessage}</p>
         </div>
       </div>
     )

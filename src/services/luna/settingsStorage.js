@@ -32,14 +32,16 @@ export const getSetting = async (kind, defaultValue = null) => {
 }
 
 // Batch save profile data
-export const saveProfileSession = async (profileId, userName, token, pin = null, rememberPin = true, isProtected = false) => {
+export const saveProfileSession = async (profileId, userName, token, pin = null, rememberPin = true, isProtected = false, serverConnection = null) => {
   const userProfileKeyDetails = {
     userId: profileId,
     userName: userName,
     userToken: token,
     userPin: pin,
     rememberPin: rememberPin,
-    isProtected: isProtected
+    isProtected: isProtected,
+    serverUri: serverConnection?.uri || null,
+    serverToken: serverConnection?.token || null
   }
 
   await deleteUserData()
