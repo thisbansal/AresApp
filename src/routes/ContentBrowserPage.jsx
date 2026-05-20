@@ -584,10 +584,6 @@ function ContentBrowserPage() {
           padding: 20px 0;
           width: 100%;
         }
-        .settings-rows-container .row-items {
-          margin: 0 !important;
-          padding: 20px 0 !important;
-        }
         .setting-card {
           width: 260px;
           height: 260px;
