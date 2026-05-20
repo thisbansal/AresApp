@@ -441,7 +441,7 @@ const styles = {
     padding: '6px 14px',
     borderRadius: '6px',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    border: '1.5px solid #e5a00d',
+    border: '1.5px solid rgba(255, 255, 255, 0.15)',
     fontSize: '15px',
     fontWeight: '700',
     textTransform: 'uppercase',
