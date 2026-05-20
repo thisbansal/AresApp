@@ -10,6 +10,11 @@ export default function EpisodeDetails({ item, serverInfo }) {
     navigate(`/play/${item.id}`, { state: { serverInfo } })
   }
 
+  const handleRestart = () => {
+    console.log('Restart episode:', item.id)
+    navigate(`/play/${item.id}`, { state: { serverInfo, startOver: true } })
+  }
+
   return (
     <div style={styles.container}>
       {item.parentTitle && item.grandparentTitle && (
@@ -20,7 +25,10 @@ export default function EpisodeDetails({ item, serverInfo }) {
       
       <p style={styles.summary}>{item.summary || 'No summary available.'}</p>
       
-      <ActionButtons onPlay={handlePlay} />
+      <ActionButtons
+        onPlay={handlePlay}
+        onRestart={item.viewOffset ? handleRestart : null}
+      />
     </div>
   )
 }

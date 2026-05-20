@@ -5,6 +5,7 @@ import { useActiveServer } from '../hooks/useActiveServer'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useFocusStore } from '../stores/FocusStore'
 import { FocusableItem } from '../components/navigational/FocusableItem'
+import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
 
 // Video.js React integration
 import '@videojs/react/video/skin.css'
@@ -26,7 +27,7 @@ export default function PlayerPage() {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '' })
+  const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
 
   // HUD Visibility & Interaction State
   const [showHUD, setShowHUD] = useState(true)
@@ -44,6 +45,14 @@ export default function PlayerPage() {
   const videoRef = useRef(null)
   const hudTimeoutRef = useRef(null)
   const seekTimeoutRef = useRef(null)
+
+  usePlaybackProgress({
+    serverInfo,
+    ratingKey,
+    videoRef,
+    viewOffset: metaDetails.viewOffset,
+    startOver: location.state?.startOver
+  })
 
   // Trigger HUD presentation and set inactivity fadeout
   const triggerHUD = () => {
@@ -70,7 +79,8 @@ export default function PlayerPage() {
 
         setMetaDetails({
           title: metadata.title,
-          subtitle: sub
+          subtitle: sub,
+          viewOffset: metadata.viewOffset
         })
 
         // Find direct stream key from metadata

@@ -146,6 +146,8 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
     actors: item.Role?.map(r => ({ name: r.tag, role: r.role, thumb: r.thumb })) || [],
     grandparentRatingKey: item.grandparentRatingKey,
     parentRatingKey: item.parentRatingKey,
+    viewOffset: item.viewOffset,
+    viewCount: item.viewCount,
     media: item.Media?.map(m => ({
       videoResolution: m.videoResolution,
       bitrate: m.bitrate,

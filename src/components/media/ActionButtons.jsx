@@ -1,27 +1,49 @@
 import React from 'react'
 import { FocusableItem } from '../navigational/FocusableItem'
 
-export default function ActionButtons({ onPlay, onMore, onFocus, rowIndex = 0 }) {
+export default function ActionButtons({ onPlay, onRestart, onMore, onFocus, rowIndex = 0 }) {
+  const playLabel = onRestart ? 'Resume' : 'Play'
+  
+  let currentCol = 0
+  const playCol = currentCol++
+  const restartCol = onRestart ? currentCol++ : null
+  const moreCol = onMore ? currentCol++ : null
+
   return (
     <div style={styles.container}>
       <FocusableItem
         id="btn-play"
         rowIndex={rowIndex}
-        colIndex={0}
+        colIndex={playCol}
         onClick={onPlay}
         onFocus={onFocus}
         className="action-btn"
       >
         <div style={{ ...styles.button, ...styles.playButton }}>
-          <span style={styles.icon}>▶</span> Play
+          <span style={styles.icon}>▶</span> {playLabel}
         </div>
       </FocusableItem>
+
+      {onRestart && (
+        <FocusableItem
+          id="btn-restart"
+          rowIndex={rowIndex}
+          colIndex={restartCol}
+          onClick={onRestart}
+          onFocus={onFocus}
+          className="action-btn"
+        >
+          <div style={{ ...styles.button, ...styles.moreButton }}>
+            <span style={{ ...styles.icon, marginRight: '8px' }}>↺</span> Restart
+          </div>
+        </FocusableItem>
+      )}
       
       {onMore && (
         <FocusableItem
           id="btn-more"
           rowIndex={rowIndex}
-          colIndex={1}
+          colIndex={moreCol}
           onClick={onMore}
           onFocus={onFocus}
           className="action-btn"

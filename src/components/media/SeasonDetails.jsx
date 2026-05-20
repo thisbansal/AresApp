@@ -62,6 +62,34 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
                 <div style={styles.episodeInner}>
                   <div style={styles.episodeThumbContainer} className="episode-thumb-container">
                     <FallbackImage src={episode.thumb} alt={episode.title} style={styles.episodeThumb} loading="lazy" />
+                    
+                    <div 
+                      className="episode-play-button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/play/${episode.id}`, { state: { serverInfo } })
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#000000">
+                        <polygon points="6 3 20 12 6 21 6 3"></polygon>
+                      </svg>
+                    </div>
+
+                    {episode.viewOffset > 0 && (
+                      <div 
+                        className="episode-rewind-button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/play/${episode.id}`, { state: { serverInfo, startOver: true } })
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                          <polyline points="3 3 3 8 8 8"></polyline>
+                        </svg>
+                      </div>
+                    )}
+
                     {showUnwatchedIndicator && (
                       Number(episode.viewCount || 0) > 0 ? (
                         <div 
@@ -122,6 +150,56 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
         .episode-card.focused .episode-thumb-container {
           box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
           border: 2px solid #fff;
+        }
+        .episode-play-button {
+          position: absolute;
+          bottom: 12px;
+          left: 12px;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background-color: rgba(255, 255, 255, 0.95);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transform: translateY(8px) scale(0.9);
+          transition: opacity 0.2s ease, transform 0.2s ease;
+          z-index: 6;
+        }
+        .episode-card.focused .episode-play-button {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        .episode-rewind-button {
+          position: absolute;
+          bottom: 12px;
+          left: 56px;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background-color: rgba(0, 0, 0, 0.65);
+          border: 1.5px solid rgba(255, 255, 255, 0.35);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transform: translateY(8px) scale(0.9);
+          transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+          z-index: 7;
+        }
+        .episode-rewind-button:hover {
+          background-color: rgba(255, 255, 255, 0.95) !important;
+          border-color: rgba(255, 255, 255, 0.95) !important;
+        }
+        .episode-rewind-button:hover svg {
+          stroke: #000000 !important;
+        }
+        .episode-card.focused .episode-rewind-button {
+          opacity: 1;
+          transform: translateY(0) scale(1);
         }
         .watched-ribbon {
           transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;

@@ -412,11 +412,28 @@ function ContentBrowserPage() {
             decoding="async"
           />
           {prefix === 'cw' && (
-            <div className="card-play-button">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#000000">
-                <polygon points="6 3 20 12 6 21 6 3"></polygon>
-              </svg>
-            </div>
+            <>
+              <div className="card-play-button">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#000000">
+                  <polygon points="6 3 20 12 6 21 6 3"></polygon>
+                </svg>
+              </div>
+              {item.type === 'episode' && (
+                <div 
+                  className="card-rewind-button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    console.log('Rewind clicked for CW episode:', item.id)
+                    navigate(`/play/${item.id}`, { state: { serverInfo, startOver: true } })
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <polyline points="3 3 3 8 8 8"></polyline>
+                  </svg>
+                </div>
+              )}
+            </>
           )}
           {showUnwatchedIndicator && prefix !== 'cw' && (
             isUnwatched ? (
@@ -541,6 +558,36 @@ function ContentBrowserPage() {
           z-index: 5;
         }
         .focusable-item.focused .card-play-button {
+          opacity: 1 !important;
+          transform: translateY(0) scale(1) !important;
+        }
+
+        .card-rewind-button {
+          position: absolute;
+          bottom: 16px;
+          left: 68px;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background-color: rgba(0, 0, 0, 0.65);
+          border: 1.5px solid rgba(255, 255, 255, 0.35);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transform: translateY(10px) scale(0.9);
+          transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
+          z-index: 6;
+        }
+        .card-rewind-button:hover {
+          background-color: rgba(255, 255, 255, 0.95) !important;
+          border-color: rgba(255, 255, 255, 0.95) !important;
+        }
+        .card-rewind-button:hover svg {
+          stroke: #000000 !important;
+        }
+        .focusable-item.focused .card-rewind-button {
           opacity: 1 !important;
           transform: translateY(0) scale(1) !important;
         }

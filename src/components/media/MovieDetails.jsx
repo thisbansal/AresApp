@@ -10,6 +10,11 @@ export default function MovieDetails({ item, serverInfo, onFocusItem }) {
     navigate(`/play/${item.id}`, { state: { serverInfo } })
   }
 
+  const handleRestart = () => {
+    console.log('Restart movie:', item.id)
+    navigate(`/play/${item.id}`, { state: { serverInfo, startOver: true } })
+  }
+
   return (
     <div style={styles.container}>
       {item.tagline && <h2 style={styles.tagline}>"{item.tagline}"</h2>}
@@ -26,7 +31,10 @@ export default function MovieDetails({ item, serverInfo, onFocusItem }) {
         </div>
       )}
 
-      <ActionButtons onPlay={handlePlay} />
+      <ActionButtons
+        onPlay={handlePlay}
+        onRestart={item.viewOffset ? handleRestart : null}
+      />
     </div>
   )
 }
