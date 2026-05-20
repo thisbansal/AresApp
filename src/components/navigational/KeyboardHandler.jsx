@@ -69,12 +69,13 @@ export function KeyboardHandler() {
         e.preventDefault();
         e.stopPropagation();
 
-        // 1. If on login, server-select, or homepage/browse, back key triggers the global exit dialog box
+        // 1. If on login, server-select, user-select, or homepage/browse, back key triggers the global exit dialog box
         const isLoginRoute = hash.includes('/login') || path.includes('/login');
         const isServerSelectRoute = hash.includes('/server-select') || path.includes('/server-select');
+        const isUserSelectRoute = hash.includes('/user-select') || path.includes('/user-select');
         const isHomeRoute = hash.includes('/browse') || path.includes('/browse') || hash.includes('/home') || path.includes('/home');
 
-        if (isLoginRoute || isServerSelectRoute || isHomeRoute) {
+        if (isLoginRoute || isServerSelectRoute || isUserSelectRoute || isHomeRoute) {
           console.log('[AUTH FLOW] Back button triggered on entry/exit route. Showing global ExitDialog.');
           setShowExitDialog(true);
         } else if (hash.includes('/play') || path.includes('/play')) {

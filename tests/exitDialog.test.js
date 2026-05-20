@@ -129,9 +129,10 @@ describe('Unified Global Remote Back Key Router & Exit Interceptor', () => {
       e.stopPropagation();
 
       const isLoginRoute = currentPath.includes('/login');
+      const isUserSelectRoute = currentPath.includes('/user-select');
       const isHomeRoute = currentPath.includes('/browse') || currentPath.includes('/home');
 
-      if (isLoginRoute || isHomeRoute) {
+      if (isLoginRoute || isUserSelectRoute || isHomeRoute) {
         setShowExitDialogCalled = true;
       } else if (currentPath.includes('/play')) {
         return; // Video player handles internally
@@ -192,7 +193,7 @@ describe('Unified Global Remote Back Key Router & Exit Interceptor', () => {
     expect(navigateReactRouter).not.toHaveBeenCalled();
   });
 
-  it('should naturally traverse back in history on user select page ("/user-select")', () => {
+  it('should trigger the global exit dialog on user select page ("/user-select")', () => {
     currentPath = '/user-select';
     const mockEvent = {
       key: 'BrowserBack',
@@ -205,7 +206,7 @@ describe('Unified Global Remote Back Key Router & Exit Interceptor', () => {
 
     expect(mockEvent.preventDefault).toHaveBeenCalled();
     expect(mockEvent.stopPropagation).toHaveBeenCalled();
-    expect(setShowExitDialogCalled).toBeNull();
-    expect(navigateReactRouter).toHaveBeenCalledWith(-1);
+    expect(setShowExitDialogCalled).toBe(true);
+    expect(navigateReactRouter).not.toHaveBeenCalled();
   });
 });
