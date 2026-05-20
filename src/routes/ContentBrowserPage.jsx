@@ -998,7 +998,7 @@ function ContentBrowserPage() {
                             }}
                             className="exit-btn danger"
                           >
-                            Yes, Sign Out
+                            Yes
                           </FocusableItem>
                         </div>
                       </div>
