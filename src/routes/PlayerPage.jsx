@@ -37,7 +37,9 @@ export default function PlayerPage() {
   // Real-time Fluid Scrolling States
   const [isScrolling, setIsScrolling] = useState(false)
 
+  const showHUDRef = useRef(showHUD)
   useEffect(() => {
+    showHUDRef.current = showHUD
     if (!showHUD) {
       useFocusStore.setState({ focusedId: null })
     }
@@ -175,7 +177,7 @@ export default function PlayerPage() {
 
     const handlePopState = (e) => {
       // Prevent exit if controls or overlays are currently on screen
-      if (showHUD) {
+      if (showHUDRef.current) {
         e.preventDefault()
         // Push dummy entry again to maintain stability in history length
         window.history.pushState(null, null, window.location.pathname)
@@ -193,7 +195,7 @@ export default function PlayerPage() {
     return () => {
       window.removeEventListener('popstate', handlePopState)
     }
-  }, [loading, showHUD, navigate])
+  }, [loading, navigate])
 
   // Custom Playback D-pad, Wheel Scrolling, and Back Remote Key Binds
   useEffect(() => {
