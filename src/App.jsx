@@ -24,6 +24,7 @@ if ('scrollRestoration' in window.history) {
 function App() {
   const { isAuthenticated, hasServer, hasSession, isLoading, initializeAuth } = useAppStore()
   const isOnline = useServerStore(state => state.isOnline)
+  const activeServer = useServerStore(state => state.activeServer)
 
   useEffect(() => {
     initializeAuth()
@@ -31,7 +32,7 @@ function App() {
 
   // Periodic Health Pings check to keep connection state healthy
   useEffect(() => {
-    if (!isAuthenticated || !hasSession) return
+    if (!isAuthenticated || !hasSession || !activeServer?.uri || !activeServer?.token) return
 
     // Trigger initial ping once authenticated
     plexBridge.ping()
@@ -42,7 +43,7 @@ function App() {
     }, 30000)
 
     return () => clearInterval(intervalId)
-  }, [isAuthenticated, hasSession])
+  }, [isAuthenticated, hasSession, activeServer?.uri, activeServer?.token])
 
   // Show loading state while checking auth
   if (isLoading) {

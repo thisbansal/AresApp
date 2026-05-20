@@ -2,6 +2,7 @@ import { getMainToken } from '../luna/tokenStorage'
 import { DB_KINDS, getData } from '../luna/lunaService'
 import { KINDS } from '../../config/app'
 import { useAppStore } from '../../stores/AppStore'
+import { useServerStore } from '../../stores/serverStore'
 
 /**
  * Resolves active server info (uri and token) from either local state or storage.
@@ -12,8 +13,9 @@ import { useAppStore } from '../../stores/AppStore'
  */
 export const getActiveServerInfo = async (localServerInfo = null) => {
   const appState = useAppStore.getState()
-  let uri = localServerInfo?.uri || appState.serverUri
-  let token = localServerInfo?.token || appState.token
+  const activeServer = useServerStore.getState().activeServer
+  let uri = localServerInfo?.uri || activeServer?.uri || appState.serverUri
+  let token = localServerInfo?.token || activeServer?.token || appState.token
 
   if (!uri || !token) {
     const [mainToken, storedUri] = await Promise.all([

@@ -6,6 +6,7 @@ import { getData } from '../src/services/luna/lunaService'
 import { markAsWatched, markAsUnwatched } from '../src/services/plex/plexContentService'
 import { useNotificationStore } from '../src/services/notifications/notificationStore'
 import { useAppStore } from '../src/stores/AppStore'
+import { useServerStore } from '../src/stores/serverStore'
 
 // Mock the dependencies
 vi.mock('../src/services/luna/tokenStorage', () => ({
@@ -27,6 +28,9 @@ describe('Plex Connection Service', () => {
     useAppStore.setState({
       token: null,
       serverUri: null
+    })
+    useServerStore.setState({
+      activeServer: null
     })
   })
 
@@ -52,6 +56,28 @@ describe('Plex Connection Service', () => {
     expect(result).toEqual({
       uri: 'http://profile-plex:32400',
       token: 'profile-token'
+    })
+    expect(getMainToken).not.toHaveBeenCalled()
+    expect(getData).not.toHaveBeenCalled()
+  })
+
+  it('should prefer the resolved active server token from ServerStore when available', async () => {
+    useAppStore.setState({
+      token: 'profile-token',
+      serverUri: 'http://profile-plex:32400'
+    })
+    useServerStore.setState({
+      activeServer: {
+        uri: 'http://shared-plex:32400',
+        token: 'server-access-token'
+      }
+    })
+
+    const result = await getActiveServerInfo(null)
+
+    expect(result).toEqual({
+      uri: 'http://shared-plex:32400',
+      token: 'server-access-token'
     })
     expect(getMainToken).not.toHaveBeenCalled()
     expect(getData).not.toHaveBeenCalled()

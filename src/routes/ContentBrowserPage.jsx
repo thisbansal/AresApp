@@ -14,6 +14,7 @@ import { useToggleWatched } from '../hooks/useToggleWatched'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useBrowserStore } from '../stores/browserStore'
 import { useFocusStore } from '../stores/FocusStore'
+import { useServerStore } from '../stores/serverStore'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
 import { getMainToken } from '../services/luna/tokenStorage'
@@ -221,7 +222,6 @@ function ContentBrowserPage() {
 
         if (currentUri) {
           console.log('[init] Trying fast path:', currentUri)
-          setServerInfo({ uri: currentUri, token })
 
           // Test health quickly (1500ms timeout)
           const startTime = Date.now()
@@ -231,6 +231,9 @@ function ContentBrowserPage() {
           if (healthy) {
             console.log(`[init] Fast path healthy (${duration}ms). Loading libraries...`)
             isCurrentHealthy = true
+            const fastPathServer = { uri: currentUri, token }
+            setServerInfo(fastPathServer)
+            useServerStore.setState({ activeServer: fastPathServer })
             getLibraries(currentUri, token).then(setLibraries).catch(e => console.warn('Fast path getLibraries failed:', e))
 
             // If it's a fast local connection, we're done. No need to hit Plex.tv.
@@ -250,12 +253,16 @@ function ContentBrowserPage() {
         if (resolvedServer?.uri && resolvedServer.uri !== currentUri) {
           console.log('[init] Found reachable server for active profile:', resolvedServer.uri)
           await setData(DB_KINDS.SERVER, KINDS.server, resolvedServer.uri)
-          setServerInfo({ uri: resolvedServer.uri, token })
-          getLibraries(resolvedServer.uri, token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
+          const nextServerInfo = { uri: resolvedServer.uri, token: resolvedServer.token }
+          setServerInfo(nextServerInfo)
+          useServerStore.setState({ activeServer: nextServerInfo })
+          getLibraries(resolvedServer.uri, resolvedServer.token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
         } else if (!isCurrentHealthy && resolvedServer?.uri) {
           console.log('[init] Reusing stored server for active profile:', resolvedServer.uri)
-          setServerInfo({ uri: resolvedServer.uri, token })
-          getLibraries(resolvedServer.uri, token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
+          const nextServerInfo = { uri: resolvedServer.uri, token: resolvedServer.token }
+          setServerInfo(nextServerInfo)
+          useServerStore.setState({ activeServer: nextServerInfo })
+          getLibraries(resolvedServer.uri, resolvedServer.token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
         }
       } catch (error) {
         console.error('[initServerAndNav] Error:', error)

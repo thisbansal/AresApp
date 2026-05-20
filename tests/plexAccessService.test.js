@@ -30,6 +30,7 @@ describe('plexAccessService', () => {
     getServers.mockResolvedValue([
       {
         name: 'Shared Server',
+        accessToken: 'shared-server-token',
         connections: [{ uri: 'http://shared:32400', local: false, relay: false }]
       }
     ])
@@ -37,13 +38,14 @@ describe('plexAccessService', () => {
 
     const result = await resolveAccessibleServer('profile-token', 'http://shared:32400')
 
-    expect(testConnectionToServer).toHaveBeenCalledWith('http://shared:32400', 'profile-token', 1500)
+    expect(testConnectionToServer).toHaveBeenCalledWith('http://shared:32400', 'shared-server-token', 1500)
     expect(getBestServerConnection).not.toHaveBeenCalled()
     expect(result).toEqual({
       uri: 'http://shared:32400',
-      token: 'profile-token',
+      token: 'shared-server-token',
       server: {
         name: 'Shared Server',
+        accessToken: 'shared-server-token',
         connections: [{ uri: 'http://shared:32400', local: false, relay: false }]
       }
     })
@@ -52,6 +54,7 @@ describe('plexAccessService', () => {
   it('should fall back to the best reachable accessible server when the preferred URI is unavailable', async () => {
     const sharedServer = {
       name: 'Shared Server',
+      accessToken: 'shared-server-token',
       connections: [{ uri: 'http://shared:32400', local: false, relay: false }]
     }
 
@@ -60,10 +63,10 @@ describe('plexAccessService', () => {
 
     const result = await resolveAccessibleServer('profile-token', 'http://missing:32400')
 
-    expect(getBestServerConnection).toHaveBeenCalledWith(sharedServer, 'profile-token')
+    expect(getBestServerConnection).toHaveBeenCalledWith(sharedServer, 'shared-server-token')
     expect(result).toEqual({
       uri: 'http://shared:32400',
-      token: 'profile-token',
+      token: 'shared-server-token',
       server: sharedServer
     })
   })

@@ -7,6 +7,8 @@ const flattenServerConnections = (servers) => (
   })))
 )
 
+const getServerAccessToken = (server, fallbackToken) => server?.accessToken || fallbackToken
+
 export const getAccessibleServers = async (token) => {
   return getServers(token)
 }
@@ -24,11 +26,12 @@ export const resolveAccessibleServer = async (token, preferredUri = null) => {
   if (preferredUri) {
     const matchedConnection = flattenServerConnections(servers).find(({ connection }) => connection.uri === preferredUri)
     if (matchedConnection) {
-      const isHealthy = await testConnectionToServer(preferredUri, token, 1500)
+      const serverToken = getServerAccessToken(matchedConnection.server, token)
+      const isHealthy = await testConnectionToServer(preferredUri, serverToken, 1500)
       if (isHealthy) {
         return {
           uri: preferredUri,
-          token,
+          token: serverToken,
           server: matchedConnection.server
         }
       }
@@ -36,11 +39,12 @@ export const resolveAccessibleServer = async (token, preferredUri = null) => {
   }
 
   for (const server of servers) {
-    const bestUri = await getBestServerConnection(server, token)
+    const serverToken = getServerAccessToken(server, token)
+    const bestUri = await getBestServerConnection(server, serverToken)
     if (bestUri) {
       return {
         uri: bestUri,
-        token,
+        token: serverToken,
         server
       }
     }
