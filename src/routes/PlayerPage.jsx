@@ -962,6 +962,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'flex-start', // Align continue capsule button to the left corner
     alignItems: 'center',
+    gap: '20px',
     marginTop: '10px',
   },
   controlBtn: {
