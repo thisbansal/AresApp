@@ -140,19 +140,22 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
       {seasons.length > 0 && (
         <div style={styles.dropdownContainer} className="row">
           {hasDropdown ? (
-            <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+            <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block', width: '320px' }}>
               <FocusableItem
                 id="season-dropdown-btn"
                 rowIndex={1}
                 colIndex={1}
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className={`season-dropdown-btn ${isDropdownOpen ? 'dropdown-open' : ''}`}
-                style={isDropdownOpen ? {
-                  borderBottomLeftRadius: '0px',
-                  borderBottomRightRadius: '0px',
-                  borderTopLeftRadius: '16px',
-                  borderTopRightRadius: '16px',
-                } : {}}
+                style={{
+                  width: '100%',
+                  ...(isDropdownOpen ? {
+                    borderBottomLeftRadius: '0px',
+                    borderBottomRightRadius: '0px',
+                    borderTopLeftRadius: '16px',
+                    borderTopRightRadius: '16px',
+                  } : {})
+                }}
               >
                 <div style={{
                   ...styles.dropdownBtn,
@@ -175,11 +178,9 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
               {isDropdownOpen && (
                 <div style={{
                   ...styles.dropdownMenu,
-                  top: '100%',
                   borderTopLeftRadius: '0px',
                   borderTopRightRadius: '0px',
                   borderTopColor: 'transparent',
-                  width: '100%',
                 }} className="hide-scrollbar">
                   {seasons.map((season, index) => (
                     <FocusableItem
@@ -423,21 +424,21 @@ const styles = {
     borderRadius: '9999px',
     cursor: 'pointer',
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-    minWidth: '280px',
+    width: '100%',
     transition: 'background-color 0.2s ease, border-color 0.2s ease',
     boxSizing: 'border-box',
   },
   dropdownMenu: {
     position: 'absolute',
-    top: 'calc(100% + 10px)',
+    top: '100%',
     left: 0,
-    backgroundColor: 'rgba(20, 20, 20, 0.95)',
-    backdropFilter: 'blur(30px)',
-    WebkitBackdropFilter: 'blur(30px)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(20px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
     border: '1px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '16px',
     boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
-    minWidth: '280px',
+    width: '100%',
     maxHeight: '400px',
     overflowY: 'auto',
     zIndex: 999,
