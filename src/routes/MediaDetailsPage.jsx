@@ -143,7 +143,7 @@ function MediaDetailsPage() {
       // 2. HDR / Dolby Vision Badge
       if (mediaObj.videoCodec === 'hevc' && (res === '4k' || res === '2160' || res === '1080')) {
         badges.push({ text: 'HDR', type: 'hdr', color: '#ff5c5c' })
-        badges.push({ text: 'Dolby Vision', type: 'dolby-vision', color: '#ffffff', border: '1.5px solid #e5a00d' })
+        badges.push({ text: 'Dolby Vision', type: 'dolby-vision', color: '#e5a00d' })
       } else if (mediaObj.videoCodec === 'hevc') {
         badges.push({ text: 'HEVC', type: 'hdr', color: '#aaaaaa' })
       }
@@ -238,9 +238,8 @@ function MediaDetailsPage() {
                 key={idx} 
                 style={{
                   ...styles.mediaBadge,
-                  color: badge.color,
-                  borderColor: badge.border ? 'transparent' : (badge.borderColor || badge.color),
-                  ...(badge.border ? { border: badge.border } : {})
+                  color: '#ffffff',
+                  borderColor: badge.color || 'rgba(255, 255, 255, 0.15)',
                 }}
               >
                 {badge.text}
