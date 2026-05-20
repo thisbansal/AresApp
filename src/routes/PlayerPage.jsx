@@ -27,6 +27,7 @@ export default function PlayerPage() {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isBuffering, setIsBuffering] = useState(false)
   const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
 
   // HUD Visibility & Interaction State
@@ -45,6 +46,47 @@ export default function PlayerPage() {
   const videoRef = useRef(null)
   const hudTimeoutRef = useRef(null)
   const seekTimeoutRef = useRef(null)
+
+  // Listen to video buffering events
+  useEffect(() => {
+    const videoEl = videoRef.current || document.querySelector('video')
+    if (!videoEl) return
+
+    const handleWaiting = () => {
+      console.log('[PlayerPage] Video waiting/buffering...')
+      setIsBuffering(true)
+    }
+
+    const handlePlaying = () => {
+      setIsBuffering(false)
+    }
+
+    const handleCanPlay = () => {
+      setIsBuffering(false)
+    }
+
+    const handleSeeking = () => {
+      setIsBuffering(true)
+    }
+
+    const handleSeeked = () => {
+      setIsBuffering(false)
+    }
+
+    videoEl.addEventListener('waiting', handleWaiting)
+    videoEl.addEventListener('playing', handlePlaying)
+    videoEl.addEventListener('canplay', handleCanPlay)
+    videoEl.addEventListener('seeking', handleSeeking)
+    videoEl.addEventListener('seeked', handleSeeked)
+
+    return () => {
+      videoEl.removeEventListener('waiting', handleWaiting)
+      videoEl.removeEventListener('playing', handlePlaying)
+      videoEl.removeEventListener('canplay', handleCanPlay)
+      videoEl.removeEventListener('seeking', handleSeeking)
+      videoEl.removeEventListener('seeked', handleSeeked)
+    }
+  }, [videoRef, loading])
 
   usePlaybackProgress({
     serverInfo,
@@ -483,7 +525,20 @@ export default function PlayerPage() {
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
-        <div style={styles.spinner} className="spinner"></div>
+        <div className="apple-spinner large">
+          <div className="bar1"></div>
+          <div className="bar2"></div>
+          <div className="bar3"></div>
+          <div className="bar4"></div>
+          <div className="bar5"></div>
+          <div className="bar6"></div>
+          <div className="bar7"></div>
+          <div className="bar8"></div>
+          <div className="bar9"></div>
+          <div className="bar10"></div>
+          <div className="bar11"></div>
+          <div className="bar12"></div>
+        </div>
         <div style={styles.loadingText}>Loading Stream...</div>
       </div>
     )
@@ -590,7 +645,22 @@ export default function PlayerPage() {
             onClick={handlePlayPauseClick}
             className="hud-play-btn"
           >
-            {isPlaying ? (
+            {isBuffering ? (
+              <div className="apple-spinner">
+                <div className="bar1"></div>
+                <div className="bar2"></div>
+                <div className="bar3"></div>
+                <div className="bar4"></div>
+                <div className="bar5"></div>
+                <div className="bar6"></div>
+                <div className="bar7"></div>
+                <div className="bar8"></div>
+                <div className="bar9"></div>
+                <div className="bar10"></div>
+                <div className="bar11"></div>
+                <div className="bar12"></div>
+              </div>
+            ) : isPlaying ? (
               <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="6" y="4" width="4" height="16"></rect>
                 <rect x="14" y="4" width="4" height="16"></rect>
@@ -600,20 +670,52 @@ export default function PlayerPage() {
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
             )}
-            <span style={styles.capsuleLabel}>{isPlaying ? 'Pause' : 'Continue'}</span>
+            <span style={styles.capsuleLabel}>
+              {isBuffering ? 'Buffering...' : isPlaying ? 'Pause' : 'Continue'}
+            </span>
           </FocusableItem>
         </div>
       </div>
 
       {/* Global CSS Inject */}
       <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        @keyframes fade {
+          from { opacity: 1; }
+          to { opacity: 0.15; }
         }
-        .spinner {
-          animation: spin 1s linear infinite;
+        .apple-spinner {
+          position: relative;
+          width: 28px;
+          height: 28px;
+          display: inline-block;
         }
+        .apple-spinner.large {
+          width: 60px;
+          height: 60px;
+        }
+        .apple-spinner div {
+          position: absolute;
+          width: 8%;
+          height: 24%;
+          background: #ffffff;
+          left: 46%;
+          top: 38%;
+          border-radius: 50px;
+          opacity: 0.15;
+          animation: fade 1.2s linear infinite;
+        }
+        .apple-spinner .bar1 { transform: rotate(0deg) translate(0, -130%); animation-delay: 0s; }
+        .apple-spinner .bar2 { transform: rotate(30deg) translate(0, -130%); animation-delay: -1.1s; }
+        .apple-spinner .bar3 { transform: rotate(60deg) translate(0, -130%); animation-delay: -1.0s; }
+        .apple-spinner .bar4 { transform: rotate(90deg) translate(0, -130%); animation-delay: -0.9s; }
+        .apple-spinner .bar5 { transform: rotate(120deg) translate(0, -130%); animation-delay: -0.8s; }
+        .apple-spinner .bar6 { transform: rotate(150deg) translate(0, -130%); animation-delay: -0.7s; }
+        .apple-spinner .bar7 { transform: rotate(180deg) translate(0, -130%); animation-delay: -0.6s; }
+        .apple-spinner .bar8 { transform: rotate(210deg) translate(0, -130%); animation-delay: -0.5s; }
+        .apple-spinner .bar9 { transform: rotate(240deg) translate(0, -130%); animation-delay: -0.4s; }
+        .apple-spinner .bar10 { transform: rotate(270deg) translate(0, -130%); animation-delay: -0.3s; }
+        .apple-spinner .bar11 { transform: rotate(300deg) translate(0, -130%); animation-delay: -0.2s; }
+        .apple-spinner .bar12 { transform: rotate(330deg) translate(0, -130%); animation-delay: -0.1s; }
         .player-hud-card {
           transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
