@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
-import { getMainToken } from '../services/luna/tokenStorage'
-import { DB_KINDS, setData } from '../services/luna/lunaService'
-import { KINDS } from '../config/app'
+import { useAppStore } from '../stores/AppStore'
 
 function ServerSelectPage() {
   const navigate = useNavigate()
@@ -19,7 +17,7 @@ function ServerSelectPage() {
   const loadServers = async () => {
     console.log('[AUTH FLOW] ServerSelectPage: Starting to load Plex Media Servers...')
     try {
-      const token = await getMainToken()
+      const token = useAppStore.getState().token
       console.log('[AUTH FLOW] ServerSelectPage: Main account token resolved successfully. Calling Plex API...')
       const serverList = await getServers(token)
 
@@ -50,8 +48,8 @@ function ServerSelectPage() {
 
       if (bestUri) {
         console.log(`[AUTH FLOW] ServerSelectPage: Connection resolved! Saving working connection URI: "${bestUri}"`)
-        await setData(DB_KINDS.SERVER, KINDS.server, bestUri)
-        console.log('Saved PMS server:', KINDS.server, bestUri)
+        await useAppStore.getState().setServerUri(bestUri)
+        console.log('Saved PMS server:', bestUri)
 
         // Also save the full server object for later use (optional)
         const selectedServer = {

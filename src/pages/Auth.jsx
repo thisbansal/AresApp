@@ -1,12 +1,13 @@
 import { useLocation, Navigate } from "react-router-dom"
+import { useAppStore } from "../stores/AppStore"
 
 function AuthRoute({
   children,
   requireAuth = true,
-  isAuthenticated,
-  hasServer = false,
-  hasSession,
-  allowIncompleteSession = false
+  allowIncompleteSession = false,
+  isAuthenticated = useAppStore.getState().isAuthenticated,
+  hasServer = useAppStore.getState().hasServer,
+  hasSession = useAppStore.getState().hasSession
 }) {
   const location = useLocation()
 

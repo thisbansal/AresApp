@@ -1,17 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { WebOSInputProvider } from './services/navigation/WebOSInputProvider'
 import { EdgeScrollTriggers } from './components/navigational/EdgeScrollTriggers'
 import { KeyboardHandler } from './components/navigational/KeyboardHandler'
 import { ExitDialog } from './components/navigational/ExitDialog'
-import { getMainToken, initialiseDatabase } from './services/luna/tokenStorage'
-import { hasCompleteSession } from './utils/appSettings'
 import { SystemToaster } from './components/navigational/SystemToaster'
 import { useServerStore } from './stores/serverStore'
+import { useAppStore } from './stores/AppStore'
 import { plexBridge } from './services/plex/plexBridge'
-import { isWebOS } from './services/Environment/environment'
-import { DB_KINDS, getData } from './services/luna/lunaService'
-import { KINDS } from './config/app'
 
 import AuthRoute from './pages/Auth'
 import LoginPage from './routes/LoginPage'
@@ -26,70 +22,16 @@ if ('scrollRestoration' in window.history) {
 }
 
 function App() {
-  const [authState, setAuthState] = useState({
-    isAuthenticated: false,
-    hasServer: false,
-    hasSession: false,
-    isLoading: true
-  })
-
+  const { isAuthenticated, hasServer, hasSession, isLoading, initializeAuth } = useAppStore()
   const isOnline = useServerStore(state => state.isOnline)
 
   useEffect(() => {
-    const boot = async () => {
-      try {
-        await initialiseDatabase()
-      } catch (e) {
-        console.error('[AUTH FLOW] App.jsx: Failed to initialize DB8 kinds:', e)
-      }
-      await initialiseApplication()
-    }
-    boot()
+    initializeAuth()
   }, [])
-
-  const initialiseApplication = async () => {
-    console.log('[AUTH FLOW] App.jsx: Starting application initialization...')
-    const runtimeEnv = isWebOS() ? 'webOS TV / Emulator' : 'Desktop Browser'
-    console.log(`[AUTH FLOW] App.jsx: Detected runtime environment: ${runtimeEnv}`)
-
-    try {
-      console.log('[AUTH FLOW] App.jsx: Fetching main token via getMainToken()...')
-      const token = await getMainToken()
-      const maskedToken = token ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : 'MISSING'
-      console.log(`[AUTH FLOW] App.jsx: Raw token check resolved: ${maskedToken}`)
-
-      console.log('[AUTH FLOW] App.jsx: Checking server configuration...')
-      const serverUri = await getData(DB_KINDS.SERVER, KINDS.server)
-      console.log(`[AUTH FLOW] App.jsx: Server configuration check resolved: ${serverUri ? 'PRESENT' : 'MISSING'}`)
-
-      console.log('[AUTH FLOW] App.jsx: Checking session completion status...')
-      const sessionComplete = await hasCompleteSession()
-      console.log(`[AUTH FLOW] App.jsx: Final resolved state: token = ${token ? 'PRESENT' : 'MISSING'} | hasServer = ${!!serverUri} | sessionComplete = ${sessionComplete}`)
-
-      if (sessionComplete) {
-        sessionStorage.setItem('activeSession', 'true')
-      }
-
-      setAuthState({
-        isAuthenticated: !!token,
-        hasServer: !!serverUri,
-        hasSession: sessionComplete,
-        isLoading: false
-      })
-    } catch (err) {
-      console.error('[AUTH FLOW] App.jsx: Initialization error:', err)
-      setAuthState({
-        isAuthenticated: false,
-        hasServer: false,
-        hasSession: false,
-        isLoading: false
-      })
-    }
-  }
 
   // Periodic Health Pings check to keep connection state healthy
   useEffect(() => {
-    if (!authState.isAuthenticated || !authState.hasSession) return
+    if (!isAuthenticated || !hasSession) return
 
     // Trigger initial ping once authenticated
     plexBridge.ping()
@@ -100,10 +42,10 @@ function App() {
     }, 30000)
 
     return () => clearInterval(intervalId)
-  }, [authState.isAuthenticated, authState.hasSession])
+  }, [isAuthenticated, hasSession])
 
   // Show loading state while checking auth
-  if (authState.isLoading) {
+  if (isLoading) {
     return (
       <div className="app loading" style={{ padding: '20px', color: 'white' }}>
         <div></div>
@@ -135,12 +77,7 @@ function App() {
           <Route
             path="/login"
             element={
-              <AuthRoute
-                requireAuth={false}
-                isAuthenticated={authState.isAuthenticated}
-                hasServer={authState.hasServer}
-                hasSession={authState.hasSession}
-              >
+              <AuthRoute requireAuth={false}>
                 <LoginPage />
               </AuthRoute>
             }
@@ -149,14 +86,8 @@ function App() {
           <Route
             path="/server-select"
             element={
-              <AuthRoute
-                requireAuth={true}
-                isAuthenticated={authState.isAuthenticated}
-                hasServer={authState.hasServer}
-                hasSession={authState.hasSession}
-                allowIncompleteSession={true}
-              >
-                <ServerSelectPage setAuthState={setAuthState}/>
+              <AuthRoute requireAuth={true} allowIncompleteSession={true}>
+                <ServerSelectPage />
               </AuthRoute>
             }
           />
@@ -164,13 +95,7 @@ function App() {
           <Route
             path="/user-select"
             element={
-              <AuthRoute
-                requireAuth={true}
-                isAuthenticated={authState.isAuthenticated}
-                // hasServer={authState.hasServer}
-                // hasSession={authState.hasSession}
-                allowIncompleteSession={true}
-              >
+              <AuthRoute requireAuth={true} allowIncompleteSession={true}>
                 <UserSelectPage />
               </AuthRoute>
             }
@@ -179,12 +104,7 @@ function App() {
           <Route
             path="/browse"
             element={
-              <AuthRoute
-                requireAuth={true}
-                isAuthenticated={authState.isAuthenticated}
-                hasServer={authState.hasServer}
-                hasSession={authState.hasSession}
-              >
+              <AuthRoute requireAuth={true}>
                 <ContentBrowserPage />
               </AuthRoute>
             }
@@ -193,12 +113,7 @@ function App() {
           <Route
             path="/details/:ratingKey"
             element={
-              <AuthRoute
-                requireAuth={true}
-                isAuthenticated={authState.isAuthenticated}
-                hasServer={authState.hasServer}
-                hasSession={authState.hasSession}
-              >
+              <AuthRoute requireAuth={true}>
                 <MediaDetailsPage />
               </AuthRoute>
             }
@@ -207,12 +122,7 @@ function App() {
           <Route
             path="/play/:ratingKey"
             element={
-              <AuthRoute
-                requireAuth={true}
-                isAuthenticated={authState.isAuthenticated}
-                hasServer={authState.hasServer}
-                hasSession={authState.hasSession}
-              >
+              <AuthRoute requireAuth={true}>
                 <PlayerPage />
               </AuthRoute>
             }
@@ -222,7 +132,7 @@ function App() {
             path="/"
             element={
               <Navigate
-                to={authState.isAuthenticated && authState.hasSession ? "/browse" : "/login"}
+                to={isAuthenticated && hasSession ? "/browse" : "/login"}
                 replace
               />
             }

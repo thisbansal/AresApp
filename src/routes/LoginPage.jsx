@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { generatePin, checkPinAuth } from '../services/plex/plexAuthService'
-import { saveMainToken, getMainToken } from '../services/luna/tokenStorage'
+import { useAppStore } from '../stores/AppStore'
 
 function LoginPage() {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [code, setCode] = useState('')
   const [qrUrl, setQrUrl] = useState('')
@@ -59,20 +61,11 @@ function LoginPage() {
           console.log(`[AUTH FLOW] LoginPage: PIN validation succeeded! Received token: ${maskedToken}. Saving main account token...`)
           clearInterval(pollIntervalRef.current)
 
-          const saveResult = await saveMainToken(result.authToken)
-          console.log("[AUTH FLOW] LoginPage: saveMainToken result:", JSON.stringify(saveResult))
+          await useAppStore.getState().setMainToken(result.authToken)
+          console.log("[AUTH FLOW] LoginPage: Main token saved in store.")
 
-          // Double check by reading back immediately
-          try {
-            const readBack = await getMainToken()
-            const maskedReadBack = readBack ? `${readBack.substring(0, 4)}...${readBack.substring(readBack.length - 4)}` : 'null'
-            console.log(`[AUTH FLOW] LoginPage: Immediate readback check resolved token: ${maskedReadBack}`)
-          } catch (readBackError) {
-            console.error("[AUTH FLOW] LoginPage: Immediate readback check failed with error:", readBackError)
-          }
-
-          console.log("[AUTH FLOW] LoginPage: Reloading app instantly now!")
-          window.location.reload()
+          console.log("[AUTH FLOW] LoginPage: Navigating to server selection (/server-select)...")
+          navigate('/server-select')
         }
       } catch (err) {
         console.error('[AUTH FLOW] LoginPage: Polling verification error:', err)

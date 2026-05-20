@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
 import { FallbackImage } from '../components/media/FallbackImage'
-import { getMainToken, clearAllStoredInfo, getUserToken } from '../services/luna/tokenStorage'
+import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { getServers, getBestServerConnection, testConnectionToServer } from '../services/plex/plexAPIServer'
@@ -14,7 +14,6 @@ import { useNotificationStore } from '../services/notifications/notificationStor
 import { useBrowserStore } from '../stores/browserStore'
 import { useFocusStore } from '../stores/FocusStore'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
-import { saveProfileSession, getLastProfile, updateRememberPinInSession } from '../services/luna/settingsStorage'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
 
 
@@ -72,13 +71,13 @@ function ContentBrowserPage() {
     if (activeTab.type === 'settings') {
       const loadSettingsData = async () => {
         try {
-          const profile = await getLastProfile()
+          const profile = useAppStore.getState().userProfile
           if (profile) {
             setCurrentProfile(profile)
             localStorage.setItem('cached_current_profile', JSON.stringify(profile))
           }
 
-          const token = await getMainToken()
+          const token = useAppStore.getState().token
           if (token) {
             const list = await getUsers(token)
             setUsersList(list)
@@ -123,8 +122,8 @@ function ContentBrowserPage() {
     } else {
       try {
         sessionStorage.setItem('activeSession', 'true')
-        await saveProfileSession(user.id, user.name, null, false, false)
-        const newProfile = { userId: user.id, userName: user.name, rememberPin: false, isProtected: false }
+        await useAppStore.getState().setProfileSession(user.id, user.name, null, false, false)
+        const newProfile = useAppStore.getState().userProfile
         localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
         window.location.reload()
       } catch (err) {
@@ -141,13 +140,13 @@ function ContentBrowserPage() {
     }
 
     try {
-      const mainToken = await getMainToken()
+      const mainToken = useAppStore.getState().token
       const isValid = await verifyUserPin(mainToken, pinDialogUser.id, pin)
 
       if (isValid) {
         sessionStorage.setItem('activeSession', 'true')
-        await saveProfileSession(pinDialogUser.id, pinDialogUser.name, pin, false, true)
-        const newProfile = { userId: pinDialogUser.id, userName: pinDialogUser.name, rememberPin: false, isProtected: true, userPin: pin }
+        await useAppStore.getState().setProfileSession(pinDialogUser.id, pinDialogUser.name, pin, false, true)
+        const newProfile = useAppStore.getState().userProfile
         localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
         window.location.reload()
       } else {
@@ -165,12 +164,8 @@ function ContentBrowserPage() {
     if (!currentProfile) return
     const newValue = currentProfile.rememberPin === false ? true : false
     try {
-      await updateRememberPinInSession(newValue)
-      const updated = {
-        ...currentProfile,
-        rememberPin: newValue,
-        userPin: newValue ? currentProfile.userPin : null
-      }
+      await useAppStore.getState().updateRememberPin(newValue)
+      const updated = useAppStore.getState().userProfile
       setCurrentProfile(updated)
       localStorage.setItem('cached_current_profile', JSON.stringify(updated))
     } catch (err) {
@@ -181,13 +176,9 @@ function ContentBrowserPage() {
   const handleSwitchProfileClick = async () => {
     console.log('[Settings] Switch profile clicked. Disabling auto-login/rememberPin for current session...')
     try {
-      await updateRememberPinInSession(false)
-      if (currentProfile) {
-        const updated = {
-          ...currentProfile,
-          rememberPin: false,
-          userPin: null
-        }
+      await useAppStore.getState().updateRememberPin(false)
+      const updated = useAppStore.getState().userProfile
+      if (updated) {
         setCurrentProfile(updated)
         localStorage.setItem('cached_current_profile', JSON.stringify(updated))
       }
@@ -204,7 +195,7 @@ function ContentBrowserPage() {
   useEffect(() => {
     const initServerAndNav = async () => {
       try {
-        const token = await getMainToken()
+        const token = useAppStore.getState().token
         if (!token) return
 
         // Load Settings
@@ -991,8 +982,8 @@ function ContentBrowserPage() {
                             colIndex={1}
                             onClick={async () => {
                               try {
-                                await clearAllStoredInfo()
-                                window.location.reload()
+                                await useAppStore.getState().signOut()
+                                navigate('/login')
                               } catch (err) {
                                 console.error('Failed to sign out:', err)
                               }

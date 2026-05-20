@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
-import { saveProfileSession, getLastProfile } from '../services/luna/settingsStorage'
-import { getMainToken } from '../services/luna/tokenStorage'
-import { hasCompleteSession } from '../utils/appSettings'
+import { useAppStore } from '../stores/AppStore'
 
 function UserSelectPage() {
   const navigate = useNavigate()
@@ -36,8 +34,7 @@ function UserSelectPage() {
   const checkExistingSession = async () => {
     console.log('[AUTH FLOW] UserSelectPage: Checking for an existing, cached profile session...')
     try {
-      const sessionComplete = await hasCompleteSession()
-      const lastProfile = await getLastProfile()
+      const { hasSession: sessionComplete, userProfile: lastProfile } = useAppStore.getState()
       console.log('[AUTH FLOW] UserSelectPage: Loaded cached profile:', lastProfile, 'sessionComplete:', sessionComplete)
 
       // If we have a valid session and user chose to auto-login (rememberPin is enabled), navigate to browse
@@ -59,7 +56,7 @@ function UserSelectPage() {
   const loadUsers = async () => {
     console.log('[AUTH FLOW] UserSelectPage: Loading home profiles...')
     try {
-      const token = await getMainToken()
+      const token = useAppStore.getState().token
       console.log('[AUTH FLOW] UserSelectPage: Main account token resolved successfully. Calling Plex API...')
       const userList = await getUsers(token)
       console.log(`[AUTH FLOW] UserSelectPage: Discovered ${userList.length} user profile(s):`, userList.map(u => u.name))
@@ -95,16 +92,16 @@ function UserSelectPage() {
     }
 
     try {
-      const mainToken = await getMainToken()
+      const mainToken = useAppStore.getState().token
       console.log('[AUTH FLOW] UserSelectPage: Main token resolved. Requesting verification from Plex API...')
       const isValidUser = await verifyUserPin(mainToken, selectedUser.id, enteredPin)
 
       if (isValidUser) {
         console.log('[AUTH FLOW] UserSelectPage: PIN verification succeeded! Saving profile session...')
         sessionStorage.setItem('activeSession', 'true')
-        await saveProfileSession(selectedUser.id, selectedUser.name, enteredPin, false, true)
-        console.log('[AUTH FLOW] UserSelectPage: Done! Reloading app to complete login...')
-        window.location.reload()
+        await useAppStore.getState().setProfileSession(selectedUser.id, selectedUser.name, enteredPin, false, true)
+        console.log('[AUTH FLOW] UserSelectPage: Done! Navigating to browse...')
+        navigate('/browse')
       }
 
     } catch (err) {
@@ -126,9 +123,9 @@ function UserSelectPage() {
     // Save profile session without PIN (unprotected)
     console.log(`[AUTH FLOW] UserSelectPage: Saving profile session for "${user.name}"...`)
     sessionStorage.setItem('activeSession', 'true')
-    await saveProfileSession(user.id, user.name, null, false, false)
-    console.log('[AUTH FLOW] UserSelectPage: Done! Reloading app to complete login...')
-    window.location.reload()
+    await useAppStore.getState().setProfileSession(user.id, user.name, null, false, false)
+    console.log('[AUTH FLOW] UserSelectPage: Done! Navigating to browse...')
+    navigate('/browse')
   }
 
   if (loading) {
