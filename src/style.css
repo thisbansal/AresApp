@@ -75,29 +75,30 @@ body::-webkit-scrollbar {
 .exit-btn {
   cursor: pointer;
   color: #ffffff;
-  padding: 14px 44px;
+  padding: 18px 52px;
   border-radius: 9999px; /* Capsule pill */
   background-color: rgba(255, 255, 255, 0.08);
   border: 1.5px solid rgba(255, 255, 255, 0.15);
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 600;
   font-family: 'Outfit', 'Inter', sans-serif;
-  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  transition: background-color 0.1s ease, transform 0.1s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
 }
 
 .exit-btn[style] {
-  transform: scale(1) !important;
+  transform: scale(1) translate3d(0, 0, 0) !important;
 }
 
 .exit-btn.focused, .exit-btn:hover {
   background-color: rgba(255, 255, 255, 0.25) !important;
   border-color: rgba(255, 255, 255, 0.5) !important;
-  transform: scale(1.08) !important;
+  transform: scale(1.06) translate3d(0, 0, 0) !important;
   outline: none;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
 }
 
 .exit-btn.confirm {
@@ -108,9 +109,20 @@ body::-webkit-scrollbar {
 .exit-btn.confirm.focused, .exit-btn.confirm:hover {
   background-color: rgba(10, 132, 255, 0.85) !important;
   border-color: #0a84ff !important;
-  box-shadow: 0 0 25px rgba(10, 132, 255, 0.65) !important;
+}
+
+.exit-btn.danger {
+  background-color: rgba(217, 56, 56, 0.25);
+  border-color: rgba(217, 56, 56, 0.45);
+  color: #ff8080;
+}
+
+.exit-btn.danger.focused, .exit-btn.danger:hover {
+  background-color: rgba(217, 56, 56, 0.85) !important;
+  border-color: #d93838 !important;
+  color: #ffffff !important;
 }
 
 .exit-btn:active {
-  transform: scale(0.96) !important;
+  transform: scale(0.96) translate3d(0, 0, 0) !important;
 }

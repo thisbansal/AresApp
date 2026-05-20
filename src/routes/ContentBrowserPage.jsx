@@ -66,6 +66,7 @@ function ContentBrowserPage() {
   const [pinDialogUser, setPinDialogUser] = useState(null)
   const [enteredPin, setEnteredPin] = useState('')
   const [pinError, setPinError] = useState('')
+  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false)
 
   useEffect(() => {
     if (activeTab.type === 'settings') {
@@ -632,12 +633,12 @@ function ContentBrowserPage() {
           opacity: 1 !important;
         }
         .setting-card-title {
-          font-size: 24px;
+          font-size: 26px;
           font-weight: 600;
           color: #a8a8af;
           margin-top: 15px;
           font-family: 'Outfit', 'Inter', sans-serif;
-          transition: color 0.2s ease;
+          transition: color 0.1s ease;
         }
         .setting-card.focused .setting-card-title {
           color: #ffffff;
@@ -647,12 +648,12 @@ function ContentBrowserPage() {
           font-weight: 800;
           margin-top: 5px;
           font-family: 'Outfit', 'Inter', sans-serif;
-          transition: color 0.2s ease;
+          transition: color 0.1s ease;
         }
         .setting-card-subtext {
-          font-size: 16px;
+          font-size: 20px;
           color: #888;
-          margin-top: 6px;
+          margin-top: 8px;
           word-break: break-all;
           max-width: 100%;
           line-height: 1.3;
@@ -806,12 +807,12 @@ function ContentBrowserPage() {
                               {currentProfile.userName}
                             </div>
                             <div style={{
-                              fontSize: '11px',
+                              fontSize: '18px',
                               fontWeight: '700',
                               backgroundColor: 'rgba(255, 255, 255, 0.2)',
                               color: '#ffffff',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
+                              padding: '4px 14px',
+                              borderRadius: '8px',
                               textTransform: 'uppercase',
                               letterSpacing: '0.5px'
                             }}>
@@ -838,7 +839,7 @@ function ContentBrowserPage() {
                                 </>
                               )}
                             </svg>
-                            <div style={{ fontSize: '18px', fontWeight: '600', color: '#a8a8af', textAlign: 'center', lineHeight: '1.2' }}>
+                            <div style={{ fontSize: '22px', fontWeight: '600', color: '#a8a8af', textAlign: 'center', lineHeight: '1.2' }}>
                               {currentProfile?.isProtected ? 'Remember PIN' : 'Auto-Login'}
                             </div>
                           </div>
@@ -862,7 +863,7 @@ function ContentBrowserPage() {
                         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                       </svg>
                       <div className="setting-card-title" style={{ color: '#0a84ff' }}>Switch Profile</div>
-                      <div className="setting-card-subtext" style={{ color: '#0a84ff', opacity: 0.8, fontSize: '14px', marginTop: '10px' }}>
+                      <div className="setting-card-subtext" style={{ color: '#0a84ff', opacity: 0.8, marginTop: '10px' }}>
                         Go to profile selection
                       </div>
                     </div>
@@ -952,14 +953,7 @@ function ContentBrowserPage() {
                     id="setting-sign-out"
                     rowIndex={12}
                     colIndex={0}
-                    onClick={async () => {
-                      try {
-                        await clearAllStoredInfo()
-                        window.location.reload()
-                      } catch (err) {
-                        console.error('Failed to sign out:', err)
-                      }
-                    }}
+                    onClick={() => setShowSignoutConfirm(true)}
                     style={{ flexShrink: 0 }}
                   >
                     <div className="setting-card major">
@@ -969,11 +963,47 @@ function ContentBrowserPage() {
                         <line x1="21" y1="12" x2="9" y2="12" />
                       </svg>
                       <div className="setting-card-title" style={{ color: '#0a84ff' }}>Sign Out</div>
-                      <div className="setting-card-subtext" style={{ color: '#0a84ff', opacity: 0.8, fontSize: '14px', marginTop: '10px' }}>
+                      <div className="setting-card-subtext" style={{ color: '#0a84ff', opacity: 0.8, marginTop: '10px' }}>
                         Clear server and token cache
                       </div>
                     </div>
                   </FocusableItem>
+
+                  {/* Sign-out Confirmation Dialog */}
+                  {showSignoutConfirm && (
+                    <div style={styles.exitOverlay} className="exit-overlay">
+                      <div style={styles.exitModal} className="exit-modal">
+                        <span style={styles.exitTitle}>Sign out of Plex?</span>
+                        <div style={styles.exitButtonRow}>
+                          <FocusableItem
+                            id="signout-cancel"
+                            rowIndex={999}
+                            colIndex={0}
+                            onClick={() => setShowSignoutConfirm(false)}
+                            className="exit-btn cancel"
+                          >
+                            No
+                          </FocusableItem>
+                          <FocusableItem
+                            id="signout-confirm"
+                            rowIndex={999}
+                            colIndex={1}
+                            onClick={async () => {
+                              try {
+                                await clearAllStoredInfo()
+                                window.location.reload()
+                              } catch (err) {
+                                console.error('Failed to sign out:', err)
+                              }
+                            }}
+                            className="exit-btn danger"
+                          >
+                            Yes, Sign Out
+                          </FocusableItem>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1134,8 +1164,6 @@ const styles = {
     flexDirection: 'column',
     gap: '40px',
     padding: '20px 0',
-    maxWidth: '900px',
-    margin: '0 auto',
     width: '100%',
   },
   settingsSection: {
@@ -1169,10 +1197,10 @@ const styles = {
     backgroundColor: 'rgba(25, 25, 30, 0.85)',
     border: '1px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '9999px',
-    padding: '12px 32px',
-    fontSize: '24px',
+    padding: '16px 40px',
+    fontSize: '26px',
     fontWeight: '600',
-    minWidth: '160px',
+    minWidth: '180px',
     textAlign: 'center',
     transition: 'background-color 0.1s ease, color 0.1s ease',
   },
@@ -1180,10 +1208,10 @@ const styles = {
     backgroundColor: 'rgba(217, 56, 56, 0.4)',
     border: '1px solid rgba(217, 56, 56, 0.45)',
     borderRadius: '9999px',
-    padding: '12px 32px',
-    fontSize: '24px',
+    padding: '16px 40px',
+    fontSize: '26px',
     fontWeight: '700',
-    minWidth: '160px',
+    minWidth: '180px',
     textAlign: 'center',
     transition: 'background-color 0.1s ease, color 0.1s ease',
     color: '#ff6666',
