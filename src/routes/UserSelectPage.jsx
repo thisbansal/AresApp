@@ -75,7 +75,7 @@ function UserSelectPage() {
   }
 
   const completeProfileSignIn = async (user, pinValue, isProtected) => {
-    setLoadingMessage(`Opening ${user.name}...`)
+    setLoadingMessage(`Opening ${user.name}'s server... `)
     setLoading(true)
 
     try {
