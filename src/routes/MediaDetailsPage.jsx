@@ -223,11 +223,6 @@ function MediaDetailsPage() {
           to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes pageFadeIn {
-          from { opacity: 0; transform: scale(0.985) translate3d(0, 8px, 0); }
-          to { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
-        }
-
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(330%); }
@@ -254,7 +249,14 @@ function MediaDetailsPage() {
       {/* Content Layer (Apple TV Style) */}
       <div style={styles.contentWrapper}>
         <div style={styles.leftColumn}>
-          <FallbackImage src={item.thumb} alt={item.title} style={styles.poster} />
+          <FallbackImage
+            src={item.thumb}
+            alt={item.title}
+            style={{
+              ...styles.poster,
+              viewTransitionName: 'active-poster'
+            }}
+          />
           
           {/* Render premium media specs badges under the poster */}
           <div style={styles.mediaBadgesContainer}>
@@ -309,8 +311,6 @@ const styles = {
     backgroundColor: '#141414',
     color: '#fff',
     overflowX: 'hidden',
-    animation: 'pageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-    opacity: 0,
   },
   loadingContainer: {
     height: '100vh',

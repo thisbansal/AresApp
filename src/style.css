@@ -126,3 +126,16 @@ body::-webkit-scrollbar {
 .exit-btn:active {
   transform: scale(0.96) translate3d(0, 0, 0) !important;
 }
+
+/* Custom View Transition Animations (TV Shared Element Effect) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(active-poster),
+::view-transition-new(active-poster) {
+  animation-duration: 0.3s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}

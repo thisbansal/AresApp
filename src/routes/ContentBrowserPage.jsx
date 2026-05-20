@@ -17,8 +17,14 @@ import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
 
 
+// Module-level cache to persist clicked item ID across route transitions (for back morph animations)
+let globalClickedItemId = null
+
 function ContentBrowserPage() {
   const navigate = useNavigate()
+
+  // State
+  const [clickedItemId, setClickedItemId] = useState(globalClickedItemId)
 
   // State
   const [serverInfo, setServerInfo] = useState(null)
@@ -337,7 +343,21 @@ function ContentBrowserPage() {
   const handleItemClick = (item, isContinueWatching = false) => {
     console.log('Selected item:', item, 'isContinueWatching:', isContinueWatching)
     const { path } = resolveMediaNavigation(item, isContinueWatching)
-    navigate(path, { state: { serverInfo, item } })
+
+    if (document.startViewTransition) {
+      globalClickedItemId = item.id
+      setClickedItemId(item.id)
+      // Allow React to paint the view-transition-name on the clicked card first
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.startViewTransition(() => {
+            navigate(path, { state: { serverInfo, item } })
+          })
+        })
+      })
+    } else {
+      navigate(path, { state: { serverInfo, item } })
+    }
   }
 
   const handleToggleWatched = async (item) => {
@@ -399,7 +419,10 @@ function ContentBrowserPage() {
           <FallbackImage
             src={item.thumb}
             alt={item.grandparentTitle || item.title}
-            style={styles.poster}
+            style={{
+              ...styles.poster,
+              viewTransitionName: clickedItemId === item.id ? 'active-poster' : 'none'
+            }}
             loading="lazy"
             decoding="async"
           />
