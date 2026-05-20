@@ -51,6 +51,16 @@ vi.mock('react', async (importOriginal) => {
   }
 })
 
+// Mock AppStore to avoid React hook validation errors
+vi.mock('../src/stores/AppStore', () => {
+  const mockState = { token: null, serverUri: null, isLoading: true }
+  return {
+    useAppStore: vi.fn().mockImplementation((selector) => {
+      return selector ? selector(mockState) : mockState
+    })
+  }
+})
+
 // Mock plexConnectionService
 vi.mock('../src/services/plex/plexConnectionService', () => ({
   getActiveServerInfo: vi.fn()
