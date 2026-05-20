@@ -155,10 +155,10 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
                     borderTopLeftRadius: '16px',
                     borderTopRightRadius: '16px',
                   } : {
-                    borderBottomLeftRadius: '9999px',
-                    borderBottomRightRadius: '9999px',
-                    borderTopLeftRadius: '9999px',
-                    borderTopRightRadius: '9999px',
+                    borderBottomLeftRadius: '16px',
+                    borderBottomRightRadius: '16px',
+                    borderTopLeftRadius: '16px',
+                    borderTopRightRadius: '16px',
                   })
                 }}
               >
@@ -171,10 +171,10 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
                     borderTopRightRadius: '16px',
                     borderBottomColor: 'transparent',
                   } : {
-                    borderBottomLeftRadius: '9999px',
-                    borderBottomRightRadius: '9999px',
-                    borderTopLeftRadius: '9999px',
-                    borderTopRightRadius: '9999px',
+                    borderBottomLeftRadius: '16px',
+                    borderBottomRightRadius: '16px',
+                    borderTopLeftRadius: '16px',
+                    borderTopRightRadius: '16px',
                     borderBottomColor: 'rgba(255, 255, 255, 0.15)',
                   })
                 }}>
@@ -300,7 +300,7 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
 
       <style>{`
         .season-dropdown-btn {
-          border-radius: 9999px;
+          border-radius: 16px;
           transition: transform 0.2s ease;
         }
         .season-dropdown-btn.dropdown-open {
@@ -434,7 +434,7 @@ const styles = {
     backdropFilter: 'blur(20px) saturate(180%)',
     WebkitBackdropFilter: 'blur(20px) saturate(180%)',
     border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: '9999px',
+    borderRadius: '16px',
     cursor: 'pointer',
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
     width: '100%',
