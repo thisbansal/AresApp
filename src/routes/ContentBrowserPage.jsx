@@ -412,28 +412,11 @@ function ContentBrowserPage() {
             decoding="async"
           />
           {prefix === 'cw' && (
-            <>
-              <div className="card-play-button">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="#000000">
-                  <polygon points="6 3 20 12 6 21 6 3"></polygon>
-                </svg>
-              </div>
-              {item.type === 'episode' && (
-                <div 
-                  className="card-rewind-button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    console.log('Rewind clicked for CW episode:', item.id)
-                    navigate(`/play/${item.id}`, { state: { serverInfo, startOver: true } })
-                  }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                    <polyline points="3 3 3 8 8 8"></polyline>
-                  </svg>
-                </div>
-              )}
-            </>
+            <div className="card-play-button">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#000000">
+                <polygon points="6 3 20 12 6 21 6 3"></polygon>
+              </svg>
+            </div>
           )}
           {showUnwatchedIndicator && prefix !== 'cw' && (
             isUnwatched ? (

@@ -493,6 +493,16 @@ export default function PlayerPage() {
     }
   }
 
+  const handleRestartClick = () => {
+    const videoEl = videoRef.current || document.querySelector('video')
+    if (!videoEl) return
+    triggerHUD()
+    videoEl.currentTime = 0
+    setCurrentTime(0)
+    videoEl.play().catch(err => console.error('Restart play failed:', err))
+    useNotificationStore.getState().addNotification('Restarted from beginning', { level: 'info' })
+  }
+
   const handleSeek = (direction) => {
     const videoEl = videoRef.current || document.querySelector('video')
     if (!videoEl) return
@@ -676,6 +686,23 @@ export default function PlayerPage() {
               {isBuffering ? 'Buffering...' : isPlaying ? 'Pause' : 'Continue'}
             </span>
           </FocusableItem>
+
+          {/* Capsule-style Restart Button */}
+          <FocusableItem 
+            id="player-restart"
+            rowIndex={1}
+            colIndex={1}
+            style={styles.playPauseBtn} 
+            onClick={handleRestartClick}
+            className="hud-restart-btn"
+          >
+            {/* Double rewind arrow SVG */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 19 2 12 11 5 11 19"></polygon>
+              <polygon points="22 19 13 12 22 5 22 19"></polygon>
+            </svg>
+            <span style={styles.capsuleLabel}>Restart</span>
+          </FocusableItem>
         </div>
       </div>
 
@@ -738,21 +765,23 @@ export default function PlayerPage() {
           transform: translate(-50%, -50%) scale(1.15) !important;
           box-shadow: 0 0 20px #e5a00d, 0 0 10px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0,0,0,0.6) !important;
         }
-        .hud-play-btn {
+        .hud-play-btn, .hud-restart-btn {
           transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
         }
-        .hud-play-btn.focused, .hud-play-btn:hover {
+        .hud-play-btn.focused, .hud-play-btn:hover,
+        .hud-restart-btn.focused, .hud-restart-btn:hover {
           background-color: rgba(255, 255, 255, 0.25) !important;
           border-color: rgba(255, 255, 255, 0.5) !important;
           box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
           transform: scale(1.08) !important;
           outline: none;
         }
-        .hud-play-btn.focused svg, .hud-play-btn:hover svg {
+        .hud-play-btn.focused svg, .hud-play-btn:hover svg,
+        .hud-restart-btn.focused svg, .hud-restart-btn:hover svg {
           fill: #ffffff !important;
           stroke: #ffffff !important;
         }
-        .hud-play-btn:active {
+        .hud-play-btn:active, .hud-restart-btn:active {
           transform: scale(0.95) !important;
         }
         video {
