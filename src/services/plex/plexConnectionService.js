@@ -1,6 +1,7 @@
 import { getMainToken } from '../luna/tokenStorage'
 import { DB_KINDS, getData } from '../luna/lunaService'
 import { KINDS } from '../../config/app'
+import { useAppStore } from '../../stores/AppStore'
 
 /**
  * Resolves active server info (uri and token) from either local state or storage.
@@ -10,12 +11,18 @@ import { KINDS } from '../../config/app'
  * @returns {Promise<{uri: string, token: string}>} Resolved server connection details
  */
 export const getActiveServerInfo = async (localServerInfo = null) => {
-  let uri = localServerInfo?.uri
-  let token = localServerInfo?.token
+  const appState = useAppStore.getState()
+  let uri = localServerInfo?.uri || appState.serverUri
+  let token = localServerInfo?.token || appState.token
 
   if (!uri || !token) {
-    token = await getMainToken()
-    uri = await getData(DB_KINDS.SERVER, KINDS.server)
+    const [mainToken, storedUri] = await Promise.all([
+      token ? Promise.resolve(token) : getMainToken(),
+      uri ? Promise.resolve(uri) : getData(DB_KINDS.SERVER, KINDS.server)
+    ])
+
+    token = token || mainToken
+    uri = uri || storedUri
   }
 
   if (!token || !uri) {

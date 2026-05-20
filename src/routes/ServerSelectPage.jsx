@@ -19,7 +19,7 @@ function ServerSelectPage() {
     try {
       const token = useAppStore.getState().token
       console.log('[AUTH FLOW] ServerSelectPage: Main account token resolved successfully. Calling Plex API...')
-      const serverList = await getServers(token)
+      const serverList = await getServers(token, { ownedOnly: true })
 
       console.log(`[AUTH FLOW] ServerSelectPage: Discovered ${serverList.length} Plex Media Server(s):`, serverList.map(s => s.name))
 

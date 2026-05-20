@@ -74,6 +74,22 @@ describe('plexBridge and useServerStore Unit Tests', () => {
       expect(response.ok).toBe(true)
     })
 
+    it('should use the explicitly provided server context for profile-scoped requests', async () => {
+      global.fetch.mockResolvedValue({ ok: true, json: async () => ({ status: 'ok' }) })
+
+      await plexBridge.request('/library/sections', {}, { uri: 'http://shared-pms', token: 'profile-token' })
+
+      expect(getActiveServerInfo).not.toHaveBeenCalled()
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://shared-pms/library/sections?X-Plex-Token=profile-token',
+        expect.any(Object)
+      )
+      expect(useServerStore.getState().activeServer).toEqual({
+        uri: 'http://shared-pms',
+        token: 'profile-token'
+      })
+    })
+
     it('should set online false on network error', async () => {
       getActiveServerInfo.mockResolvedValue({ uri: 'http://pms', token: 'tok' })
       global.fetch.mockRejectedValue(new TypeError('Failed to fetch'))

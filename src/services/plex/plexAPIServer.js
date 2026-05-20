@@ -22,7 +22,8 @@ const normalizeConnectionUri = (conn) => {
   return conn.uri
 }
 
-export const getServers = async (authToken) => {
+export const getServers = async (authToken, options = {}) => {
+  const { ownedOnly = false } = options
   const res = await fetch(
     'https://plex.tv/api/v2/resources?includeHttps=1&includeRelay=1&includeIPv6=1',
     {
@@ -35,13 +36,14 @@ export const getServers = async (authToken) => {
 
   const servers = await res.json()
 
-  // Filter for owned PMS instances (not clients)
+  // Return PMS resources accessible to this token, including shared servers for non-owner profiles.
   return servers
-    .filter(s => s.provides === 'server' && s.owned)
+    .filter(s => s.provides === 'server' && (!ownedOnly || s.owned))
     .map(server => ({
       name: server.name,
       clientIdentifier: server.clientIdentifier,
       accessToken: server.accessToken,
+      owned: !!server.owned,
       connections: server.connections
         .sort((a, b) => {
           // Prioritize: local > non-relay > relay

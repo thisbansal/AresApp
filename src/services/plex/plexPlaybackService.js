@@ -20,7 +20,8 @@ export const updatePlaybackProgress = async (serverUri, token, ratingKey, timeMs
     // Call the Plex /:/progress endpoint
     await plexBridge.request(
       `/:/progress?key=${ratingKey}&identifier=com.plexapp.plugins.library&time=${Math.floor(timeMs)}&state=${state}`,
-      { method: 'GET' }
+      { method: 'GET' },
+      { uri: serverUri, token }
     )
     return true
   } catch (err) {

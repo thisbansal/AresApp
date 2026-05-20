@@ -48,13 +48,18 @@ export const plexBridge = {
   /**
    * Centralized requests bridge with integrated health checking and severity logging.
    */
-  async request(endpoint, options = {}) {
+  async request(endpoint, options = {}, serverInfo = null) {
     const store = useServerStore.getState()
-    let activeServer = store.activeServer
+    let activeServer = serverInfo || store.activeServer
 
     try {
       if (!activeServer) {
-        activeServer = await getActiveServerInfo()
+        activeServer = await getActiveServerInfo(serverInfo)
+        useServerStore.setState({ activeServer })
+      } else if (
+        activeServer.uri !== store.activeServer?.uri ||
+        activeServer.token !== store.activeServer?.token
+      ) {
         useServerStore.setState({ activeServer })
       }
     } catch (err) {

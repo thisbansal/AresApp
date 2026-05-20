@@ -6,7 +6,8 @@ import { FallbackImage } from '../components/media/FallbackImage'
 import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
-import { getServers, getBestServerConnection, testConnectionToServer } from '../services/plex/plexAPIServer'
+import { testConnectionToServer } from '../services/plex/plexAPIServer'
+import { resolveAccessibleServer } from '../services/plex/plexAccessService'
 import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
 import { isMediaWatched } from '../services/plex/plexWatchedService'
 import { useToggleWatched } from '../hooks/useToggleWatched'
@@ -243,21 +244,18 @@ function ContentBrowserPage() {
         }
 
         // 2. Background Check/Discovery: Only if current is unhealthy or a relay
-        console.log('[init] Running full server discovery...')
-        const servers = await getServers(token)
-        if (!servers || servers.length === 0) {
-          if (!isCurrentHealthy) useNotificationStore.getState().addNotification('No Plex servers found.', { level: 'error' })
-          return
-        }
+        console.log('[init] Running token-aware server discovery...')
+        const resolvedServer = await resolveAccessibleServer(token, currentUri)
 
-        const server = servers[0]
-        const bestUri = await getBestServerConnection(server, token)
-
-        if (bestUri && bestUri !== currentUri) {
-          console.log('[init] Found better connection:', bestUri)
-          await setData(DB_KINDS.SERVER, KINDS.server, bestUri)
-          setServerInfo({ uri: bestUri, token })
-          getLibraries(bestUri, token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
+        if (resolvedServer?.uri && resolvedServer.uri !== currentUri) {
+          console.log('[init] Found reachable server for active profile:', resolvedServer.uri)
+          await setData(DB_KINDS.SERVER, KINDS.server, resolvedServer.uri)
+          setServerInfo({ uri: resolvedServer.uri, token })
+          getLibraries(resolvedServer.uri, token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
+        } else if (!isCurrentHealthy && resolvedServer?.uri) {
+          console.log('[init] Reusing stored server for active profile:', resolvedServer.uri)
+          setServerInfo({ uri: resolvedServer.uri, token })
+          getLibraries(resolvedServer.uri, token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
         }
       } catch (error) {
         console.error('[initServerAndNav] Error:', error)

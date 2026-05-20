@@ -96,7 +96,8 @@ describe('Playback Progress Synchronization Tests', () => {
       expect(res).toBe(true)
       expect(plexBridge.request).toHaveBeenCalledWith(
         '/:/progress?key=ratingKey456&identifier=com.plexapp.plugins.library&time=15000&state=playing',
-        { method: 'GET' }
+        { method: 'GET' },
+        { uri: 'http://my-server', token: 'token123' }
       )
     })
   })

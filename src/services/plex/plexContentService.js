@@ -14,11 +14,13 @@ const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
   return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${imgToken}`
 }
 
+const buildServerContext = (serverUri, token) => ({ uri: serverUri, token })
+
 /**
  * Get all libraries from the Plex server
  */
 export const getLibraries = async (serverUri, token) => {
-  const response = await plexBridge.request('/library/sections/all')
+  const response = await plexBridge.request('/library/sections/all', {}, buildServerContext(serverUri, token))
   const data = await response.json()
 
   return data.MediaContainer.Directory
@@ -38,7 +40,7 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
     ? `/library/sections/${libraryId}/recentlyAdded`
     : '/library/recentlyAdded'
 
-  const response = await plexBridge.request(endpoint)
+  const response = await plexBridge.request(endpoint, {}, buildServerContext(serverUri, token))
   const data = await response.json()
 
   const items = (data.MediaContainer.Metadata || []).slice(0, limit).map(item => ({
@@ -74,7 +76,7 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
  * Get on deck (continue watching) items
  */
 export const getOnDeck = async (serverUri, token, limit = 20) => {
-  const response = await plexBridge.request('/library/onDeck')
+  const response = await plexBridge.request('/library/onDeck', {}, buildServerContext(serverUri, token))
   const data = await response.json()
 
   const items = (data.MediaContainer.Metadata || []).slice(0, limit).map(item => ({
@@ -102,7 +104,7 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
  * OPTIMIZED: Returns small thumbnails for grid view
  */
 export const getLibraryItems = async (serverUri, token, libraryId) => {
-  const response = await plexBridge.request(`/library/sections/${libraryId}/all`)
+  const response = await plexBridge.request(`/library/sections/${libraryId}/all`, {}, buildServerContext(serverUri, token))
   const data = await response.json()
 
   const items = (data.MediaContainer.Metadata || []).map(item => ({
@@ -127,7 +129,7 @@ export const getLibraryItems = async (serverUri, token, libraryId) => {
  * Get detailed metadata for a specific item
  */
 export const getMetadata = async (serverUri, token, ratingKey) => {
-  const response = await plexBridge.request(`/library/metadata/${ratingKey}`)
+  const response = await plexBridge.request(`/library/metadata/${ratingKey}`, {}, buildServerContext(serverUri, token))
   const data = await response.json()
   const item = data.MediaContainer.Metadata[0]
 
@@ -173,7 +175,7 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
  * Get children for a specific item (e.g. Seasons for a Show, Episodes for a Season)
  */
 export const getChildren = async (serverUri, token, ratingKey) => {
-  const response = await plexBridge.request(`/library/metadata/${ratingKey}/children`)
+  const response = await plexBridge.request(`/library/metadata/${ratingKey}/children`, {}, buildServerContext(serverUri, token))
   const data = await response.json()
   
   const items = (data.MediaContainer.Metadata || []).map(item => ({
@@ -215,7 +217,11 @@ export const formatDuration = (ms) => {
  * Mark a specific item as watched (scrobble) on Plex
  */
 export const markAsWatched = async (serverUri, token, ratingKey) => {
-  await plexBridge.request(`/:/scrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library`, { method: 'GET' })
+  await plexBridge.request(
+    `/:/scrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library`,
+    { method: 'GET' },
+    buildServerContext(serverUri, token)
+  )
   return true
 }
 
@@ -223,6 +229,10 @@ export const markAsWatched = async (serverUri, token, ratingKey) => {
  * Mark a specific item as unwatched (unscrobble) on Plex
  */
 export const markAsUnwatched = async (serverUri, token, ratingKey) => {
-  await plexBridge.request(`/:/unscrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library`, { method: 'GET' })
+  await plexBridge.request(
+    `/:/unscrobble?key=${ratingKey}&identifier=com.plexapp.plugins.library`,
+    { method: 'GET' },
+    buildServerContext(serverUri, token)
+  )
   return true
 }

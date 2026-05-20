@@ -5,6 +5,7 @@ import { getMainToken } from '../src/services/luna/tokenStorage'
 import { getData } from '../src/services/luna/lunaService'
 import { markAsWatched, markAsUnwatched } from '../src/services/plex/plexContentService'
 import { useNotificationStore } from '../src/services/notifications/notificationStore'
+import { useAppStore } from '../src/stores/AppStore'
 
 // Mock the dependencies
 vi.mock('../src/services/luna/tokenStorage', () => ({
@@ -22,6 +23,13 @@ vi.mock('../src/services/plex/plexContentService', () => ({
 }))
 
 describe('Plex Connection Service', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      token: null,
+      serverUri: null
+    })
+  })
+
   afterEach(() => {
     vi.clearAllMocks()
   })
@@ -31,6 +39,22 @@ describe('Plex Connection Service', () => {
     const result = await getActiveServerInfo(input)
     expect(result).toEqual(input)
     expect(getMainToken).not.toHaveBeenCalled()
+  })
+
+  it('should prefer the active profile session from AppStore before falling back to main token storage', async () => {
+    useAppStore.setState({
+      token: 'profile-token',
+      serverUri: 'http://profile-plex:32400'
+    })
+
+    const result = await getActiveServerInfo(null)
+
+    expect(result).toEqual({
+      uri: 'http://profile-plex:32400',
+      token: 'profile-token'
+    })
+    expect(getMainToken).not.toHaveBeenCalled()
+    expect(getData).not.toHaveBeenCalled()
   })
 
   it('should load server info from storage when local state is empty', async () => {
