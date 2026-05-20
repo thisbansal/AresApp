@@ -415,14 +415,16 @@ function ContentBrowserPage() {
         onClick={() => handleItemClick(item, prefix === 'cw')}
         style={{ flexShrink: 0 }}
       >
-        <div style={styles.card}>
+        <div 
+          style={{
+            ...styles.card,
+            viewTransitionName: clickedItemId === item.id ? 'active-poster' : 'none'
+          }}
+        >
           <FallbackImage
             src={item.thumb}
             alt={item.grandparentTitle || item.title}
-            style={{
-              ...styles.poster,
-              viewTransitionName: clickedItemId === item.id ? 'active-poster' : 'none'
-            }}
+            style={styles.poster}
             loading="lazy"
             decoding="async"
           />
