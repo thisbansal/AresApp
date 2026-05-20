@@ -29,9 +29,7 @@ export function SystemToaster() {
             onClick={() => removeNotification(notif.id)}
             style={{
               pointerEvents: 'auto',
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              background: 'rgba(20, 20, 20, 0.9)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
               borderRadius: '9999px',
@@ -45,8 +43,8 @@ export function SystemToaster() {
               wordBreak: 'break-word',
               display: 'flex',
               alignItems: 'center',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              animation: 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'opacity 0.15s ease',
+              animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
             <div style={{ flex: 1, lineHeight: '1.4' }}>

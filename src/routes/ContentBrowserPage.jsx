@@ -1166,9 +1166,7 @@ const styles = {
     color: '#e8eaed',
   },
   toggleCapsule: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(20px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    backgroundColor: 'rgba(25, 25, 30, 0.85)',
     border: '1px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '9999px',
     padding: '12px 32px',
@@ -1176,12 +1174,10 @@ const styles = {
     fontWeight: '600',
     minWidth: '160px',
     textAlign: 'center',
-    transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
+    transition: 'background-color 0.1s ease, color 0.1s ease',
   },
   signoutButtonContent: {
-    backgroundColor: 'rgba(217, 56, 56, 0.2)',
-    backdropFilter: 'blur(20px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    backgroundColor: 'rgba(217, 56, 56, 0.4)',
     border: '1px solid rgba(217, 56, 56, 0.45)',
     borderRadius: '9999px',
     padding: '12px 32px',
@@ -1189,7 +1185,7 @@ const styles = {
     fontWeight: '700',
     minWidth: '160px',
     textAlign: 'center',
-    transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
+    transition: 'background-color 0.1s ease, color 0.1s ease',
     color: '#ff6666',
   },
   loadingContainer: {
@@ -1314,9 +1310,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)', // Premium dark backdrop overlay
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)', // Premium dark backdrop overlay
     zIndex: 999999,
     display: 'flex',
     alignItems: 'center', // Centered vertically for PIN dialog!
@@ -1324,9 +1318,7 @@ const styles = {
   },
   pinCardSettings: {
     padding: '40px 50px 30px',
-    background: 'rgba(20, 20, 26, 0.95)',
-    backdropFilter: 'blur(30px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+    background: 'rgba(20, 20, 26, 0.98)',
     border: '1.5px solid rgba(255, 255, 255, 0.12)',
     borderRadius: '32px',
     textAlign: 'center',
@@ -1452,9 +1444,7 @@ const styles = {
     transition: 'all 0.2s ease'
   },
   exitModal: {
-    backgroundColor: 'rgba(20, 20, 26, 0.85)', // Premium dark glassmorphism
-    backdropFilter: 'blur(25px) saturate(190%)',
-    WebkitBackdropFilter: 'blur(25px) saturate(190%)',
+    backgroundColor: 'rgba(20, 20, 26, 0.95)', // Premium dark glassmorphism
     border: '1.5px solid rgba(255, 255, 255, 0.15)',
     borderRadius: '9999px', // Perfect horizontal capsule pill matching the Navbar!
     boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65)',

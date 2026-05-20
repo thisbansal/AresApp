@@ -261,7 +261,6 @@ const styles = {
     width: '100vw',
     height: '100vh',
     backgroundColor: 'rgba(10, 6, 8, 0.9)',
-    backdropFilter: 'blur(20px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

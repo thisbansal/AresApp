@@ -482,9 +482,7 @@ const styles = {
   // PIN code dialog overlays
   pinCard: {
     padding: '50px 60px 40px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    backdropFilter: 'blur(30px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+    background: 'rgba(25, 25, 30, 0.95)',
     border: '1.5px solid rgba(255, 255, 255, 0.08)',
     borderRadius: '32px',
     textAlign: 'center',

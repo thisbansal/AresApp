@@ -88,8 +88,6 @@ const styles = {
     gap: '12px',
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     cursor: 'pointer',
-    backdropFilter: 'blur(20px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
   },
   playButton: {
     backgroundColor: '#fff',
@@ -97,9 +95,9 @@ const styles = {
     border: '1px solid #fff',
   },
   moreButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(20, 20, 20, 0.75)',
     color: '#fff',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
   },
   icon: {
     fontSize: '20px',
