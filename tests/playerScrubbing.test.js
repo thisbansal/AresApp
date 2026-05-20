@@ -10,6 +10,7 @@ describe('LG webOS Player Scroll-Scrubbing & Hover Improvements', () => {
   let seekTimeout;
   let hudTimeout;
   let focusedId;
+  let navigateMock;
 
   beforeEach(() => {
     // Mock standard HTML5 Video Element
@@ -21,6 +22,7 @@ describe('LG webOS Player Scroll-Scrubbing & Hover Improvements', () => {
     seekTimeout = null;
     hudTimeout = null;
     focusedId = 'player-play';
+    navigateMock = vi.fn();
 
     videoEl = {
       paused: false,
@@ -79,6 +81,25 @@ describe('LG webOS Player Scroll-Scrubbing & Hover Improvements', () => {
 
   // Replicate handleKeyDown logic
   const handleKeyDown = (e, triggerHUDCallback) => {
+    // Handle remote back button, escape, backspace, webOS 461
+    if (
+      e.key === 'Escape' || 
+      e.key === 'Backspace' || 
+      e.key === 'BrowserBack' || 
+      e.keyCode === 461 ||
+      e.keyCode === 10009 ||
+      e.keyCode === 27 ||
+      e.keyCode === 8
+    ) {
+      if (showHUD) {
+        showHUD = false;
+        focusedId = null;
+      } else {
+        navigateMock(-1);
+      }
+      return;
+    }
+
     if (!showHUD) {
       if (e.key === 'Enter' || e.key === ' ') {
         if (videoEl.paused) {
@@ -253,5 +274,46 @@ describe('LG webOS Player Scroll-Scrubbing & Hover Improvements', () => {
     expect(parseInt(enlargedHoverZoneHeight)).toBeGreaterThan(parseInt(defaultTrackHeight));
     expect(parseInt(visualTrackHoverHeight)).toBeGreaterThan(parseInt(visualTrackDefaultHeight));
     expect(parseInt(hoverKnobSize)).toBeGreaterThan(parseInt(defaultKnobSize));
+  });
+
+  describe('webOS Remote Back Button Interception & Exit Logic', () => {
+    it('should hide HUD and clear focus if back key is pressed when HUD is visible', () => {
+      showHUD = true;
+      focusedId = 'player-play';
+      expect(navigateMock).not.toHaveBeenCalled();
+
+      // Simulate back keypress (keycode 461)
+      handleKeyDown({ keyCode: 461, key: 'BrowserBack' }, null);
+
+      expect(showHUD).toBe(false);
+      expect(focusedId).toBe(null);
+      expect(navigateMock).not.toHaveBeenCalled();
+    });
+
+    it('should trigger navigation back (exit player) if back key is pressed when HUD is hidden', () => {
+      showHUD = false;
+      expect(navigateMock).not.toHaveBeenCalled();
+
+      // Simulate back keypress (Escape)
+      handleKeyDown({ key: 'Escape' }, null);
+
+      expect(showHUD).toBe(false);
+      expect(navigateMock).toHaveBeenCalledWith(-1);
+    });
+
+    it('should support sequence: 1st back button press hides HUD, 2nd back button press exits player', () => {
+      showHUD = true;
+      focusedId = 'player-play';
+      expect(navigateMock).not.toHaveBeenCalled();
+
+      // First press: should hide HUD
+      handleKeyDown({ keyCode: 461, key: 'BrowserBack' }, null);
+      expect(showHUD).toBe(false);
+      expect(navigateMock).not.toHaveBeenCalled();
+
+      // Second press: should exit player
+      handleKeyDown({ keyCode: 461, key: 'BrowserBack' }, null);
+      expect(navigateMock).toHaveBeenCalledWith(-1);
+    });
   });
 });
