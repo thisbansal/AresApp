@@ -309,6 +309,7 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
           border-top-left-radius: 16px !important;
           border-top-right-radius: 16px !important;
           transform: none !important;
+          transition: none !important;
         }
         .season-dropdown-btn.focused:not(.dropdown-open) {
           transform: scale(1.05) !important;
