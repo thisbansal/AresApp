@@ -10,6 +10,7 @@ export const useAppStore = create((set, get) => ({
   hasServer: false,
   hasSession: false,
   isLoading: true,
+  mainToken: null,
   token: null,
   serverUri: null,
   userProfile: null,
@@ -19,21 +20,25 @@ export const useAppStore = create((set, get) => ({
     try {
       await initialiseDatabase()
       
-      const token = await getMainToken()
+      const mainToken = await getMainToken()
       const serverUri = await getData(DB_KINDS.SERVER, KINDS.server)
       const sessionComplete = await hasCompleteSession()
       const userProfile = await getLastProfile()
 
+      const activeToken = (sessionComplete && userProfile?.userToken) ? userProfile.userToken : mainToken
+
       console.log('[AUTH STORE] Initialized:', {
-        isAuthenticated: !!token,
+        isAuthenticated: !!mainToken,
         hasServer: !!serverUri,
         hasSession: sessionComplete,
-        userProfile
+        userProfile,
+        activeToken: activeToken ? `${activeToken.substring(0, 5)}...` : null
       })
 
       set({
-        token,
-        isAuthenticated: !!token,
+        mainToken,
+        token: activeToken,
+        isAuthenticated: !!mainToken,
         serverUri,
         hasServer: !!serverUri,
         hasSession: sessionComplete,
@@ -43,6 +48,7 @@ export const useAppStore = create((set, get) => ({
     } catch (err) {
       console.error('[AUTH STORE] Error during initializeAuth:', err)
       set({
+        mainToken: null,
         token: null,
         isAuthenticated: false,
         serverUri: null,
@@ -62,8 +68,11 @@ export const useAppStore = create((set, get) => ({
       const sessionComplete = await hasCompleteSession()
       const userProfile = await getLastProfile()
 
+      const activeToken = (sessionComplete && userProfile?.userToken) ? userProfile.userToken : token
+
       set({
-        token,
+        mainToken: token,
+        token: activeToken,
         isAuthenticated: !!token,
         serverUri,
         hasServer: !!serverUri,
@@ -92,14 +101,15 @@ export const useAppStore = create((set, get) => ({
     }
   },
 
-  setProfileSession: async (profileId, userName, pin = null, rememberPin = true, isProtected = false) => {
+  setProfileSession: async (profileId, userName, token, pin = null, rememberPin = true, isProtected = false) => {
     console.log('[AUTH STORE] setProfileSession starting for:', userName)
     try {
-      await saveProfileSession(profileId, userName, pin, rememberPin, isProtected)
+      await saveProfileSession(profileId, userName, token, pin, rememberPin, isProtected)
       const userProfile = await getLastProfile()
       const sessionComplete = await hasCompleteSession()
 
       set({
+        token: token,
         userProfile,
         hasSession: sessionComplete
       })
@@ -117,6 +127,7 @@ export const useAppStore = create((set, get) => ({
       sessionStorage.removeItem('activeSession')
       
       set({
+        mainToken: null,
         token: null,
         isAuthenticated: false,
         serverUri: null,

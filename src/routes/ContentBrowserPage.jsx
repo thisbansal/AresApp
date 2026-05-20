@@ -15,6 +15,7 @@ import { useBrowserStore } from '../stores/browserStore'
 import { useFocusStore } from '../stores/FocusStore'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
+import { getMainToken } from '../services/luna/tokenStorage'
 
 
 // Module-level cache to persist clicked item ID across route transitions (for back morph animations)
@@ -83,9 +84,9 @@ function ContentBrowserPage() {
             localStorage.setItem('cached_current_profile', JSON.stringify(profile))
           }
 
-          const token = useAppStore.getState().token
-          if (token) {
-            const list = await getUsers(token)
+          const mainToken = useAppStore.getState().mainToken || await getMainToken()
+          if (mainToken) {
+            const list = await getUsers(mainToken)
             setUsersList(list)
             localStorage.setItem('cached_users_list', JSON.stringify(list))
           }
@@ -127,8 +128,10 @@ function ContentBrowserPage() {
       setPinError('')
     } else {
       try {
+        const mainToken = useAppStore.getState().mainToken || await getMainToken()
+        const userToken = await verifyUserPin(mainToken, user.id, "")
         sessionStorage.setItem('activeSession', 'true')
-        await useAppStore.getState().setProfileSession(user.id, user.name, null, false, false)
+        await useAppStore.getState().setProfileSession(user.id, user.name, userToken, null, false, false)
         const newProfile = useAppStore.getState().userProfile
         localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
         window.location.reload()
@@ -146,12 +149,12 @@ function ContentBrowserPage() {
     }
 
     try {
-      const mainToken = useAppStore.getState().token
-      const isValid = await verifyUserPin(mainToken, pinDialogUser.id, pin)
+      const mainToken = useAppStore.getState().mainToken || await getMainToken()
+      const userToken = await verifyUserPin(mainToken, pinDialogUser.id, pin)
 
-      if (isValid) {
+      if (userToken) {
         sessionStorage.setItem('activeSession', 'true')
-        await useAppStore.getState().setProfileSession(pinDialogUser.id, pinDialogUser.name, pin, false, true)
+        await useAppStore.getState().setProfileSession(pinDialogUser.id, pinDialogUser.name, userToken, pin, false, true)
         const newProfile = useAppStore.getState().userProfile
         localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
         window.location.reload()

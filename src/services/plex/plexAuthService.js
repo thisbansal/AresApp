@@ -65,12 +65,13 @@ export const verifyUserPin = async (authToken, userId, pin) => {
   const res = await fetch(`https://plex.tv/api/home/users/${userId}/switch`, {
     method: 'POST',
     headers: getHeaders(authToken),
-    body: JSON.stringify({ pin })
+    body: JSON.stringify({ pin: pin || "" })
   })
 
   if (!res.ok) {
     throw new Error('PIN verification failed')
   }
 
-  return true
+  const data = await res.json()
+  return data.user?.authToken || data.authToken || data.user?.authenticationToken || null
 }
