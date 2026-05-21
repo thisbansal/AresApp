@@ -110,8 +110,10 @@ describe('Plex Watched Service', () => {
   })
 
   describe('isMediaWatched', () => {
-    it('should return false if item is null', () => {
+    it('should return false if item is null or missing', () => {
       expect(isMediaWatched(null)).toBe(false)
+      expect(isMediaWatched(undefined)).toBe(false)
+      expect(isMediaWatched()).toBe(false)
     })
 
     it('should identify a watched movie/episode by viewCount > 0', () => {
