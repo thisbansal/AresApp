@@ -8,18 +8,24 @@ import { plexBridge } from './plexBridge'
  * @param {string} ratingKey The unique key of the media item.
  * @param {number} timeMs The current playback time in milliseconds.
  * @param {string} state The playback state (e.g., 'playing', 'paused', 'stopped').
+ * @param {number} [durationMs] The duration of the media item in milliseconds.
  * @returns {Promise<boolean>} True if the request succeeded.
  */
-export const updatePlaybackProgress = async (serverUri, token, ratingKey, timeMs, state = 'stopped') => {
+export const updatePlaybackProgress = async (serverUri, token, ratingKey, timeMs, state = 'stopped', durationMs = null) => {
   try {
     if (!serverUri || !token || !ratingKey) {
       console.warn('[plexPlaybackService] Missing parameters for progress update')
       return false
     }
 
-    // Call the Plex /:/progress endpoint
+    let durationStr = ''
+    if (durationMs !== null && durationMs !== undefined) {
+      durationStr = `&duration=${Math.floor(durationMs)}`
+    }
+
+    // Call the Plex /:/timeline endpoint
     await plexBridge.request(
-      `/:/progress?key=${ratingKey}&identifier=com.plexapp.plugins.library&time=${Math.floor(timeMs)}&state=${state}`,
+      `/:/timeline?ratingKey=${ratingKey}&key=%2Flibrary%2Fmetadata%2F${ratingKey}&identifier=com.plexapp.plugins.library&time=${Math.floor(timeMs)}&state=${state}${durationStr}`,
       { method: 'GET' },
       { uri: serverUri, token }
     )

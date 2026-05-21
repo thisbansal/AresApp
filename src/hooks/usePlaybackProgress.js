@@ -33,8 +33,13 @@ export function usePlaybackProgress({ serverInfo, ratingKey, videoRef, viewOffse
     if (!activeServer || !activeKey) return
 
     const timeMs = Math.floor(timeSeconds * 1000)
+    let durationMs = null
+    if (videoRef.current && videoRef.current.duration) {
+      durationMs = Math.floor(videoRef.current.duration * 1000)
+    }
+
     console.log(`[usePlaybackProgress] Syncing: ${timeMs}ms, state: ${state}`)
-    await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, timeMs, state)
+    await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, timeMs, state, durationMs)
   }
 
   // Effect 1: Handle initial resume seeking
@@ -115,16 +120,21 @@ export function usePlaybackProgress({ serverInfo, ratingKey, videoRef, viewOffse
 
       if (finalTime > 0 && activeServer && activeKey) {
         const timeMs = Math.floor(finalTime * 1000)
+        let durationStr = ''
+        if (videoRef.current && videoRef.current.duration) {
+          durationStr = `&duration=${Math.floor(videoRef.current.duration * 1000)}`
+        }
+
         console.log(`[usePlaybackProgress] Unmount detected, reporting final time: ${timeMs}ms`)
         
         // Build direct URL with token for high-priority fetch keepalive
         const separator = activeServer.uri.includes('?') ? '&' : '?'
-        const url = `${activeServer.uri}/:/progress${separator}key=${activeKey}&identifier=com.plexapp.plugins.library&time=${timeMs}&state=stopped&X-Plex-Token=${activeServer.token}`
+        const url = `${activeServer.uri}/:/timeline${separator}ratingKey=${activeKey}&key=%2Flibrary%2Fmetadata%2F${activeKey}&identifier=com.plexapp.plugins.library&time=${timeMs}&state=stopped${durationStr}&X-Plex-Token=${activeServer.token}`
         
         fetch(url, { method: 'GET', keepalive: true }).catch(err => {
           console.error('[usePlaybackProgress] Failed to send final keepalive progress:', err)
         })
       }
     }
-  }, [ratingKey])
+  }, [ratingKey, videoRef])
 }
