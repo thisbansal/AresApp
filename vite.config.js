@@ -5,7 +5,15 @@ export default defineConfig({
   base: './', // use relative paths
   plugins: [react()],
   build: {
-    minify: false, // Disable minification for webOS
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        keep_fargs: true, // Don't drop unused function arguments
+      },
+      mangle: {
+        safari10: true, // Prevents bugs in older WebKit/Chromium engines
+      }
+    },
     target: 'es2015', // Use older JS target for better compatibility
   }
 })
