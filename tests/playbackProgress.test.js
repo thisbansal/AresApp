@@ -84,18 +84,18 @@ describe('Playback Progress Synchronization Tests', () => {
 
   describe('plexPlaybackService', () => {
     it('should skip progress update if params are missing', async () => {
-      const res = await updatePlaybackProgress('', '', '', 5000, 'playing')
+      const res = await updatePlaybackProgress('', '', '', '', 5000, 10000, 'playing')
       expect(res).toBe(false)
       expect(plexBridge.request).not.toHaveBeenCalled()
     })
 
     it('should trigger GET request to /:/timeline with correct params', async () => {
       plexBridge.request.mockResolvedValue({ ok: true })
-      const res = await updatePlaybackProgress('http://my-server', 'token123', 'ratingKey456', 15000, 30000, 'playing')
+      const res = await updatePlaybackProgress('http://my-server', 'token123', 'ratingKey456', 'pqID123', 15000, 30000, 'playing')
       
       expect(res).toBe(true)
       expect(plexBridge.request).toHaveBeenCalledWith(
-        '/:/timeline?ratingKey=ratingKey456&key=%2Flibrary%2Fmetadata%2FratingKey456&identifier=com.plexapp.plugins.library&time=15000&duration=30000&state=playing',
+        '/:/timeline?ratingKey=ratingKey456&key=%2Flibrary%2Fmetadata%2FratingKey456&identifier=com.plexapp.plugins.library&time=15000&duration=30000&state=playing&playQueueItemID=pqID123',
         { method: 'GET' },
         { uri: 'http://my-server', token: 'token123' }
       )
@@ -115,6 +115,7 @@ describe('Playback Progress Synchronization Tests', () => {
       usePlaybackProgress({
         serverInfo: { uri: 'http://server', token: 'token' },
         ratingKey: 'key123',
+        playQueueItemID: 'pqID123',
         videoRef,
         viewOffset: 30000, // 30 seconds
         startOver: false
@@ -142,6 +143,7 @@ describe('Playback Progress Synchronization Tests', () => {
       usePlaybackProgress({
         serverInfo: { uri: 'http://server', token: 'token' },
         ratingKey: 'key123',
+        playQueueItemID: 'pqID123',
         videoRef,
         viewOffset: 30000,
         startOver: true
@@ -166,6 +168,7 @@ describe('Playback Progress Synchronization Tests', () => {
       usePlaybackProgress({
         serverInfo: { uri: 'http://server', token: 'token' },
         ratingKey: 'key123',
+        playQueueItemID: 'pqID123',
         videoRef,
         viewOffset: 0,
         startOver: false

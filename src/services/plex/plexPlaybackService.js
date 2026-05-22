@@ -71,3 +71,33 @@ export const updatePlaybackProgress = async (serverUrl, token, ratingKey, playQu
     return false
   }
 }
+
+/**
+ * Update the stream selection (Audio/Subtitle) for a specific part.
+ * 
+ * @param {string} serverUrl - The absolute URI of the active Plex server.
+ * @param {string} token - The X-Plex-Token.
+ * @param {string} partId - The ID of the media part.
+ * @param {string|number} audioStreamID - The ID of the audio stream (or '' to leave unchanged).
+ * @param {string|number} subtitleStreamID - The ID of the subtitle stream (0 for none, or '' to leave unchanged).
+ * @returns {Promise<boolean>} True if successful.
+ */
+export const setStreamSelection = async (serverUrl, token, partId, audioStreamID, subtitleStreamID) => {
+  try {
+    const params = new URLSearchParams()
+    if (audioStreamID !== undefined && audioStreamID !== '') params.append('audioStreamID', audioStreamID)
+    if (subtitleStreamID !== undefined && subtitleStreamID !== '') params.append('subtitleStreamID', subtitleStreamID)
+
+    if (params.toString() === '') return true // nothing to update
+
+    const response = await plexBridge.request(
+      `/library/parts/${partId}?${params.toString()}`,
+      { method: 'PUT' },
+      { uri: serverUrl, token }
+    )
+    return response.ok
+  } catch (err) {
+    console.error('[plexPlaybackService] Failed to set stream selection:', err)
+    return false
+  }
+}
