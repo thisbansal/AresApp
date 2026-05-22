@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { initialiseDatabase, getMainToken, saveMainToken, clearAllStoredInfo } from '../services/luna/tokenStorage'
 import { saveProfileSession, getLastProfile, updateRememberPinInSession } from '../services/luna/settingsStorage'
 import { hasCompleteSession } from '../utils/appSettings'
-import { getData, setData, DB_KINDS } from '../services/luna/lunaService'
+import { getData, setData, DB_KINDS, initDeviceId } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { useServerStore } from './serverStore'
 
@@ -19,6 +19,7 @@ export const useAppStore = create((set, get) => ({
   initializeAuth: async () => {
     console.log('[AUTH STORE] Initializing database and loading auth state...')
     try {
+      await initDeviceId()
       await initialiseDatabase()
       
       const mainToken = await getMainToken()

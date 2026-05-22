@@ -9,6 +9,41 @@ import LS2Request from "@enact/webos/LS2Request"
 
 const DB8_URL = "luna://com.palm.db"
 
+/**
+ * Initializes and retrieves the unique device identifier (LGUDID) from the WebOS system.
+ * This is crucial for Plex server synchronization to accurately track watch sessions
+ * and device states across app restarts, without creating duplicate device entries.
+ * 
+ * Falls back to a randomly generated browser ID if not running on WebOS.
+ * 
+ * @returns {Promise<string>} The unique client ID (LGUDID).
+ */
+export const initDeviceId = async () => {
+  if (!isWebOS()) {
+    let id = localStorage.getItem('browser_device_id')
+    if (!id) {
+      id = 'browser-' + Math.random().toString(36).substring(2, 15)
+      localStorage.setItem('browser_device_id', id)
+    }
+    PLEX_CONFIG.clientId = id
+    return id
+  }
+  try {
+    const res = await lunaCall({
+      service: 'luna://com.webos.service.sm',
+      method: 'deviceid/getId',
+      parameters: { idType: ['LGUDID'] }
+    })
+    if (res && res.idList && res.idList.length > 0) {
+      PLEX_CONFIG.clientId = res.idList[0].idValue
+      return PLEX_CONFIG.clientId
+    }
+  } catch (e) {
+    console.error('[LUNA DB8] Failed to get device UUID', e)
+  }
+  return PLEX_CONFIG.clientId
+}
+
 // Lazily create LS2Request instance
 const createRequest = () => new LS2Request()
 

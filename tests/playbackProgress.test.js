@@ -89,13 +89,13 @@ describe('Playback Progress Synchronization Tests', () => {
       expect(plexBridge.request).not.toHaveBeenCalled()
     })
 
-    it('should trigger GET request to /:/progress with correct params', async () => {
+    it('should trigger GET request to /:/timeline with correct params', async () => {
       plexBridge.request.mockResolvedValue({ ok: true })
-      const res = await updatePlaybackProgress('http://my-server', 'token123', 'ratingKey456', 15000, 'playing')
+      const res = await updatePlaybackProgress('http://my-server', 'token123', 'ratingKey456', 15000, 30000, 'playing')
       
       expect(res).toBe(true)
       expect(plexBridge.request).toHaveBeenCalledWith(
-        '/:/progress?key=ratingKey456&identifier=com.plexapp.plugins.library&time=15000&state=playing',
+        '/:/timeline?ratingKey=ratingKey456&key=%2Flibrary%2Fmetadata%2FratingKey456&identifier=com.plexapp.plugins.library&time=15000&duration=30000&state=playing',
         { method: 'GET' },
         { uri: 'http://my-server', token: 'token123' }
       )
@@ -183,7 +183,7 @@ describe('Playback Progress Synchronization Tests', () => {
       // Hook unmounted, verify fetch was called with keepalive
       expect(global.fetch).toHaveBeenCalled()
       const fetchCall = global.fetch.mock.calls[0]
-      expect(fetchCall[0]).toContain('/:/progress')
+      expect(fetchCall[0]).toContain('/:/timeline')
       expect(fetchCall[0]).toContain('state=stopped')
       expect(fetchCall[1].keepalive).toBe(true)
     })

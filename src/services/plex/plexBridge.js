@@ -1,6 +1,7 @@
 import { getActiveServerInfo } from './plexConnectionService'
 import { useServerStore } from '../../stores/serverStore'
 import { useNotificationStore } from '../notifications/notificationStore'
+import { PLEX_CONFIG } from '../../config/app'
 
 export const plexBridge = {
   /**
@@ -73,6 +74,7 @@ export const plexBridge = {
     // Auto default headers
     const headers = {
       'Accept': 'application/json',
+      'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
       ...options.headers
     }
 
