@@ -63,7 +63,7 @@ export const updatePlaybackProgress = async (serverUrl, token, ratingKey, playQu
     await plexBridge.request(
       `/:/timeline?ratingKey=${ratingKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${Math.floor(timeMs)}&duration=${Math.floor(durationMs)}&state=${state}&playQueueItemID=${playQueueItemID}`,
       { method: 'GET' },
-      { uri: serverUri, token }
+      { uri: serverUrl, token }
     )
     return true
   } catch (err) {
