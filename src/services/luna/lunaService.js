@@ -31,7 +31,7 @@ export const initDeviceId = async () => {
   try {
     const res = await lunaCall({
       service: 'luna://com.webos.service.sm',
-      method: 'deviceid/getId',
+      method: 'deviceid/getIDs',
       parameters: { idType: ['LGUDID'] }
     })
     if (res && res.idList && res.idList.length > 0) {

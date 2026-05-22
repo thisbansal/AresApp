@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useFocusStore } from '../../stores/FocusStore'
+import { useFocusStore } from '../stores/FocusStore'
 
 /**
  * Custom hook to manage the Player's HUD overlay visibility, timeouts, and system pointer integration.

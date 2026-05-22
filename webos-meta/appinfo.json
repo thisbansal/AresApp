@@ -11,7 +11,8 @@
   "supportPortraitMode": false,
   "disableBackHistoryAPI": true,
   "requiredPermissions": [
-    "db.operation"
+    "db.operation",
+    "com.webos.service.sm.client"
   ],
   "requiredLibraries": [
     "webOSTV.js"

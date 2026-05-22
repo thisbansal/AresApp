@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { useFocusStore } from '../../stores/FocusStore'
-import { useNotificationStore } from '../../services/notifications/notificationStore'
+import { useFocusStore } from '../stores/FocusStore'
+import { useNotificationStore } from '../services/notifications/notificationStore'
 
 /**
  * Custom hook to abstract all player input controls (D-Pad, Magic Remote Wheel, Return keys).
