@@ -7,6 +7,7 @@ import { useNotificationStore } from '../services/notifications/notificationStor
 import { useFocusStore } from '../stores/FocusStore'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
+import { PLEX_CONFIG } from '../config/app'
 import { usePlayerHUD } from '../hooks/usePlayerHUD'
 import { useVideoMediaEvents } from '../hooks/useVideoMediaEvents'
 import { usePlayerControls } from '../hooks/usePlayerControls'
@@ -285,7 +286,26 @@ export default function PlayerPage() {
       
       setTimeout(() => {
         const metadataPath = `/library/metadata/${ratingKey}`
-        const hlsUrl = `${serverInfo.uri}/video/:/transcode/universal/start.m3u8?path=${encodeURIComponent(metadataPath)}&mediaIndex=0&partIndex=0&protocol=hls&fastSeek=1&directPlay=0&directStream=1&subtitleSize=100&audioBoost=100&session=webos-${Date.now()}&X-Plex-Token=${serverInfo.token}`
+        const hlsUrl = `${serverInfo.uri}/video/:/transcode/universal/start.m3u8?` +
+          `path=${encodeURIComponent(metadataPath)}` +
+          `&mediaIndex=0` +
+          `&partIndex=0` +
+          `&protocol=hls` +
+          `&fastSeek=1` +
+          `&directPlay=0` +
+          `&directStream=1` +
+          `&subtitleSize=100` +
+          `&audioBoost=100` +
+          `&videoQuality=100` +
+          `&videoResolution=1080` +
+          `&maxVideoBitrate=100000` +
+          `&session=webos-${Date.now()}` +
+          `&X-Plex-Client-Identifier=${encodeURIComponent(PLEX_CONFIG.clientId)}` +
+          `&X-Plex-Product=${encodeURIComponent(PLEX_CONFIG.product)}` +
+          `&X-Plex-Device=${encodeURIComponent(PLEX_CONFIG.device)}` +
+          `&X-Plex-Version=${encodeURIComponent(PLEX_CONFIG.version)}` +
+          `&X-Plex-Token=${serverInfo.token}`
+        
         setStreamUrl(hlsUrl)
         setTimeout(() => {
           if (videoRef.current) {
