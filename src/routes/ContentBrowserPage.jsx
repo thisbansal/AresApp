@@ -425,18 +425,19 @@ function ContentBrowserPage() {
         if (newUrls.length > 0) {
           await preloadImages([newUrls.map(thumb => ({ thumb }))])
         }
-        setContinueWatching(prev => {
-          const onDeckMap = new Map(onDeckData.map(i => [i.id, i]))
-          const prevIds = new Set(prev.map(i => i.id))
-          
-          // Keep existing items in their current order, but update them with fresh data if available
-          const updatedPrev = prev.map(i => onDeckMap.has(i.id) ? onDeckMap.get(i.id) : i)
-          
-          // Append entirely new items (like next episodes) to the end
-          const newItems = onDeckData.filter(i => !prevIds.has(i.id))
-          
-          return [...updatedPrev, ...newItems]
-        })
+        
+        // We must fetch latest state from store since this is an async function
+        const latestContinueWatching = useBrowserStore.getState().continueWatching || []
+        const onDeckMap = new Map(onDeckData.map(i => [i.id, i]))
+        const prevIds = new Set(latestContinueWatching.map(i => i.id))
+        
+        // Keep existing items in their current order, but update them with fresh data if available
+        const updatedPrev = latestContinueWatching.map(i => onDeckMap.has(i.id) ? onDeckMap.get(i.id) : i)
+        
+        // Append entirely new items (like next episodes) to the end
+        const newItems = onDeckData.filter(i => !prevIds.has(i.id))
+        
+        setContinueWatching([...updatedPrev, ...newItems])
       } catch (err) {
         console.error('[handleToggleWatched] Failed to refresh On Deck items:', err)
       }
