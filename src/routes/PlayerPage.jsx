@@ -284,10 +284,9 @@ export default function PlayerPage() {
       setMetaDetails(prev => ({ ...prev, viewOffset: currentPos * 1000 }))
       setLoading(true)
       
-      setTimeout(() => {
+      setTimeout(async () => {
         const metadataPath = `/library/metadata/${ratingKey}`
-        const hlsUrl = `${serverInfo.uri}/video/:/transcode/universal/start.m3u8?` +
-          `path=${encodeURIComponent(metadataPath)}` +
+        const params = `path=${encodeURIComponent(metadataPath)}` +
           `&mediaIndex=0` +
           `&partIndex=0` +
           `&protocol=hls` +
@@ -301,6 +300,14 @@ export default function PlayerPage() {
           `&X-Plex-Platform=WebOS` +
           `&X-Plex-Version=${encodeURIComponent(PLEX_CONFIG.version)}` +
           `&X-Plex-Token=${serverInfo.token}`
+
+        try {
+          const decisionRes = await fetch(`${serverInfo.uri}/video/:/transcode/universal/decision?${params}`)
+          const decisionText = await decisionRes.text()
+          console.log('[Transcode Decision]', decisionText)
+        } catch (e) {}
+
+        const hlsUrl = `${serverInfo.uri}/video/:/transcode/universal/start.m3u8?${params}`
         
         setStreamUrl(hlsUrl)
         setTimeout(() => {
