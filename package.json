@@ -7,12 +7,13 @@
     "dev": "vite",
     "move": "rm -rf ./webos-meta/dist && mv ./dist/ ./webos-meta/ && cp -r webOSTVjs ./webos-meta/dist",
     "preview": "vite preview",
-    "start-remote": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp --open",
-    "start": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp",
-    "install": "ares-package ./webos-meta/ && ares-install --device lg ./*.ipk",
+    "start-remote": "ares-package --no-minify ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp --open",
+    "start": "ares-package --no-minify ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp",
+    "install": "ares-package --no-minify ./webos-meta/ && ares-install --device lg ./*.ipk",
     "test": "vitest run"
   },
   "devDependencies": {
+    "@vitejs/plugin-legacy": "^7.2.1",
     "@vitejs/plugin-react": "^5.1.2",
     "jsdom": "^29.1.1",
     "terser": "^5.48.0",
