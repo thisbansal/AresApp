@@ -406,12 +406,29 @@ function ContentBrowserPage() {
         return i
       }
 
-      setContinueWatching((continueWatching || []).map(updateItem))
+      setContinueWatching((continueWatching || [])
+        .map(updateItem)
+        .filter(i => !(newWatchedState && i.id === item.id))
+      )
       setRecentMovies((recentMovies || []).map(updateItem))
       setRecentTv((recentTv || []).map(updateItem))
       setLibraryContent({
         all: (libraryContent.all || []).map(updateItem)
       })
+
+      // Fetch latest On Deck to populate the next episode or updated state
+      try {
+        const onDeckData = await getOnDeck(serverInfo.uri, serverInfo.token, 20)
+        // Preload only the new images to avoid pop-in
+        const existingThumbs = new Set((continueWatching || []).map(i => i.thumb))
+        const newUrls = onDeckData.map(i => i.thumb).filter(url => url && !existingThumbs.has(url))
+        if (newUrls.length > 0) {
+          await preloadImages([newUrls.map(thumb => ({ thumb }))])
+        }
+        setContinueWatching(onDeckData)
+      } catch (err) {
+        console.error('[handleToggleWatched] Failed to refresh On Deck items:', err)
+      }
     }
   }
 
@@ -450,25 +467,18 @@ function ContentBrowserPage() {
             loading="lazy"
             decoding="async"
           />
-          {prefix === 'cw' && (
-            <div className="card-play-button">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#000000">
-                <polygon points="6 3 20 12 6 21 6 3"></polygon>
-              </svg>
-            </div>
-          )}
-          {showUnwatchedIndicator && prefix !== 'cw' && (
-            isUnwatched ? (
+          {showUnwatchedIndicator && (
+            (prefix === 'cw' || isUnwatched) ? (
               <div
-                style={styles.unwatchedEpisodeRibbon}
-                className="unwatched-episode-ribbon"
+                style={prefix === 'cw' ? styles.unwatchedEpisodeRibbonBottomLeft : styles.unwatchedEpisodeRibbon}
+                className={`unwatched-episode-ribbon ${prefix === 'cw' ? 'ribbon-bottom-left' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation()
                   handleToggleWatched(item)
                 }}
               >
                 {/* Tick checkmark (Shown on hover/cursor) */}
-                <svg className="unwatched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }}>
+                <svg className="unwatched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: prefix === 'cw' ? '0' : '6px', marginTop: prefix === 'cw' ? '14px' : '0' }}>
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
@@ -562,27 +572,7 @@ function ContentBrowserPage() {
           display: block !important;
         }
 
-        .card-play-button {
-          position: absolute;
-          bottom: 16px;
-          left: 16px;
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          background-color: rgba(255, 255, 255, 0.95);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          opacity: 0;
-          transform: translateY(10px) scale(0.9);
-          transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-          z-index: 5;
-        }
-        .focusable-item.focused .card-play-button {
-          opacity: 1 !important;
-          transform: translateY(0) scale(1) !important;
-        }
+
 
         .card-rewind-button {
           position: absolute;
@@ -1370,6 +1360,22 @@ const styles = {
     justifyContent: 'center',
     paddingBottom: '16px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+  },
+  unwatchedEpisodeRibbonBottomLeft: {
+    position: 'absolute',
+    bottom: '-70px',
+    left: '-70px',
+    width: '140px',
+    height: '140px',
+    backgroundColor: 'rgba(90, 90, 90, 0.75)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    transform: 'rotate(45deg)',
+    zIndex: 5,
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingTop: '16px',
+    boxShadow: '0 -4px 12px rgba(0,0,0,0.4)',
   },
   exitOverlay: {
     position: 'fixed',
