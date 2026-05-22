@@ -294,15 +294,11 @@ export default function PlayerPage() {
           `&fastSeek=1` +
           `&directPlay=0` +
           `&directStream=1` +
-          `&subtitleSize=100` +
-          `&audioBoost=100` +
-          `&videoQuality=100` +
-          `&videoResolution=1080` +
-          `&maxVideoBitrate=100000` +
           `&session=webos-${Date.now()}` +
           `&X-Plex-Client-Identifier=${encodeURIComponent(PLEX_CONFIG.clientId)}` +
           `&X-Plex-Product=${encodeURIComponent(PLEX_CONFIG.product)}` +
           `&X-Plex-Device=${encodeURIComponent(PLEX_CONFIG.device)}` +
+          `&X-Plex-Platform=WebOS` +
           `&X-Plex-Version=${encodeURIComponent(PLEX_CONFIG.version)}` +
           `&X-Plex-Token=${serverInfo.token}`
         
