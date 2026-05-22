@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { getMetadata } from '../services/plex/plexContentService'
-import { createPlayQueue } from '../services/plex/plexPlaybackService'
+import { createPlayQueue, setStreamSelection } from '../services/plex/plexPlaybackService'
 import { useActiveServer } from '../hooks/useActiveServer'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useFocusStore } from '../stores/FocusStore'
@@ -30,6 +30,9 @@ export default function PlayerPage() {
   const [streamUrl, setStreamUrl] = useState('')
   const [playQueueItemID, setPlayQueueItemID] = useState(null)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
+  const [availableStreams, setAvailableStreams] = useState([])
+  const [partId, setPartId] = useState(null)
+  const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
 
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
@@ -89,12 +92,14 @@ export default function PlayerPage() {
         })
 
         // Find direct stream key from metadata
-        const partKey = metadata.media?.[0]?.parts?.[0]?.key
-        if (!partKey) {
+        const part = metadata.media?.[0]?.parts?.[0]
+        if (!part || !part.key) {
           throw new Error('No playable stream file found for this item.')
         }
 
-        const absoluteUrl = `${serverInfo.uri}${partKey}?X-Plex-Token=${serverInfo.token}`
+        setPartId(part.id)
+        setAvailableStreams(part.streams || [])
+        const absoluteUrl = `${serverInfo.uri}${part.key}?X-Plex-Token=${serverInfo.token}`
         setStreamUrl(absoluteUrl)
       } catch (err) {
         console.error('[PlayerPage] Playback startup failure:', err)
@@ -204,6 +209,50 @@ export default function PlayerPage() {
     setCurrentTime(newTime)
   }
 
+  const handleStreamSelect = async (streamType, streamId) => {
+    if (!partId) return
+    triggerHUD()
+    const videoEl = videoRef.current || document.querySelector('video')
+    const currentPos = videoEl ? videoEl.currentTime : 0
+
+    let audioId = ''
+    let subtitleId = ''
+    
+    if (streamType === 3) subtitleId = streamId
+    if (streamType === 2) audioId = streamId
+    
+    setAvailableStreams(prev => prev.map(s => {
+      if (s.streamType === streamType) {
+        return { ...s, selected: s.id === streamId }
+      }
+      return s
+    }))
+    
+    setActiveMenu('none')
+    
+    if (streamType === 1) return // Video stream selection is informational or handled differently
+
+    const success = await setStreamSelection(serverInfo.uri, serverInfo.token, partId, audioId, subtitleId)
+    if (success) {
+      setLoading(true)
+      setTimeout(() => {
+        setStreamUrl(prev => {
+          const base = prev.split('&_t=')[0]
+          return `${base}&_t=${Date.now()}`
+        })
+        setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.currentTime = currentPos
+            videoRef.current.play().catch(e => console.error(e))
+          }
+          setLoading(false)
+        }, 500)
+      }, 300)
+    } else {
+      useNotificationStore.getState().addNotification('Failed to change stream', { level: 'error' })
+    }
+  }
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -270,12 +319,96 @@ export default function PlayerPage() {
           {metaDetails.subtitle && <p style={styles.hudSubtitle}>{metaDetails.subtitle}</p>}
         </div>
 
+        {/* Stream Selection Controls */}
+        <div style={styles.streamControlsRow}>
+          <FocusableItem
+            id="player-stream-video"
+            rowIndex={0} colIndex={0}
+            style={styles.streamBtn}
+            className="hud-stream-btn"
+            onClick={() => setActiveMenu(activeMenu === 'video' ? 'none' : 'video')}
+          >
+            {/* Video TV icon */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+              <polyline points="17 2 12 7 7 2"></polyline>
+            </svg>
+          </FocusableItem>
+          
+          <FocusableItem
+            id="player-stream-audio"
+            rowIndex={0} colIndex={1}
+            style={styles.streamBtn}
+            className="hud-stream-btn"
+            onClick={() => setActiveMenu(activeMenu === 'audio' ? 'none' : 'audio')}
+          >
+            {/* Minimal equalizer icon */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="6" y1="9" x2="6" y2="15"></line>
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="18" y1="11" x2="18" y2="13"></line>
+            </svg>
+          </FocusableItem>
+          
+          <FocusableItem
+            id="player-stream-subtitle"
+            rowIndex={0} colIndex={2}
+            style={styles.streamBtn}
+            className="hud-stream-btn"
+            onClick={() => setActiveMenu(activeMenu === 'subtitle' ? 'none' : 'subtitle')}
+          >
+            {/* Classic Subtitle Icon */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect>
+              <line x1="7" y1="10" x2="11" y2="10"></line>
+              <line x1="13" y1="10" x2="17" y2="10"></line>
+              <line x1="7" y1="14" x2="17" y2="14"></line>
+            </svg>
+          </FocusableItem>
+          
+          {/* Active Menu Popover */}
+          {activeMenu !== 'none' && (
+            <div style={styles.streamMenuPopover}>
+              {activeMenu === 'subtitle' && (
+                <FocusableItem
+                  id={`stream-sub-none`}
+                  rowIndex={-1} colIndex={0}
+                  style={styles.streamMenuItem}
+                  className="hud-stream-menu-item"
+                  onClick={() => handleStreamSelect(3, 0)}
+                >
+                  <div style={{...styles.streamMenuRadio, backgroundColor: !availableStreams.find(s => s.streamType === 3 && s.selected) ? '#fff' : 'transparent'}} />
+                  <span>None</span>
+                </FocusableItem>
+              )}
+              {availableStreams.filter(s => {
+                if (activeMenu === 'video') return s.streamType === 1
+                if (activeMenu === 'audio') return s.streamType === 2
+                if (activeMenu === 'subtitle') return s.streamType === 3
+                return false
+              }).map((stream, idx) => (
+                <FocusableItem
+                  key={stream.id}
+                  id={`stream-${activeMenu}-${stream.id}`}
+                  rowIndex={-1} colIndex={activeMenu === 'subtitle' ? idx + 1 : idx}
+                  style={styles.streamMenuItem}
+                  className="hud-stream-menu-item"
+                  onClick={() => handleStreamSelect(stream.streamType, stream.id)}
+                >
+                  <div style={{...styles.streamMenuRadio, backgroundColor: stream.selected ? '#fff' : 'transparent'}} />
+                  <span>{stream.extendedDisplayTitle || stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span>
+                </FocusableItem>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Timeline Slider Track */}
         <div style={styles.timelineRow}>
           {/* Timeline starts flush from the left edge */}
           <FocusableItem 
             id="player-timeline"
-            rowIndex={0}
+            rowIndex={1}
             colIndex={0}
             style={{
               ...styles.timelineTrack,
@@ -321,7 +454,7 @@ export default function PlayerPage() {
           {/* Capsule-style Restart Button */}
           <FocusableItem 
             id="player-restart"
-            rowIndex={1}
+            rowIndex={2}
             colIndex={0}
             style={styles.restartBtn} 
             onClick={handleRestartClick}
@@ -338,7 +471,7 @@ export default function PlayerPage() {
           {/* Capsule-style Continue/Pause Button */}
           <FocusableItem 
             id="player-play"
-            rowIndex={1}
+            rowIndex={2}
             colIndex={1}
             style={styles.playPauseBtn} 
             onClick={handlePlayPauseClick}
@@ -452,6 +585,21 @@ export default function PlayerPage() {
         }
         .hud-play-btn:active, .hud-restart-btn:active {
           transform: scale(0.95) !important;
+        }
+        .hud-stream-btn {
+          transition: transform 0.15s ease, background-color 0.15s ease !important;
+        }
+        .hud-stream-btn.focused, .hud-stream-btn:hover {
+          background-color: rgba(255, 255, 255, 0.25) !important;
+          border-color: rgba(255, 255, 255, 0.5) !important;
+          transform: scale(1.1) !important;
+        }
+        .hud-stream-menu-item {
+          transition: background-color 0.1s ease !important;
+        }
+        .hud-stream-menu-item.focused, .hud-stream-menu-item:hover {
+          background-color: rgba(255, 255, 255, 0.15) !important;
+          outline: none !important;
         }
         video {
           width: 100% !important;
@@ -672,6 +820,61 @@ const styles = {
     justifyContent: 'center',
     gap: '12px',
     cursor: 'pointer',
+  },
+  streamControlsRow: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '8px',
+    position: 'relative'
+  },
+  streamBtn: {
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(30, 30, 30, 0.75)',
+    border: '1.5px solid rgba(255, 255, 255, 0.12)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    backdropFilter: 'blur(10px)',
+  },
+  streamMenuPopover: {
+    position: 'absolute',
+    bottom: '60px',
+    left: 0,
+    backgroundColor: 'rgba(20, 20, 20, 0.95)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: '12px',
+    padding: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    minWidth: '240px',
+    maxHeight: '300px',
+    overflowY: 'auto',
+    boxShadow: '0 -4px 20px rgba(0,0,0,0.6)',
+    zIndex: 10002,
+    backdropFilter: 'blur(20px)',
+  },
+  streamMenuItem: {
+    padding: '10px 16px',
+    borderRadius: '8px',
+    color: '#fff',
+    fontSize: '18px',
+    fontFamily: "'Outfit', 'Inter', sans-serif",
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    backgroundColor: 'transparent',
+    border: '1.5px solid transparent'
+  },
+  streamMenuRadio: {
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%',
+    border: '2px solid #fff',
   },
   capsuleLabel: {
     fontSize: '24px',
