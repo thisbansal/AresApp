@@ -53,3 +53,16 @@ Smart TV System-on-Chips (SoCs) are severely CPU and GPU resource-constrained. U
 * **Restricted Transition Properties**: Never transition `all` properties. Explicitly list the properties to transition (ideally only `transform` and `opacity`).
   * **Good**: `transition: transform 0.12s ease, opacity 0.12s ease;`
   * **Bad**: `transition: all 0.25s ease;` (forces layout recalculations for every style property).
+
+
+## 3. Architecture & Session Tracking
+
+### LGUDID Persistence
+To maintain reliable Plex playback states across app restarts without creating ghost devices, the app fetches the hardware-level `LGUDID` via Luna DB8 (`luna://com.webos.service.sm`) at startup. This value persistently replaces any generated browser UUID and must be injected into every API request via the `X-Plex-Client-Identifier` header.
+
+### PlayQueue Synchronization
+Plex playback tracking requires strict synchronous flow control:
+1. **Prerequisite**: Stream playback MUST be blocked until a `POST /playQueues` request succeeds.
+2. **Queue ID Capture**: The response yields a `playQueueItemID`.
+3. **Timeline Sync**: The `playQueueItemID` MUST be attached to every `/:/timeline` ping.
+4. **App Exit**: On unmount, a final `state=stopped` ping is dispatched via `navigator.sendBeacon` to guarantee the Plex server logs the precise exit timestamp before the WebOS application context is fully destroyed.
