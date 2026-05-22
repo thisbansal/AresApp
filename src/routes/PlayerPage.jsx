@@ -297,15 +297,9 @@ export default function PlayerPage() {
           `&X-Plex-Client-Identifier=${encodeURIComponent(PLEX_CONFIG.clientId)}` +
           `&X-Plex-Product=${encodeURIComponent(PLEX_CONFIG.product)}` +
           `&X-Plex-Device=${encodeURIComponent(PLEX_CONFIG.device)}` +
-          `&X-Plex-Platform=WebOS` +
+          `&X-Plex-Platform=Chrome` +
           `&X-Plex-Version=${encodeURIComponent(PLEX_CONFIG.version)}` +
           `&X-Plex-Token=${serverInfo.token}`
-
-        try {
-          const decisionRes = await fetch(`${serverInfo.uri}/video/:/transcode/universal/decision?${params}`)
-          const decisionText = await decisionRes.text()
-          console.log('[Transcode Decision]', decisionText)
-        } catch (e) {}
 
         const hlsUrl = `${serverInfo.uri}/video/:/transcode/universal/start.m3u8?${params}`
         
