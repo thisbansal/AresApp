@@ -32,6 +32,7 @@ export default function PlayerPage() {
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
   const [availableStreams, setAvailableStreams] = useState([])
   const [partId, setPartId] = useState(null)
+  const [partKey, setPartKey] = useState(null)
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
 
   // HUD Visibility & Interaction State
@@ -98,7 +99,19 @@ export default function PlayerPage() {
         }
 
         setPartId(part.id)
-        setAvailableStreams(part.streams || [])
+        setPartKey(part.key)
+        
+        // Ensure at least one stream is selected per type for UI highlighting
+        let streams = part.streams || []
+        ;[1, 2].forEach(type => {
+          const typeStreams = streams.filter(s => s.streamType === type)
+          if (typeStreams.length > 0 && !typeStreams.some(s => s.selected)) {
+            const defaultStream = typeStreams.find(s => s.default) || typeStreams[0]
+            if (defaultStream) defaultStream.selected = true
+          }
+        })
+        
+        setAvailableStreams(streams)
         const absoluteUrl = `${serverInfo.uri}${part.key}?X-Plex-Token=${serverInfo.token}`
         setStreamUrl(absoluteUrl)
       } catch (err) {
@@ -210,7 +223,7 @@ export default function PlayerPage() {
   }
 
   const handleStreamSelect = async (streamType, streamId) => {
-    if (!partId) return
+    if (!partId || !partKey) return
     triggerHUD()
     const videoEl = videoRef.current || document.querySelector('video')
     const currentPos = videoEl ? videoEl.currentTime : 0
@@ -232,14 +245,48 @@ export default function PlayerPage() {
     
     if (streamType === 1) return // Video stream selection is informational or handled differently
 
+    // Try native HTML5 track switching first (Instant, no reload)
+    let switchedNatively = false
+    try {
+      if (streamType === 2 && videoEl && videoEl.audioTracks && videoEl.audioTracks.length > 0) {
+        const audioStreams = availableStreams.filter(s => s.streamType === 2)
+        const trackIndex = audioStreams.findIndex(s => s.id === streamId)
+        if (trackIndex !== -1 && trackIndex < videoEl.audioTracks.length) {
+          for (let i = 0; i < videoEl.audioTracks.length; i++) {
+            videoEl.audioTracks[i].enabled = (i === trackIndex)
+          }
+          switchedNatively = true
+        }
+      }
+      if (streamType === 3 && videoEl && videoEl.textTracks && videoEl.textTracks.length > 0) {
+        const subtitleStreams = availableStreams.filter(s => s.streamType === 3)
+        const trackIndex = streamId === 0 ? -1 : subtitleStreams.findIndex(s => s.id === streamId)
+        if (streamId === 0 || (trackIndex !== -1 && trackIndex < videoEl.textTracks.length)) {
+          for (let i = 0; i < videoEl.textTracks.length; i++) {
+            videoEl.textTracks[i].mode = (i === trackIndex) ? 'showing' : 'disabled'
+          }
+          switchedNatively = true
+        }
+      }
+    } catch (e) {
+      console.warn('Native track switching failed', e)
+    }
+
     const success = await setStreamSelection(serverInfo.uri, serverInfo.token, partId, audioId, subtitleId)
     if (success) {
+      if (switchedNatively) {
+        useNotificationStore.getState().addNotification('Track switched natively', { level: 'info' })
+        return
+      }
+
+      // Fallback: Reload via HLS Transcode to force the new track from Plex, and save offset!
+      setMetaDetails(prev => ({ ...prev, viewOffset: currentPos * 1000 }))
       setLoading(true)
+      
       setTimeout(() => {
-        setStreamUrl(prev => {
-          const base = prev.split('&_t=')[0]
-          return `${base}&_t=${Date.now()}`
-        })
+        const metadataPath = `/library/metadata/${ratingKey}`
+        const hlsUrl = `${serverInfo.uri}/video/:/transcode/universal/start.m3u8?path=${encodeURIComponent(metadataPath)}&mediaIndex=0&partIndex=0&protocol=hls&fastSeek=1&directPlay=0&directStream=1&subtitleSize=100&audioBoost=100&session=webos-${Date.now()}&X-Plex-Token=${serverInfo.token}`
+        setStreamUrl(hlsUrl)
         setTimeout(() => {
           if (videoRef.current) {
             videoRef.current.currentTime = currentPos
