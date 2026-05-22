@@ -176,6 +176,7 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
           displayTitle: s.displayTitle,
           extendedDisplayTitle: s.extendedDisplayTitle,
           selected: !!s.selected,
+          default: !!s.default,
           channels: s.channels,
           bitrate: s.bitrate
         })) || []
