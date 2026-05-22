@@ -90,6 +90,8 @@ export const setStreamSelection = async (serverUrl, token, partId, audioStreamID
 
     if (params.toString() === '') return true // nothing to update
 
+    params.append('allParts', '1')
+
     const response = await plexBridge.request(
       `/library/parts/${partId}?${params.toString()}`,
       { method: 'PUT' },
