@@ -1,10 +1,10 @@
 // KeyboardHandler.jsx
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFocusStore } from '../../stores/FocusStore';
+import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
 
 export function KeyboardHandler() {
-  const { navigate, focusedId, itemsRef, showExitDialog, setShowExitDialog } = useFocusStore();
+  const { navigate: spatialNavigate, showExitDialog, setShowExitDialog } = useSpatialNavigation();
   const navigateReactRouter = useNavigate();
 
   useEffect(() => {
@@ -24,14 +24,16 @@ export function KeyboardHandler() {
           e.preventDefault();
           e.stopPropagation();
 
-          const currentFocus = useFocusStore.getState().focusedId;
+          const activeEl = document.activeElement;
+          const currentId = activeEl?.id || '';
 
           if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
             // Toggle focus state between Cancel and Yes buttons
-            const nextFocus = currentFocus === 'exit-exit' ? 'exit-cancel' : 'exit-exit';
-            useFocusStore.setState({ focusedId: nextFocus, lastRemoteAction: Date.now() });
+            const nextId = currentId === 'exit-exit' ? 'exit-cancel' : 'exit-exit';
+            const nextEl = document.getElementById(nextId);
+            if (nextEl) nextEl.focus();
           } else if (e.key === 'Enter' || e.key === ' ') {
-            if (currentFocus === 'exit-exit') {
+            if (currentId === 'exit-exit') {
               console.log('[ExitDialog] Confirmed exit. Shutting application down.');
               if (window.close) window.close();
               if (window.webOS && window.webOS.toApp) window.webOS.toApp('close');
@@ -78,8 +80,13 @@ export function KeyboardHandler() {
         if (isLoginRoute || isServerSelectRoute || isUserSelectRoute || isHomeRoute) {
           console.log('[AUTH FLOW] Back button triggered on entry/exit route. Showing global ExitDialog.');
           setShowExitDialog(true);
+          // Focus the cancel button after a brief delay to let modal render
+          setTimeout(() => {
+             const cancelBtn = document.getElementById('exit-cancel');
+             if (cancelBtn) cancelBtn.focus();
+          }, 100);
         } else if (hash.includes('/play') || path.includes('/play')) {
-          // Let video player internal back capture handles it
+          // Let video player internal back capture handle it
           return;
         } else {
           // 2. If in-between (e.g. user-select), naturally redirect to the previous route (traverse back in react router history)
@@ -94,36 +101,32 @@ export function KeyboardHandler() {
         return;
       }
 
+      // Spatial Navigation
       switch (e.key) {
         case 'ArrowLeft':
           e.preventDefault();
-          navigate('left');
+          spatialNavigate('left');
           break;
         case 'ArrowRight':
           e.preventDefault();
-          navigate('right');
+          spatialNavigate('right');
           break;
         case 'ArrowUp':
           e.preventDefault();
-          navigate('up');
+          spatialNavigate('up');
           break;
         case 'ArrowDown':
           e.preventDefault();
-          navigate('down');
+          spatialNavigate('down');
           break;
-        case 'Enter':
-          e.preventDefault();
-          const item = itemsRef.get(focusedId);
-          if (item) {
-            item.element.click();
-          }
-          break;
+        // Enter and Space are naturally handled by the browser on focused buttons/links, 
+        // but we handle them natively in useFocusable as well.
       }
     };
 
     window.addEventListener('keydown', handleKeyDown, true); // Use capture phase so we override routing and focus strictly
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [navigate, navigateReactRouter, focusedId, itemsRef, showExitDialog, setShowExitDialog]);
+  }, [navigateReactRouter, spatialNavigate, showExitDialog, setShowExitDialog]);
 
   return null;
 }

@@ -8,6 +8,7 @@ import { SystemToaster } from './components/navigational/SystemToaster'
 import { useServerStore } from './stores/serverStore'
 import { useAppStore } from './stores/AppStore'
 import { plexBridge } from './services/plex/plexBridge'
+import { SpatialNavigationProvider } from './contexts/SpatialNavigationContext'
 
 import AuthRoute from './pages/Auth'
 import LoginPage from './routes/LoginPage'
@@ -56,6 +57,7 @@ function App() {
 
   return (
     <WebOSInputProvider>
+
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: scale(0.98); }
@@ -68,10 +70,11 @@ function App() {
         }
       `}</style>
 
-      <KeyboardHandler />
-      <ExitDialog />
-      <EdgeScrollTriggers />
-      <SystemToaster />
+      <SpatialNavigationProvider>
+        <KeyboardHandler />
+        <ExitDialog />
+        <EdgeScrollTriggers />
+        <SystemToaster />
 
       <div className="app">
         <Routes>
@@ -160,6 +163,7 @@ function App() {
           </div>
         </div>
       )}
+      </SpatialNavigationProvider>
     </WebOSInputProvider>
   )
 }

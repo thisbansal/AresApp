@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useFocusStore } from '../stores/FocusStore'
+import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 
 /**
@@ -33,6 +33,8 @@ export function usePlayerControls({
   seekTimeoutRef,
   hudTimeoutRef
 }) {
+  const { navigate: spatialNavigate } = useSpatialNavigation()
+
   useEffect(() => {
     const getVideoElement = () => {
       return videoRef.current || document.querySelector('video')
@@ -60,7 +62,6 @@ export function usePlayerControls({
             if (document.activeElement) {
               document.activeElement.blur()
             }
-            useFocusStore.setState({ focusedId: null })
             if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
           } else {
             // Exit page only if HUD is already hidden
@@ -97,7 +98,8 @@ export function usePlayerControls({
           ) {
             e.preventDefault()
             triggerHUD()
-            useFocusStore.setState({ focusedId: 'player-play', lastRemoteAction: Date.now() })
+            const playBtn = document.getElementById('player-play')
+            if (playBtn) playBtn.focus()
             return
           }
         }
@@ -116,7 +118,8 @@ export function usePlayerControls({
               if (videoEl) {
                 videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
                 useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
-                useFocusStore.setState({ focusedId: 'player-timeline', lastRemoteAction: Date.now() })
+                const tl = document.getElementById('player-timeline')
+                if (tl) tl.focus()
               }
               break
             case 'ArrowRight':
@@ -124,27 +127,24 @@ export function usePlayerControls({
               if (videoEl) {
                 videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 30)
                 useNotificationStore.getState().addNotification('Seek +30s', { level: 'info' })
-                useFocusStore.setState({ focusedId: 'player-timeline', lastRemoteAction: Date.now() })
+                const tl = document.getElementById('player-timeline')
+                if (tl) tl.focus()
               }
               break
             case 'ArrowUp':
               e.preventDefault()
-              useFocusStore.setState({ lastRemoteAction: Date.now() })
-              useFocusStore.getState().navigate('up')
+              spatialNavigate('up')
               break
             case 'ArrowDown':
               e.preventDefault()
-              useFocusStore.setState({ lastRemoteAction: Date.now() })
-              useFocusStore.getState().navigate('down')
+              spatialNavigate('down')
               break
             case 'Enter':
             case ' ':
               e.preventDefault()
-              useFocusStore.setState({ lastRemoteAction: Date.now() })
-              const focusedId = useFocusStore.getState().focusedId
-              const item = useFocusStore.getState().itemsRef.get(focusedId)
-              if (item && item.element) {
-                item.element.click()
+              const activeEl = document.activeElement
+              if (activeEl && activeEl.tagName !== 'BODY') {
+                activeEl.click()
               } else {
                 // Fallback direct toggle
                 if (videoEl.paused) {

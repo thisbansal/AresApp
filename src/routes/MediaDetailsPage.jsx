@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useActiveServer } from '../hooks/useActiveServer'
 import { getMetadata, formatDuration } from '../services/plex/plexContentService'
-import { useFocusStore } from '../stores/FocusStore'
+import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
 
 import MovieDetails from '../components/media/MovieDetails'
 import ShowDetails from '../components/media/ShowDetails'
@@ -41,6 +41,7 @@ function MediaDetailsPage() {
   const [item, setItem] = useState(stateItem)
   const [metadataLoaded, setMetadataLoaded] = useState(false)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
+  const { navigationMode, setNavigationMode, lastRemoteActionRef } = useSpatialNavigation()
 
   const [playHandler, setPlayHandler] = useState(null)
 
@@ -51,15 +52,14 @@ function MediaDetailsPage() {
   // Global Input Locking & Mode Management on Details view
   useEffect(() => {
     const handleGlobalMouseMove = () => {
-      const { navigationMode } = useFocusStore.getState()
       if (navigationMode !== 'cursor') {
-        useFocusStore.setState({ navigationMode: 'cursor' })
+        setNavigationMode('cursor')
       }
     }
 
     const handleGlobalWheel = () => {
       // Wheel use locks out D-pad focus auto-scroll to prevent fighting
-      useFocusStore.setState({ lastRemoteAction: Date.now() })
+      lastRemoteActionRef.current = Date.now()
       if (window.lockVerticalScroll) {
         window.lockVerticalScroll()
       }
