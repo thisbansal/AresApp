@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useFocusStore } from '../stores/FocusStore'
 
 /**
  * Custom hook to manage the Player's HUD overlay visibility, timeouts, and system pointer integration.
@@ -15,8 +14,8 @@ export function usePlayerHUD(isLoading, isDragging, isScrolling) {
 
   // Auto-clear focus when HUD hides
   useEffect(() => {
-    if (!showHUD) {
-      useFocusStore.setState({ focusedId: null })
+    if (!showHUD && document.activeElement) {
+      document.activeElement.blur()
     }
   }, [showHUD])
 

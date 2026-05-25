@@ -8,7 +8,6 @@ import { useEpisodes } from '../../hooks/useEpisodes'
 import { FallbackImage } from './FallbackImage'
 import { findTargetSeason } from '../../utils/seasonSelector'
 import { useBrowserStore } from '../../stores/browserStore'
-import { useFocusStore } from '../../stores/FocusStore'
 
 export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterPlay }) {
   const navigate = useNavigate()
@@ -20,7 +19,6 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
   const toggleWatched = useToggleWatched(serverInfo)
 
   const dropdownRef = React.useRef(null)
-  const focusedId = useFocusStore((state) => state.focusedId)
 
   // 2. Click outside listener to collapse dropdown
   useEffect(() => {
@@ -42,10 +40,18 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
   useEffect(() => {
     if (!isDropdownOpen) return
 
-    if (focusedId && focusedId !== 'season-dropdown-btn' && !focusedId.startsWith('season-option-')) {
-      setIsDropdownOpen(false)
+    const handleFocusIn = (e) => {
+      const activeEl = e.target;
+      if (activeEl && activeEl.id !== 'season-dropdown-btn' && !(activeEl.id && activeEl.id.startsWith('season-option-'))) {
+        setIsDropdownOpen(false)
+      }
     }
-  }, [focusedId, isDropdownOpen])
+
+    window.addEventListener('focusin', handleFocusIn)
+    return () => {
+      window.removeEventListener('focusin', handleFocusIn)
+    }
+  }, [isDropdownOpen])
 
   // 1. Fetch Seasons
   useEffect(() => {

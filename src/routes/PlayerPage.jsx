@@ -4,7 +4,6 @@ import { getMetadata } from '../services/plex/plexContentService'
 import { createPlayQueue, setStreamSelection } from '../services/plex/plexPlaybackService'
 import { useActiveServer } from '../hooks/useActiveServer'
 import { useNotificationStore } from '../services/notifications/notificationStore'
-import { useFocusStore } from '../stores/FocusStore'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
 import { PLEX_CONFIG } from '../config/app'
@@ -280,30 +279,14 @@ export default function PlayerPage() {
         return
       }
 
-      // Fallback: Reload via HLS Transcode to force the new track from Plex, and save offset!
+      // Reload the direct play stream to force the new track from Plex, and restore offset
       setMetaDetails(prev => ({ ...prev, viewOffset: currentPos * 1000 }))
       setLoading(true)
       
-      setTimeout(async () => {
-        const metadataPath = `/library/metadata/${ratingKey}`
-        const params = `path=${encodeURIComponent(metadataPath)}` +
-          `&mediaIndex=0` +
-          `&partIndex=0` +
-          `&protocol=hls` +
-          `&fastSeek=1` +
-          `&directPlay=0` +
-          `&directStream=1` +
-          `&session=webos-${Date.now()}` +
-          `&X-Plex-Client-Identifier=${encodeURIComponent(PLEX_CONFIG.clientId)}` +
-          `&X-Plex-Product=${encodeURIComponent(PLEX_CONFIG.product)}` +
-          `&X-Plex-Device=${encodeURIComponent(PLEX_CONFIG.device)}` +
-          `&X-Plex-Platform=Chrome` +
-          `&X-Plex-Version=${encodeURIComponent(PLEX_CONFIG.version)}` +
-          `&X-Plex-Token=${serverInfo.token}`
-
-        const hlsUrl = `${serverInfo.uri}/video/:/transcode/universal/start.m3u8?${params}`
-        
-        setStreamUrl(hlsUrl)
+      setTimeout(() => {
+        // Append a timestamp to the URL to force React/Video.js to reload the stream since the base URL didn't change
+        const absoluteUrl = `${serverInfo.uri}${partKey}?X-Plex-Token=${serverInfo.token}&t=${Date.now()}`
+        setStreamUrl(absoluteUrl)
         setTimeout(() => {
           if (videoRef.current) {
             videoRef.current.currentTime = currentPos

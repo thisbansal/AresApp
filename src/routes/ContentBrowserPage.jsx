@@ -13,7 +13,7 @@ import { isMediaWatched } from '../services/plex/plexWatchedService'
 import { useToggleWatched } from '../hooks/useToggleWatched'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useBrowserStore } from '../stores/browserStore'
-import { useFocusStore } from '../stores/FocusStore'
+import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
 import { useServerStore } from '../stores/serverStore'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
@@ -32,6 +32,7 @@ function ContentBrowserPage() {
   // State
   const [serverInfo, setServerInfo] = useState(null)
   const [libraries, setLibraries] = useState([])
+  const { navigationMode, setNavigationMode, lastRemoteActionRef } = useSpatialNavigation()
   const activeTab = useBrowserStore((state) => state.activeTab)
   const setActiveTab = useBrowserStore((state) => state.setActiveTab)
 
@@ -343,15 +344,14 @@ function ContentBrowserPage() {
   // Global Input Locking & Mode Management
   useEffect(() => {
     const handleGlobalMouseMove = () => {
-      const { navigationMode } = useFocusStore.getState()
       if (navigationMode !== 'cursor') {
-        useFocusStore.setState({ navigationMode: 'cursor' })
+        setNavigationMode('cursor')
       }
     }
 
     const handleGlobalWheel = () => {
       // Wheel use should also lock out D-pad focus effects temporarily
-      useFocusStore.setState({ lastRemoteAction: Date.now() })
+      lastRemoteActionRef.current = Date.now()
     }
 
     window.addEventListener('mousemove', handleGlobalMouseMove)

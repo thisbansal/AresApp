@@ -1,10 +1,9 @@
 import React from 'react'
-import { useFocusStore } from '../../stores/FocusStore'
+import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext'
 import { FocusableItem } from './FocusableItem'
 
 export function ExitDialog() {
-  const showExitDialog = useFocusStore(state => state.showExitDialog)
-  const setShowExitDialog = useFocusStore(state => state.setShowExitDialog)
+  const { showExitDialog, setShowExitDialog } = useSpatialNavigation()
 
   const handleExitApp = () => {
     console.log('[ExitDialog] Closing application...')
