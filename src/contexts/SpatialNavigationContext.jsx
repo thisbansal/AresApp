@@ -75,6 +75,19 @@ export const SpatialNavigationProvider = ({ children }) => {
     let closestNode = null;
     let minDistance = Infinity;
 
+    // Detect if the active element is inside a specific scroll/layout container
+    let activeContainer = null;
+    let activeContainerSelector = null;
+    const containers = ['.row-items', '.grid', '.nav-scroll-container', '.numpad'];
+    for (const selector of containers) {
+      const container = activeElement.closest(selector);
+      if (container) {
+        activeContainer = container;
+        activeContainerSelector = selector;
+        break;
+      }
+    }
+
     nodesRef.current.forEach((node, id) => {
       if (node === activeElement) return;
       if (!document.body.contains(node)) return;
@@ -82,6 +95,24 @@ export const SpatialNavigationProvider = ({ children }) => {
       const nodeRect = node.getBoundingClientRect();
       // Only consider elements that have layout
       if (nodeRect.width === 0 && nodeRect.height === 0) return;
+
+      // Restrict horizontal (left/right) navigation to keep focus within its active row/grid row
+      if (direction === 'left' || direction === 'right') {
+        if (activeContainer) {
+          // Must belong to the exact same parent container (no row wrapping/drifting)
+          if (node.closest(activeContainerSelector) !== activeContainer) {
+            return;
+          }
+          // For grids, must align horizontally on the same grid line
+          if (activeContainerSelector === '.grid') {
+            const cy1 = activeRect.top + activeRect.height / 2;
+            const cy2 = nodeRect.top + nodeRect.height / 2;
+            if (Math.abs(cy1 - cy2) > 60) {
+              return;
+            }
+          }
+        }
+      }
 
       const distance = getDistance(activeRect, nodeRect, direction);
       if (distance < minDistance) {
