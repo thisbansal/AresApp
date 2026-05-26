@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 /**
  * Custom hook to manage the Player's HUD overlay visibility, timeouts, and system pointer integration.
- * 
+ *
  * @param {boolean} isLoading - Whether the player is currently loading.
  * @param {boolean} isDragging - Whether the user is currently dragging the timeline knob.
  * @param {boolean} isScrolling - Whether the user is currently fluid-scrolling via mouse wheel.
@@ -40,18 +40,23 @@ export function usePlayerHUD(isLoading, isDragging, isScrolling) {
     }
   }, [isLoading])
 
-  // Trigger HUD presentation and reset the inactivity fadeout timeout
   const triggerHUD = useCallback(() => {
     setShowHUD(true)
     if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
-    
+
     hudTimeoutRef.current = setTimeout(() => {
-      // Avoid hiding HUD while actively dragging or scrolling
-      if (!isDragging && !isScrolling) {
+      // Never hide while actively dragging or scrolling
+      if (isDraggingRef.current || isScrollingRef.current) return
+
+      if (cursorActiveRef.current) {
+        // Cursor still on screen — defer hiding until cursor goes idle
+        hudExpiredRef.current = true
+      } else {
         setShowHUD(false)
+        setShouldPause(0)
       }
     }, 4000)
-  }, [isDragging, isScrolling])
+  }, []) // stable — all checks via refs
 
   // Cleanup timeout on unmount
   useEffect(() => {

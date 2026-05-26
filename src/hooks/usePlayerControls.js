@@ -1,10 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 
 /**
  * Custom hook to abstract all player input controls (D-Pad, Magic Remote Wheel, Return keys).
- * 
+ *
  * @param {Object} params
  * @param {React.RefObject} params.videoRef - HTML5 Video reference.
  * @param {Function} params.navigate - React Router navigation function.
@@ -34,18 +34,58 @@ export function usePlayerControls({
   hudTimeoutRef
 }) {
   const { navigate: spatialNavigate } = useSpatialNavigation()
+  const [shouldPause, setShouldPause] = useState(1)
+
+  // Mirror volatile state into refs so listeners stay stable and never go stale
+  const showHUDRef = useRef(showHUD)
+  const isScrollingRef = useRef(isScrolling)
+  const durationRef = useRef(duration)
+  const shouldPauseRef = useRef(shouldPause)
+
+  // Cursor presence tracking
+  const cursorActiveRef = useRef(false)
+  const hudExpiredRef = useRef(false)
+  const cursorTimeoutRef = useRef(null)
+
+  useEffect(() => { showHUDRef.current = showHUD }, [showHUD])
+  useEffect(() => { isScrollingRef.current = isScrolling }, [isScrolling])
+  useEffect(() => { durationRef.current = duration }, [duration])
+  useEffect(() => { shouldPauseRef.current = shouldPause }, [shouldPause])
 
   useEffect(() => {
     const getVideoElement = () => {
       return videoRef.current || document.querySelector('video')
     }
 
+    // Shared helper: hide HUD and reset state
+    const hideHUD = () => {
+      setShowHUD(false)
+      setShouldPause(0)
+      hudExpiredRef.current = false
+    }
+
+    const handleMouseMove = () => {
+      cursorActiveRef.current = true
+
+      // Reset cursor idle timer on every move
+      if (cursorTimeoutRef.current) clearTimeout(cursorTimeoutRef.current)
+      cursorTimeoutRef.current = setTimeout(() => {
+        cursorActiveRef.current = false
+        cursorTimeoutRef.current = null
+
+        // Cursor just went idle — if HUD timeout already expired, hide now
+        if (hudExpiredRef.current) {
+          hideHUD()
+        }
+      }, 3000)
+    }
+
     const handleKeyDown = (e) => {
       // Remote Back Key, Escape, Backspace, webOS keycode 461, Samsung keycode 10009
       if (
-        e.key === 'Escape' || 
-        e.key === 'Backspace' || 
-        e.key === 'BrowserBack' || 
+        e.key === 'Escape' ||
+        e.key === 'Backspace' ||
+        e.key === 'BrowserBack' ||
         e.keyCode === 461 ||
         e.keyCode === 10009 ||
         e.keyCode === 27 ||
@@ -53,10 +93,10 @@ export function usePlayerControls({
       ) {
         e.preventDefault()
         e.stopPropagation()
-        
+
         // Single fire on keydown event to prevent double navigations
         if (e.type === 'keydown') {
-          if (showHUD) {
+          if (showHUDRef.current) {
             // Hide controls overlay if active instead of exiting the page!
             setShowHUD(false)
             if (document.activeElement) {
@@ -73,7 +113,7 @@ export function usePlayerControls({
 
       // Display HUD on any other button click (except Enter/Space which toggles play/pause directly without waking the HUD)
       if (e.type === 'keydown') {
-        if (!showHUD) {
+        if (!showHUDRef.current) {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             const videoEl = getVideoElement()
@@ -111,7 +151,7 @@ export function usePlayerControls({
       if (e.type === 'keydown') {
         // If HUD is visible, let D-pad ArrowUp/ArrowDown navigate vertical buttons,
         // and let ArrowLeft/ArrowRight skip playback directly.
-        if (showHUD) {
+        if (showHUDRef.current) {
           switch (e.key) {
             case 'ArrowLeft':
               e.preventDefault()
@@ -140,7 +180,7 @@ export function usePlayerControls({
               spatialNavigate('down')
               break
             case 'Enter':
-            case ' ':
+            case ' ': {
               e.preventDefault()
               const activeEl = document.activeElement
               if (activeEl && activeEl.tagName !== 'BODY') {
@@ -156,6 +196,7 @@ export function usePlayerControls({
                 }
               }
               break
+            }
             default:
               break
           }
@@ -167,8 +208,13 @@ export function usePlayerControls({
 
     const handleWheel = (e) => {
       e.preventDefault()
-      if (!showHUD) return
-      
+      triggerHUD();
+      if (!showHUDRef.current) return
+      if (shouldPauseRef.current < 2) {
+        setShouldPause(p => p + 1)
+        return
+      }
+
       const videoEl = getVideoElement()
       if (!videoEl) return
 
@@ -177,15 +223,18 @@ export function usePlayerControls({
 
       // Calculate seek time based on wheel delta: precisely 1 second per tick!
       const seekAmount = e.deltaY < 0 ? 1 : -1
-      
+
       // Pause video instantly as scrolling starts
-      if (videoEl && !videoEl.paused && !isScrolling) {
+      if (!videoEl.paused && !isScrollingRef.current) {
         videoEl.pause()
       }
 
       setIsScrolling(true)
 
-      const newTime = Math.max(0, Math.min(duration || videoEl.duration || 0, videoEl.currentTime + seekAmount))
+      const newTime = Math.max(
+        0,
+        Math.min(durationRef.current || videoEl.duration || 0, videoEl.currentTime + seekAmount)
+      )
 
       // Real-time scrubbing: update video frame immediately!
       videoEl.currentTime = newTime
@@ -196,29 +245,30 @@ export function usePlayerControls({
       seekTimeoutRef.current = setTimeout(() => {
         setIsScrolling(false)
         seekTimeoutRef.current = null
-        
+
         // Resume video playback once scroll seek completes
         videoEl.play().catch(err => console.error('Play after scroll seek failed:', err))
 
-        // Hide HUD after 4 seconds of inactivity
-        if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
-        hudTimeoutRef.current = setTimeout(() => {
-          setShowHUD(false)
-        }, 4000)
+        // Let triggerHUD manage the timeout — it will set hudTimeoutRef internally
+        // and handleMouseMove will keep extending it while cursor is alive
+        triggerHUD()
       }, 500)
     }
 
-    // Register Back button capture listeners on window at highest capture-phase priority
+    // Register listeners on window at highest capture-phase priority
+    window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('keydown', handleKeyDown, true)
     window.addEventListener('keyup', handleKeyDown, true)
     window.addEventListener('wheel', handleWheel, { passive: false })
-    
+
     return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('keydown', handleKeyDown, true)
       window.removeEventListener('keyup', handleKeyDown, true)
-      window.removeEventListener('wheel', handleWheel)
+      window.removeEventListener('wheel', handleWheel, { passive: false })
       if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
       if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
+      if (cursorTimeoutRef.current) clearTimeout(cursorTimeoutRef.current)
     }
-  }, [navigate, isDragging, duration, isScrolling, showHUD])
+  }, [navigate]) // stable — all other state accessed via refs
 }

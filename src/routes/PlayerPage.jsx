@@ -100,7 +100,7 @@ export default function PlayerPage() {
 
         setPartId(part.id)
         setPartKey(part.key)
-        
+
         // Ensure at least one stream is selected per type for UI highlighting
         let streams = part.streams || []
         ;[1, 2].forEach(type => {
@@ -110,7 +110,7 @@ export default function PlayerPage() {
             if (defaultStream) defaultStream.selected = true
           }
         })
-        
+
         setAvailableStreams(streams)
         const absoluteUrl = `${serverInfo.uri}${part.key}?X-Plex-Token=${serverInfo.token}`
         setStreamUrl(absoluteUrl)
@@ -139,7 +139,7 @@ export default function PlayerPage() {
       const clickX = e.clientX - rect.left
       const percentage = Math.max(0, Math.min(1, clickX / rect.width))
       const newTime = percentage * duration
-      
+
       const videoEl = videoRef.current || document.querySelector('video')
       if (videoEl) {
         videoEl.currentTime = newTime
@@ -206,12 +206,12 @@ export default function PlayerPage() {
     e.preventDefault()
     setIsDragging(true)
     triggerHUD()
-    
+
     const rect = e.currentTarget.getBoundingClientRect()
     const clickX = e.clientX - rect.left
     const percentage = Math.max(0, Math.min(1, clickX / rect.width))
     const newTime = percentage * duration
-    
+
     const videoEl = videoRef.current || document.querySelector('video')
     if (videoEl && !videoEl.paused) {
       videoEl.pause()
@@ -230,19 +230,19 @@ export default function PlayerPage() {
 
     let audioId = ''
     let subtitleId = ''
-    
+
     if (streamType === 3) subtitleId = streamId
     if (streamType === 2) audioId = streamId
-    
+
     setAvailableStreams(prev => prev.map(s => {
       if (s.streamType === streamType) {
         return { ...s, selected: s.id === streamId }
       }
       return s
     }))
-    
+
     setActiveMenu('none')
-    
+
     if (streamType === 1) return // Video stream selection is informational or handled differently
 
     // Try native HTML5 track switching first (Instant, no reload)
@@ -282,7 +282,7 @@ export default function PlayerPage() {
       // Reload the direct play stream to force the new track from Plex, and restore offset
       setMetaDetails(prev => ({ ...prev, viewOffset: currentPos * 1000 }))
       setLoading(true)
-      
+
       setTimeout(() => {
         // Append a timestamp to the URL to force React/Video.js to reload the stream since the base URL didn't change
         const absoluteUrl = `${serverInfo.uri}${partKey}?X-Plex-Token=${serverInfo.token}&t=${Date.now()}`
@@ -331,10 +331,10 @@ export default function PlayerPage() {
 
       {/* Video.js Provider (Raw clean Video element completely removing default black skin overlays) */}
       <Player.Provider>
-        <Video 
+        <Video
           ref={videoRef}
-          src={streamUrl} 
-          playsInline 
+          src={streamUrl}
+          playsInline
           autoPlay
           controls={false}
           style={styles.video}
@@ -342,16 +342,16 @@ export default function PlayerPage() {
       </Player.Provider>
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
-      <div 
+      <div
         style={{
           ...styles.bottomGradient,
           opacity: showHUD ? 1 : 0,
           pointerEvents: showHUD ? 'auto' : 'none'
-        }} 
+        }}
       />
 
       {/* Custom Frameless smart-TV HUD Overlay */}
-      <div 
+      <div
         style={{
           ...styles.hudCard,
           opacity: showHUD ? 1 : 0,
@@ -381,7 +381,7 @@ export default function PlayerPage() {
               <polyline points="17 2 12 7 7 2"></polyline>
             </svg>
           </FocusableItem>
-          
+
           <FocusableItem
             id="player-stream-audio"
             rowIndex={0} colIndex={1}
@@ -396,7 +396,7 @@ export default function PlayerPage() {
               <line x1="18" y1="11" x2="18" y2="13"></line>
             </svg>
           </FocusableItem>
-          
+
           <FocusableItem
             id="player-stream-subtitle"
             rowIndex={0} colIndex={2}
@@ -412,10 +412,10 @@ export default function PlayerPage() {
               <line x1="7" y1="14" x2="17" y2="14"></line>
             </svg>
           </FocusableItem>
-          
+
           {/* Active Menu Popover */}
           {activeMenu !== 'none' && (
-            <div style={styles.streamMenuPopover}>
+            <div style={styles.streamMenuPopover} className="stream-menu-popover">
               {activeMenu === 'subtitle' && (
                 <FocusableItem
                   id={`stream-sub-none`}
@@ -453,7 +453,7 @@ export default function PlayerPage() {
         {/* Timeline Slider Track */}
         <div style={styles.timelineRow}>
           {/* Timeline starts flush from the left edge */}
-          <FocusableItem 
+          <FocusableItem
             id="player-timeline"
             rowIndex={1}
             colIndex={0}
@@ -465,24 +465,24 @@ export default function PlayerPage() {
             className="timeline-track"
           >
             <div style={styles.timelineVisualTrack} className="timeline-visual-track">
-              <div 
+              <div
                 style={{
                   ...styles.timelineFill,
                   width: `${progressPercent}%`
-                }} 
+                }}
               />
             </div>
-            <div 
+            <div
               style={{
                 ...styles.timelineKnob,
                 left: `${progressPercent}%`
-              }} 
+              }}
               className="timeline-knob"
             />
-            
+
             {/* Floating seek target tooltip bubble directly below knob - only visible during scroll wheel seek */}
             {isScrolling && (
-              <div 
+              <div
                 style={{
                   ...styles.knobTooltip,
                   left: `${progressPercent}%`
@@ -499,11 +499,11 @@ export default function PlayerPage() {
         {/* Playback Buttons Row */}
         <div style={styles.hudControls}>
           {/* Capsule-style Restart Button */}
-          <FocusableItem 
+          <FocusableItem
             id="player-restart"
             rowIndex={2}
             colIndex={0}
-            style={styles.restartBtn} 
+            style={styles.restartBtn}
             onClick={handleRestartClick}
             className="hud-restart-btn"
           >
@@ -516,11 +516,11 @@ export default function PlayerPage() {
           </FocusableItem>
 
           {/* Capsule-style Continue/Pause Button */}
-          <FocusableItem 
+          <FocusableItem
             id="player-play"
             rowIndex={2}
             colIndex={1}
-            style={styles.playPauseBtn} 
+            style={styles.playPauseBtn}
             onClick={handlePlayPauseClick}
             className="hud-play-btn"
           >
@@ -802,7 +802,7 @@ const styles = {
     transform: 'translate(-50%, -50%)', // Centered vertically
     boxShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 2px 8px rgba(0,0,0,0.5)', // Strong white outer glow
     pointerEvents: 'none',
-    transition: 'width 0.15s ease, height 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease',
+    // transition: 'width 0.15s ease, height 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease',
   },
   knobTooltip: {
     position: 'absolute',
@@ -813,7 +813,7 @@ const styles = {
     border: 'none', // Remove border completely
     padding: '0', // No padding needed for raw text
     color: '#ffffff', // Pure white text
-    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5)', // Strong drop shadow for high legibility
+    // textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5)', // Strong drop shadow for high legibility
     fontSize: '22px', // TV sized typography
     fontWeight: '600',
     fontFamily: "'Outfit', 'Inter', sans-serif",
@@ -833,8 +833,8 @@ const styles = {
     width: '60px',
     height: '60px',
     borderRadius: '50%',
-    backgroundColor: 'rgba(30, 30, 30, 0.75)',
-    border: '1.5px solid rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgb(30, 30, 30)',
+    border: '1.5px solid rgb(255, 255, 255)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -845,8 +845,8 @@ const styles = {
     boxSizing: 'border-box',
     padding: '14px 28px',
     borderRadius: '9999px', // Pill capsule shape
-    backgroundColor: 'rgba(20, 20, 20, 0.75)',
-    border: '1.5px solid rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgb(20, 20, 20)',
+    border: '1.5px solid rgb(255, 255, 255)',
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
@@ -859,8 +859,8 @@ const styles = {
     boxSizing: 'border-box',
     padding: '14px 28px',
     borderRadius: '9999px', // Pill capsule shape
-    backgroundColor: 'rgba(20, 20, 20, 0.75)',
-    border: '1.5px solid rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgb(20, 20, 20)',
+    border: '1.5px solid rgb(255, 255, 255)',
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
@@ -878,20 +878,18 @@ const styles = {
     width: '44px',
     height: '44px',
     borderRadius: '50%',
-    backgroundColor: 'rgba(30, 30, 30, 0.75)',
-    border: '1.5px solid rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgb(30, 30, 30)',
+    border: '1.5px solid rgb(255, 255, 255)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    backdropFilter: 'blur(10px)',
   },
   streamMenuPopover: {
     position: 'absolute',
     bottom: '60px',
     left: 0,
-    backgroundColor: 'rgba(20, 20, 20, 0.95)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgb(20, 20, 20)',
     borderRadius: '12px',
     padding: '8px',
     display: 'flex',
@@ -900,9 +898,9 @@ const styles = {
     minWidth: '240px',
     maxHeight: '300px',
     overflowY: 'auto',
-    boxShadow: '0 -4px 20px rgba(0,0,0,0.6)',
+    boxShadow: '0 -4px 20px rgb(0,0,0s)',
     zIndex: 10002,
-    backdropFilter: 'blur(20px)',
+    scrollbarWidth: 'none',
   },
   streamMenuItem: {
     padding: '10px 16px',
@@ -915,7 +913,6 @@ const styles = {
     alignItems: 'center',
     gap: '12px',
     backgroundColor: 'transparent',
-    border: '1.5px solid transparent'
   },
   streamMenuRadio: {
     width: '12px',
