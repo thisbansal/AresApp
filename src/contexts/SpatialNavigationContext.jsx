@@ -7,6 +7,7 @@ export const SpatialNavigationProvider = ({ children }) => {
   const [navigationMode, setNavigationMode] = useState('remote'); // 'remote' or 'cursor'
   const [showExitDialog, setShowExitDialog] = useState(false);
   const lastRemoteActionRef = useRef(0);
+  const lastNavDirectionRef = useRef(null);
 
   const registerNode = useCallback((id, node) => {
     nodesRef.current.set(id, node);
@@ -61,12 +62,13 @@ export const SpatialNavigationProvider = ({ children }) => {
   const navigate = useCallback((direction) => {
     setNavigationMode('remote');
     lastRemoteActionRef.current = Date.now();
+    lastNavDirectionRef.current = direction;
 
     const activeElement = document.activeElement;
     if (!activeElement || activeElement === document.body) {
       // If nothing is focused, focus the first registered node
       const firstNode = Array.from(nodesRef.current.values())[0];
-      if (firstNode) firstNode.focus();
+      if (firstNode) firstNode.focus({ preventScroll: true });
       return;
     }
 
@@ -90,7 +92,7 @@ export const SpatialNavigationProvider = ({ children }) => {
     });
 
     if (closestNode) {
-      closestNode.focus();
+      closestNode.focus({ preventScroll: true });
     }
   }, []);
 
@@ -102,7 +104,8 @@ export const SpatialNavigationProvider = ({ children }) => {
     setNavigationMode,
     showExitDialog,
     setShowExitDialog,
-    lastRemoteActionRef
+    lastRemoteActionRef,
+    lastNavDirectionRef
   };
 
   return (

@@ -18,30 +18,49 @@ export function WebOSInputProvider({ children }) {
       const diff = targetScroll.current - current;
 
       if (Math.abs(diff) > 0.5) {
+        window.isVerticalScrolling = true; // Lock horizontal scrolling
         scrollTarget.scrollTop = current + diff * 0.085;
         animationFrame.current = requestAnimationFrame(animate);
       } else {
         scrollTarget.scrollTop = targetScroll.current;
         animationFrame.current = null;
+        window.isVerticalScrolling = false; // Unlock horizontal scrolling
       }
     };
 
     const handleWheel = (e) => {
-      // Unlock scroll when wheel is used
-      isVerticalScrollLocked.current = false;
+      // Only intercept primarily vertical scrolling
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        
+        // If horizontal scrolling is active, block vertical scrolling
+        if (window.isHorizontalScrolling) {
+          return;
+        }
 
-      const scrollTarget = document.scrollingElement || document.documentElement;
+        // Unlock scroll when wheel is used
+        isVerticalScrollLocked.current = false;
+        
+        const scrollTarget = document.scrollingElement || document.documentElement;
 
-      targetScroll.current = Math.max(
-        0,
-        Math.min(
-          scrollTarget.scrollHeight - scrollTarget.clientHeight,
-          targetScroll.current + e.deltaY * 1.35
-        )
-      );
+        // Resync targetScroll if we aren't currently animating
+        // because native focus() might have moved the page!
+        if (!animationFrame.current) {
+           targetScroll.current = scrollTarget.scrollTop;
+        }
 
-      if (!animationFrame.current) {
-        animationFrame.current = requestAnimationFrame(animate);
+        targetScroll.current = Math.max(
+          0,
+          Math.min(
+            scrollTarget.scrollHeight - scrollTarget.clientHeight,
+            targetScroll.current + e.deltaY * 1.35
+          )
+        );
+
+        if (!animationFrame.current) {
+          window.isVerticalScrolling = true;
+          animationFrame.current = requestAnimationFrame(animate);
+        }
       }
     };
 
@@ -70,11 +89,11 @@ export function WebOSInputProvider({ children }) {
       isVerticalScrollLocked.current = false;
     };
 
-    window.addEventListener('wheel', handleWheel);
+    window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('wheel', handleWheel, { passive: false });
       window.removeEventListener('keydown', handleKeyDown);
       delete window.setScrollTarget;
       delete window.lockVerticalScroll;

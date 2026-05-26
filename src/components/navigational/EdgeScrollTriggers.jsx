@@ -7,8 +7,18 @@ export function EdgeScrollTriggers() {
   const canScrollRight = useRef(true);
 
   const scrollOneItem = (direction) => {
+    if (window.isVerticalScrolling || window.isHorizontalScrolling) return;
+
     if (direction === 'left' && !canScrollLeft.current) return;
     if (direction === 'right' && !canScrollRight.current) return;
+
+    window.isHorizontalScrolling = true;
+    if (window.horizontalScrollTimeout) clearTimeout(window.horizontalScrollTimeout);
+    window.horizontalScrollTimeout = setTimeout(() => {
+      window.isHorizontalScrolling = false;
+    }, 300);
+
+    console.log(`[EdgeScroll] Cursor hit ${direction} edge. Scrolling...`);
 
     if (direction === 'left') {
       canScrollLeft.current = false;

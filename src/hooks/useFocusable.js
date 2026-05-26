@@ -4,7 +4,7 @@ import { useSpatialNavigation } from '../contexts/SpatialNavigationContext';
 export function useFocusable({ id, onFocus, onBlur, onClick }) {
   const ref = useRef(null);
   const [focused, setFocused] = useState(false);
-  const { registerNode, unregisterNode, setNavigationMode, lastRemoteActionRef } = useSpatialNavigation();
+  const { registerNode, unregisterNode, setNavigationMode, lastRemoteActionRef, lastNavDirectionRef } = useSpatialNavigation();
 
   useEffect(() => {
     const node = ref.current;
@@ -21,39 +21,51 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
     if (onFocus) onFocus(e);
 
     // Auto-scroll logic if triggered by remote (not cursor)
+    // We check if the last action was a remote action.
+    if (Date.now() - lastRemoteActionRef.current > 500) {
+      // It's likely a cursor action (or at least, not a recent D-pad action)
+      // Do not auto-scroll the page vertically or horizontally to follow cursor focus!
+      return;
+    }
+
     // Wait for the next frame to ensure layout is updated
     requestAnimationFrame(() => {
       if (ref.current) {
-        // Vertical scroll handling (page level)
         const rect = ref.current.getBoundingClientRect();
-        const isVisible = rect.top >= 100 && rect.bottom <= window.innerHeight - 100;
+        
+        // Vertical scroll handling (page level)
+        // Only auto-center vertically if the user navigated UP or DOWN.
+        if (lastNavDirectionRef.current === 'up' || lastNavDirectionRef.current === 'down') {
+          const isVisible = rect.top >= 100 && rect.bottom <= window.innerHeight - 100;
 
-        if (!isVisible) {
-          const scrollTarget = document.scrollingElement || document.documentElement;
-          const targetScrollTop = scrollTarget.scrollTop + rect.top - (window.innerHeight / 2) + (rect.height / 2);
-          
-          if (window.setScrollTarget) {
-             window.setScrollTarget(targetScrollTop);
-          } else {
-             window.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+          if (!isVisible) {
+            const scrollTarget = document.scrollingElement || document.documentElement;
+            const targetScrollTop = scrollTarget.scrollTop + rect.top - (window.innerHeight / 2) + (rect.height / 2);
+            
+            if (window.setScrollTarget) {
+               window.setScrollTarget(targetScrollTop);
+            } else {
+               window.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+            }
           }
         }
 
         // Horizontal scroll handling (within row)
+        // Since we use preventScroll: true on focus(), we MUST always manually scroll horizontally
         const rowContainer = ref.current.closest('.row-items');
         if (rowContainer) {
           const containerRect = rowContainer.getBoundingClientRect();
           if (rect.left < containerRect.left) {
-            const scrollAmount = rect.left - containerRect.left - 20;
+            const scrollAmount = rect.left - containerRect.left - 45; // Include padding
             rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
           } else if (rect.right > containerRect.right) {
-            const scrollAmount = rect.right - containerRect.right + 20;
+            const scrollAmount = rect.right - containerRect.right + 45; // Include padding
             rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
           }
         }
       }
     });
-  }, [onFocus]);
+  }, [onFocus, lastRemoteActionRef, lastNavDirectionRef]);
 
   const handleBlur = useCallback((e) => {
     setFocused(false);
