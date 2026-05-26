@@ -20,8 +20,7 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
     setFocused(true);
     if (onFocus) onFocus(e);
 
-    // Wait for the next frame to ensure layout is updated
-    requestAnimationFrame(() => {
+    const adjustScroll = () => {
       if (ref.current) {
         const rect = ref.current.getBoundingClientRect();
         
@@ -48,16 +47,34 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
         const rowContainer = ref.current.closest('.row-items');
         if (rowContainer) {
           const containerRect = rowContainer.getBoundingClientRect();
-          if (rect.left < containerRect.left) {
-            const scrollAmount = rect.left - containerRect.left - 100; // Extra margin for scale-up
-            rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-          } else if (rect.right > containerRect.right) {
-            const scrollAmount = rect.right - containerRect.right + 120; // Extra margin for scale-up and alignment
-            rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+          if (window.isRepeatingKey) {
+            // Direct synchronous scrollLeft adjustments to prevent stale coordinate calculations during fast key repeat
+            if (rect.left < containerRect.left) {
+              const scrollAmount = rect.left - containerRect.left - 100;
+              rowContainer.scrollLeft += scrollAmount;
+            } else if (rect.right > containerRect.right) {
+              const scrollAmount = rect.right - containerRect.right + 120;
+              rowContainer.scrollLeft += scrollAmount;
+            }
+          } else {
+            // Smooth asynchronous scrolling for hover / single clicks
+            if (rect.left < containerRect.left) {
+              const scrollAmount = rect.left - containerRect.left - 100;
+              rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            } else if (rect.right > containerRect.right) {
+              const scrollAmount = rect.right - containerRect.right + 120;
+              rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            }
           }
         }
       }
-    });
+    };
+
+    if (window.isRepeatingKey) {
+      adjustScroll(); // Run synchronously for key repeats
+    } else {
+      requestAnimationFrame(adjustScroll); // Defer for single clicks/hovers to avoid layout thrashing
+    }
   }, [onFocus, lastRemoteActionRef, lastNavDirectionRef]);
 
   const handleBlur = useCallback((e) => {

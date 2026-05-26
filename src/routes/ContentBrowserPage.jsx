@@ -1310,6 +1310,7 @@ const styles = {
     margin: '-10px -45px 0 -45px', // Expand negative margins to screen edges to prevent early clipping
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
+    scrollSnapType: 'x mandatory',
     scrollBehavior: 'smooth',
   },
   grid: {
@@ -1325,7 +1326,9 @@ const styles = {
     borderRadius: '12px',
     overflow: 'hidden',
     flexShrink: 0,
+    scrollSnapAlign: 'start end',
     scrollMarginLeft: '45px',
+    scrollMarginRight: '120px',
   },
   poster: {
     width: '240px',
