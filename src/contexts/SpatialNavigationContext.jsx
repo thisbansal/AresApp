@@ -123,6 +123,25 @@ export const SpatialNavigationProvider = ({ children }) => {
 
     if (closestNode) {
       closestNode.focus({ preventScroll: true });
+    } else {
+      // Fallback: If we hit the boundary (no more items in that direction),
+      // scroll the horizontal row-items container to the absolute end/start.
+      if (direction === 'right' || direction === 'left') {
+        const activeContainer = activeElement.closest('.row-items');
+        if (activeContainer) {
+          if (direction === 'right') {
+            activeContainer.scrollTo({
+              left: activeContainer.scrollWidth - activeContainer.clientWidth,
+              behavior: 'smooth'
+            });
+          } else if (direction === 'left') {
+            activeContainer.scrollTo({
+              left: 0,
+              behavior: 'smooth'
+            });
+          }
+        }
+      }
     }
   }, []);
 
