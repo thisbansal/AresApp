@@ -73,13 +73,19 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
   }, [onBlur]);
 
   const handleMouseEnter = useCallback(() => {
+    // Block fake hover/mouseenter events if any scrolling is currently active.
+    // This stops stationary cursor hover triggers when a row scrolls under the cursor.
+    if (window.isVerticalScrolling || window.isVerticalScrollAnimating || window.isHorizontalScrolling) {
+      return;
+    }
+
     // Ignore hover if D-pad was used recently
     if (Date.now() - lastRemoteActionRef.current < 500) {
       return;
     }
     setNavigationMode('cursor');
     if (ref.current) {
-      ref.current.focus();
+      ref.current.focus({ preventScroll: true });
     }
   }, [setNavigationMode, lastRemoteActionRef]);
 

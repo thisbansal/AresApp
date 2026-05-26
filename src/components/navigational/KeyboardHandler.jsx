@@ -31,7 +31,7 @@ export function KeyboardHandler() {
             // Toggle focus state between Cancel and Yes buttons
             const nextId = currentId === 'exit-exit' ? 'exit-cancel' : 'exit-exit';
             const nextEl = document.getElementById(nextId);
-            if (nextEl) nextEl.focus();
+            if (nextEl) nextEl.focus({ preventScroll: true });
           } else if (e.key === 'Enter' || e.key === ' ') {
             if (currentId === 'exit-exit') {
               console.log('[ExitDialog] Confirmed exit. Shutting application down.');
@@ -83,7 +83,7 @@ export function KeyboardHandler() {
           // Focus the cancel button after a brief delay to let modal render
           setTimeout(() => {
              const cancelBtn = document.getElementById('exit-cancel');
-             if (cancelBtn) cancelBtn.focus();
+             if (cancelBtn) cancelBtn.focus({ preventScroll: true });
           }, 100);
         } else if (hash.includes('/play') || path.includes('/play')) {
           // Let video player internal back capture handle it
@@ -104,11 +104,6 @@ export function KeyboardHandler() {
       // Spatial Navigation directional locking
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-          // Only block horizontal navigation if page is actively scrolling vertically
-          if (window.isVerticalScrollAnimating) {
-            e.preventDefault();
-            return;
-          }
           window.isHorizontalScrolling = true;
           if (window.horizontalScrollTimeout) clearTimeout(window.horizontalScrollTimeout);
           window.horizontalScrollTimeout = setTimeout(() => {
