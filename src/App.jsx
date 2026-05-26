@@ -180,7 +180,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 99999,
-    animation: 'fadeIn 0.3s ease-out'
+    // animation: 'fadeIn 0.3s ease-out'
   },
   offlineCard: {
     width: '550px',
@@ -200,7 +200,7 @@ const styles = {
     borderRadius: '50%',
     backgroundColor: '#e5a93b',
     opacity: 0.15,
-    animation: 'pulse 2s infinite ease-in-out',
+    // animation: 'pulse 2s infinite ease-in-out',
     marginBottom: '24px'
   },
   offlineTitle: {
