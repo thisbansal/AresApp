@@ -73,10 +73,13 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
   }, [onBlur]);
 
   const handleMouseEnter = useCallback(() => {
-    // Block fake hover/mouseenter events if any scrolling is currently active.
-    // This stops stationary cursor hover triggers when a row scrolls under the cursor.
+    // Block fake hover/mouseenter events if scrolling is active,
+    // but only if the cursor has been stationary (no real mousemove in last 600ms).
+    // This allows active cursor hovers to focus during scroll wheel use.
     if (window.isVerticalScrolling || window.isVerticalScrollAnimating || window.isHorizontalScrolling) {
-      return;
+      if (!window.lastRealMouseMoveTime || Date.now() - window.lastRealMouseMoveTime > 600) {
+        return;
+      }
     }
 
     // Ignore hover if D-pad was used recently

@@ -445,6 +445,14 @@ function ContentBrowserPage() {
   }
 
   const handleNavClick = (navItem) => {
+    if (activeTab.type === navItem.type) {
+      if (navItem.type === 'library' && activeTab.data?.id === navItem.data?.id) {
+        return; // Ignore clicks on the already active library tab
+      }
+      if (navItem.type === 'home' || navItem.type === 'settings') {
+        return; // Ignore clicks on the already active home/settings tab
+      }
+    }
     setActiveTab(navItem)
   }
 
@@ -1302,7 +1310,6 @@ const styles = {
     margin: '-10px -45px 0 -45px', // Expand negative margins to screen edges to prevent early clipping
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
-    scrollSnapType: 'x mandatory',
     scrollBehavior: 'smooth',
   },
   grid: {
@@ -1318,7 +1325,6 @@ const styles = {
     borderRadius: '12px',
     overflow: 'hidden',
     flexShrink: 0,
-    scrollSnapAlign: 'start',
     scrollMarginLeft: '45px',
   },
   poster: {
