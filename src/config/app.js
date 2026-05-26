@@ -4,7 +4,10 @@ export const PLEX_CONFIG = {
   device: 'webOS TV',
   apiUrl: 'https://plex.tv/api/v2',
   appID: 'com.nookbyte.aresapp',
-  version: '1.0.0'
+  version: '1.0.0',
+  features: {
+    enableSmartTranscoding: true // Set to false to disable smart transcode fallback
+  }
 };
 
 export const KINDS = {

@@ -11,6 +11,7 @@ import { usePlayerHUD } from '../hooks/usePlayerHUD'
 import { useVideoMediaEvents } from '../hooks/useVideoMediaEvents'
 import { usePlayerControls } from '../hooks/usePlayerControls'
 import { formatTime, formatRemainingTime } from '../utils/timeUtils'
+import { plexStreamBuilder } from '../services/plex/plexStreamBuilder'
 import { mediaCodecService } from '../services/MediaCodecService'
 
 // Video.js React integration
@@ -114,9 +115,24 @@ export default function PlayerPage() {
         })
 
         setAvailableStreams(streams)
-        const absoluteUrl = `${serverInfo.uri}${part.key}?X-Plex-Token=${serverInfo.token}`
-        console.log(`stream URL IS: ${absoluteUrl}`)
-        setStreamUrl(absoluteUrl)
+
+        const structuredStreams = {
+          video: streams.filter(s => s.streamType === 1),
+          audio: streams.filter(s => s.streamType === 2),
+          subtitles: streams.filter(s => s.streamType === 3),
+        }
+        
+        const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
+        const optimalUrl = await plexStreamBuilder.getOptimalStreamUrl(
+          serverInfo,
+          part,
+          ratingKey,
+          capabilities,
+          metadata.viewOffset || 0
+        )
+        
+        console.log(`[PlayerPage] Initial Optimal Stream URL: ${optimalUrl}`)
+        setStreamUrl(optimalUrl)
       } catch (err) {
         console.error('[PlayerPage] Playback startup failure:', err)
         useNotificationStore.getState().addNotification(`Playback error: ${err.message}`, { level: 'error' })
@@ -137,10 +153,6 @@ export default function PlayerPage() {
     };
     
     setNumberOfStreams(streams);
-
-    if (availableStreams.length > 0) {
-      mediaCodecService.checkStreamCapabilities(streams);
-    }
   }, [availableStreams])
 
   useEffect (() => {
@@ -304,10 +316,31 @@ export default function PlayerPage() {
       setMetaDetails(prev => ({ ...prev, viewOffset: currentPos * 1000 }))
       setLoading(true)
 
-      setTimeout(() => {
-        // Append a timestamp to the URL to force React/Video.js to reload the stream since the base URL didn't change
-        const absoluteUrl = `${serverInfo.uri}${partKey}?X-Plex-Token=${serverInfo.token}&t=${Date.now()}`
-        setStreamUrl(absoluteUrl)
+      setTimeout(async () => {
+        const updatedStreams = availableStreams.map(s => {
+          if (s.streamType === streamType) return { ...s, selected: s.id === streamId }
+          return s
+        })
+        
+        const structuredStreams = {
+          video: updatedStreams.filter(s => s.streamType === 1),
+          audio: updatedStreams.filter(s => s.streamType === 2),
+          subtitles: updatedStreams.filter(s => s.streamType === 3),
+        }
+        const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
+        
+        let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
+          serverInfo,
+          { key: partKey }, // Mock part object for the builder
+          ratingKey,
+          capabilities,
+          currentPos * 1000
+        )
+        
+        // Append cache buster to force React/Video.js to reload the stream
+        newUrl += newUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`
+        
+        setStreamUrl(newUrl)
         setTimeout(() => {
           if (videoRef.current) {
             videoRef.current.currentTime = currentPos
@@ -354,12 +387,18 @@ export default function PlayerPage() {
       <Player.Provider>
         <Video
           ref={videoRef}
-          src={streamUrl}
           playsInline
           autoPlay
           controls={false}
           style={styles.video}
-        />
+        >
+          {streamUrl && (
+            <source 
+              src={streamUrl} 
+              type={streamUrl.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4'} 
+            />
+          )}
+        </Video>
       </Player.Provider>
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
