@@ -56,10 +56,10 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
         if (rowContainer) {
           const containerRect = rowContainer.getBoundingClientRect();
           if (rect.left < containerRect.left) {
-            const scrollAmount = rect.left - containerRect.left - 45; // Include padding
+            const scrollAmount = rect.left - containerRect.left - 100; // Extra margin for scale-up
             rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
           } else if (rect.right > containerRect.right) {
-            const scrollAmount = rect.right - containerRect.right + 45; // Include padding
+            const scrollAmount = rect.right - containerRect.right + 120; // Extra margin for scale-up and alignment
             rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
           }
         }
