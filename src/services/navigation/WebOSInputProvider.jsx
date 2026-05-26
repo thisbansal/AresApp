@@ -19,12 +19,14 @@ export function WebOSInputProvider({ children }) {
 
       if (Math.abs(diff) > 0.5) {
         window.isVerticalScrolling = true; // Lock horizontal scrolling
+        window.isVerticalScrollAnimating = true;
         scrollTarget.scrollTop = current + diff * 0.085;
         animationFrame.current = requestAnimationFrame(animate);
       } else {
         scrollTarget.scrollTop = targetScroll.current;
         animationFrame.current = null;
         window.isVerticalScrolling = false; // Unlock horizontal scrolling
+        window.isVerticalScrollAnimating = false;
       }
     };
 

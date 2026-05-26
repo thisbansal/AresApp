@@ -34,6 +34,45 @@ function UserSelectPage() {
     checkExistingSession()
   }, [])
 
+  // Auto-focus first button when PIN prompt opens
+  useEffect(() => {
+    if (showPinPrompt) {
+      setTimeout(() => {
+        const firstBtn = document.getElementById('numpad-1');
+        if (firstBtn) {
+          firstBtn.focus();
+        }
+      }, 150);
+    }
+  }, [showPinPrompt])
+
+  // Direct remote control number entry for PIN code
+  useEffect(() => {
+    if (!showPinPrompt) return
+
+    const handlePinKeyDown = (e) => {
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault()
+        e.stopPropagation()
+        const digit = e.key
+        if (pin.length < 4) {
+          const newPin = pin + digit
+          setPin(newPin)
+          if (newPin.length === 4) {
+            setTimeout(() => handlePinSubmit(newPin), 200)
+          }
+        }
+      } else if (e.key === 'Backspace') {
+        e.preventDefault()
+        e.stopPropagation()
+        setPin(prev => prev.slice(0, -1))
+      }
+    }
+
+    window.addEventListener('keydown', handlePinKeyDown, true)
+    return () => window.removeEventListener('keydown', handlePinKeyDown, true)
+  }, [showPinPrompt, pin, selectedUser])
+
   const checkExistingSession = async () => {
     console.log('[AUTH FLOW] UserSelectPage: Checking for an existing, cached profile session...')
     try {
@@ -182,34 +221,37 @@ function UserSelectPage() {
         <style>{`
           .numpad-btn {
             border-radius: 50% !important;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-          }
-          .numpad-btn[style] {
-            transform: scale(1) !important;
+            will-change: transform;
+            transform: translate3d(0, 0, 0) !important;
+            transition: transform 0.11s cubic-bezier(0.16, 1, 0.3, 1) !important;
           }
           .numpad-btn.focused {
-            transform: scale(1.15) !important;
+            transform: scale(1.12) translate3d(0, 0, 0) !important;
           }
           .numpad-btn.focused div {
             background-color: #ffffff !important;
             border-color: #ffffff !important;
             color: #0d0f11 !important;
           }
+          .numpad-btn:active {
+            transform: scale(0.95) translate3d(0, 0, 0) !important;
+          }
           .cancel-btn {
             border-radius: 50px !important;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-          }
-          .cancel-btn[style] {
-            transform: scale(1) !important;
+            will-change: transform;
+            transform: translate3d(0, 0, 0) !important;
+            transition: transform 0.11s cubic-bezier(0.16, 1, 0.3, 1) !important;
           }
           .cancel-btn.focused {
-            transform: scale(1.08) !important;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.15) !important;
+            transform: scale(1.06) translate3d(0, 0, 0) !important;
           }
           .cancel-btn.focused div {
             background-color: rgba(255, 255, 255, 0.2) !important;
             border-color: rgba(255, 255, 255, 0.4) !important;
             color: #ffffff !important;
+          }
+          .cancel-btn:active {
+            transform: scale(0.95) translate3d(0, 0, 0) !important;
           }
         `}</style>
 
@@ -307,7 +349,7 @@ function UserSelectPage() {
               </FocusableItem>
             ))}
 
-            {/* Empty space, 0 button, empty space */}
+            {/* Empty space, 0 button, Delete button */}
             <div></div>
             <FocusableItem
               id="numpad-0"
@@ -326,7 +368,28 @@ function UserSelectPage() {
             >
               <div style={styles.numButton}>0</div>
             </FocusableItem>
-            <div></div>
+            <FocusableItem
+              id="numpad-delete"
+              rowIndex={3}
+              colIndex={2}
+              onClick={() => {
+                setPin(prev => prev.slice(0, -1))
+              }}
+              className="numpad-btn"
+            >
+              <div style={{
+                ...styles.numButton,
+                backgroundColor: 'rgba(234, 67, 53, 0.12)',
+                borderColor: 'rgba(234, 67, 53, 0.25)',
+                color: '#ff8080'
+              }}>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+                  <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+                  <line x1="18" y1="9" x2="12" y2="15"></line>
+                  <line x1="12" y1="9" x2="18" y2="15"></line>
+                </svg>
+              </div>
+            </FocusableItem>
           </div>
 
           <div style={styles.cancelRow}>
@@ -362,22 +425,22 @@ function UserSelectPage() {
           100% { transform: rotate(360deg); }
         }
         .user-item {
-          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          will-change: transform;
+          transform: translate3d(0, 0, 0) !important;
+          transition: transform 0.11s cubic-bezier(0.16, 1, 0.3, 1) !important;
           border-radius: 50%;
         }
-        .user-item[style] {
-          transform: scale(1) !important;
-        }
         .user-item.focused {
-          transform: scale(1.08) !important;
+          transform: scale(1.08) translate3d(0, 0, 0) !important;
         }
         .user-item.focused .user-avatar {
           border-color: #ffffff !important;
-          box-shadow: 0 0 35px rgba(255, 255, 255, 0.45) !important;
         }
         .user-item.focused .user-name {
           color: #ffffff !important;
-          text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        .user-item:active {
+          transform: scale(0.95) translate3d(0, 0, 0) !important;
         }
       `}</style>
 

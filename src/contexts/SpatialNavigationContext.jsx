@@ -18,45 +18,44 @@ export const SpatialNavigationProvider = ({ children }) => {
   }, []);
 
   const getDistance = (rect1, rect2, direction) => {
-    // Calculate distance between two bounding rectangles in a given direction
-    // Return Infinity if rect2 is not in the specified direction of rect1
-    let dx = 0;
-    let dy = 0;
-    
     // Centers
     const cx1 = rect1.left + rect1.width / 2;
     const cy1 = rect1.top + rect1.height / 2;
     const cx2 = rect2.left + rect2.width / 2;
     const cy2 = rect2.top + rect2.height / 2;
 
+    let d_primary = 0;
+    let d_orthogonal = 0;
+
     switch (direction) {
       case 'up':
         if (cy2 >= cy1) return Infinity; // Not above
-        dy = cy1 - cy2;
-        dx = cx1 - cx2;
+        d_primary = cy1 - cy2;
+        d_orthogonal = Math.abs(cx1 - cx2);
         break;
       case 'down':
         if (cy2 <= cy1) return Infinity; // Not below
-        dy = cy2 - cy1;
-        dx = cx1 - cx2;
+        d_primary = cy2 - cy1;
+        d_orthogonal = Math.abs(cx1 - cx2);
         break;
       case 'left':
         if (cx2 >= cx1) return Infinity; // Not left
-        dx = cx1 - cx2;
-        dy = cy1 - cy2;
+        d_primary = cx1 - cx2;
+        d_orthogonal = Math.abs(cy1 - cy2);
         break;
       case 'right':
         if (cx2 <= cx1) return Infinity; // Not right
-        dx = cx2 - cx1;
-        dy = cy1 - cy2;
+        d_primary = cx2 - cx1;
+        d_orthogonal = Math.abs(cy1 - cy2);
         break;
       default:
         return Infinity;
     }
 
-    // Weight the primary axis more heavily than the secondary axis
-    // e.g., when moving up, vertical distance is more important than horizontal
-    return Math.sqrt(Math.pow(dx, 2) * 2 + Math.pow(dy, 2) * 2);
+    // Standard spatial navigation scoring formula.
+    // Orthogonal distance is weighted heavily (factor of 5) to favor straight-line
+    // traversal and prevent unexpected diagonal drift.
+    return d_primary + d_orthogonal * 5;
   };
 
   const navigate = useCallback((direction) => {

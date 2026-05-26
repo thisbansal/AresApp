@@ -104,7 +104,8 @@ export function KeyboardHandler() {
       // Spatial Navigation directional locking
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-          if (window.isVerticalScrolling) {
+          // Only block horizontal navigation if page is actively scrolling vertically
+          if (window.isVerticalScrollAnimating) {
             e.preventDefault();
             return;
           }
@@ -114,11 +115,14 @@ export function KeyboardHandler() {
             window.isHorizontalScrolling = false;
           }, 300);
         } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-          if (window.isHorizontalScrolling) {
-            e.preventDefault();
-            return;
-          }
+          // Do not block vertical D-pad navigation from recent horizontal movement.
           window.isVerticalScrolling = true;
+          if (window.verticalScrollTimeout) clearTimeout(window.verticalScrollTimeout);
+          window.verticalScrollTimeout = setTimeout(() => {
+            if (!window.isVerticalScrollAnimating) {
+              window.isVerticalScrolling = false;
+            }
+          }, 300);
         }
       }
 
