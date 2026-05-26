@@ -103,6 +103,7 @@ export function KeyboardHandler() {
 
       // Spatial Navigation directional locking
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        window.isRepeatingKey = e.repeat;
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           window.isHorizontalScrolling = true;
           if (window.horizontalScrollTimeout) clearTimeout(window.horizontalScrollTimeout);
@@ -143,8 +144,18 @@ export function KeyboardHandler() {
       }
     };
 
+    const handleKeyUp = (e) => {
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        window.isRepeatingKey = false;
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown, true); // Use capture phase so we override routing and focus strictly
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keyup', handleKeyUp, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keyup', handleKeyUp, true);
+    };
   }, [navigateReactRouter, spatialNavigate, showExitDialog, setShowExitDialog]);
 
   return null;
