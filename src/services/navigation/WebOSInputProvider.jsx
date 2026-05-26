@@ -17,10 +17,16 @@ export function WebOSInputProvider({ children }) {
       const current = scrollTarget.scrollTop;
       const diff = targetScroll.current - current;
 
-      if (Math.abs(diff) > 0.5) {
+      if (Math.abs(diff) > 2.0) {
         window.isVerticalScrolling = true; // Lock horizontal scrolling
         window.isVerticalScrollAnimating = true;
-        scrollTarget.scrollTop = current + diff * 0.085;
+        
+        let step = diff * 0.085;
+        if (Math.abs(step) < 0.5) {
+          step = Math.sign(diff) * 0.5;
+        }
+        
+        scrollTarget.scrollTop = current + step;
         animationFrame.current = requestAnimationFrame(animate);
       } else {
         scrollTarget.scrollTop = targetScroll.current;
@@ -77,7 +83,10 @@ export function WebOSInputProvider({ children }) {
     window.setScrollTarget = (target) => {
       if (isVerticalScrollLocked.current) return; // Don't scroll if locked
 
-      targetScroll.current = target;
+      const scrollTarget = document.scrollingElement || document.documentElement;
+      const maxScroll = Math.max(0, scrollTarget.scrollHeight - scrollTarget.clientHeight);
+      targetScroll.current = Math.max(0, Math.min(maxScroll, target));
+
       if (!animationFrame.current) {
         animationFrame.current = requestAnimationFrame(animate);
       }
@@ -91,12 +100,24 @@ export function WebOSInputProvider({ children }) {
       isVerticalScrollLocked.current = false;
     };
 
+    let lastX = 0;
+    let lastY = 0;
+    const handleMouseMove = (e) => {
+      if (e.clientX !== lastX || e.clientY !== lastY) {
+        lastX = e.clientX;
+        lastY = e.clientY;
+        window.lastRealMouseMoveTime = Date.now();
+      }
+    };
+
     window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
       window.removeEventListener('wheel', handleWheel, { passive: false });
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('mousemove', handleMouseMove);
       delete window.setScrollTarget;
       delete window.lockVerticalScroll;
       delete window.unlockVerticalScroll;

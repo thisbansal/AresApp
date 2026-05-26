@@ -6,38 +6,39 @@ export function EdgeScrollTriggers() {
   const canScrollLeft = useRef(true);
   const canScrollRight = useRef(true);
 
-  const scrollOneItem = (direction) => {
-    if (window.isVerticalScrolling || window.isHorizontalScrolling) return;
+  const scrollInterval = useRef(null);
 
-    if (direction === 'left' && !canScrollLeft.current) return;
-    if (direction === 'right' && !canScrollRight.current) return;
+  const scrollOneItem = (direction) => {
+    if (window.isVerticalScrollAnimating) return;
 
     window.isHorizontalScrolling = true;
     if (window.horizontalScrollTimeout) clearTimeout(window.horizontalScrollTimeout);
     window.horizontalScrollTimeout = setTimeout(() => {
       window.isHorizontalScrolling = false;
-    }, 300);
+    }, 350);
 
     console.log(`[EdgeScroll] Cursor hit ${direction} edge. Scrolling...`);
 
     if (direction === 'left') {
-      canScrollLeft.current = false;
       navigate('left');
     } else {
-      canScrollRight.current = false;
       navigate('right');
     }
   };
 
   const handleMouseEnter = (direction) => {
     scrollOneItem(direction);
+    
+    if (scrollInterval.current) clearInterval(scrollInterval.current);
+    scrollInterval.current = setInterval(() => {
+      scrollOneItem(direction);
+    }, 500); // Scroll one item every 500ms while cursor stays at the edge
   };
 
   const handleMouseLeave = (direction) => {
-    if (direction === 'left') {
-      canScrollLeft.current = true;
-    } else {
-      canScrollRight.current = true;
+    if (scrollInterval.current) {
+      clearInterval(scrollInterval.current);
+      scrollInterval.current = null;
     }
   };
 

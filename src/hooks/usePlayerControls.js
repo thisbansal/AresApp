@@ -99,7 +99,7 @@ export function usePlayerControls({
             e.preventDefault()
             triggerHUD()
             const playBtn = document.getElementById('player-play')
-            if (playBtn) playBtn.focus()
+            if (playBtn) playBtn.focus({ preventScroll: true })
             return
           }
         }
@@ -119,7 +119,7 @@ export function usePlayerControls({
                 videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
                 useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
                 const tl = document.getElementById('player-timeline')
-                if (tl) tl.focus()
+                if (tl) tl.focus({ preventScroll: true })
               }
               break
             case 'ArrowRight':
@@ -128,7 +128,7 @@ export function usePlayerControls({
                 videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 30)
                 useNotificationStore.getState().addNotification('Seek +30s', { level: 'info' })
                 const tl = document.getElementById('player-timeline')
-                if (tl) tl.focus()
+                if (tl) tl.focus({ preventScroll: true })
               }
               break
             case 'ArrowUp':

@@ -40,7 +40,7 @@ function UserSelectPage() {
       setTimeout(() => {
         const firstBtn = document.getElementById('numpad-1');
         if (firstBtn) {
-          firstBtn.focus();
+          firstBtn.focus({ preventScroll: true });
         }
       }, 150);
     }
