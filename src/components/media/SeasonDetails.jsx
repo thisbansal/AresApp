@@ -142,7 +142,6 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
           border-radius: 12px;
           flex-shrink: 0;
           transition: transform 0.2s ease;
-          scroll-snap-align: start;
           scroll-margin-left: 10px;
         }
         .episode-card.focused {
@@ -276,7 +275,6 @@ const styles = {
     paddingLeft: '10px',
     marginLeft: '-10px',
     marginTop: '-30px', // Compensate for padding
-    scrollSnapType: 'x mandatory',
     scrollBehavior: 'smooth',
   },
   episodeInner: {
