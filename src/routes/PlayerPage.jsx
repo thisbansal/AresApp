@@ -11,6 +11,7 @@ import { usePlayerHUD } from '../hooks/usePlayerHUD'
 import { useVideoMediaEvents } from '../hooks/useVideoMediaEvents'
 import { usePlayerControls } from '../hooks/usePlayerControls'
 import { formatTime, formatRemainingTime } from '../utils/timeUtils'
+import { mediaCodecService } from '../services/MediaCodecService'
 
 // Video.js React integration
 import '@videojs/react/video/skin.css'
@@ -31,6 +32,7 @@ export default function PlayerPage() {
   const [playQueueItemID, setPlayQueueItemID] = useState(null)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
   const [availableStreams, setAvailableStreams] = useState([])
+  const [numberOfStreams, setNumberOfStreams] = useState({})
   const [partId, setPartId] = useState(null)
   const [partKey, setPartKey] = useState(null)
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
@@ -113,6 +115,7 @@ export default function PlayerPage() {
 
         setAvailableStreams(streams)
         const absoluteUrl = `${serverInfo.uri}${part.key}?X-Plex-Token=${serverInfo.token}`
+        console.log(`stream URL IS: ${absoluteUrl}`)
         setStreamUrl(absoluteUrl)
       } catch (err) {
         console.error('[PlayerPage] Playback startup failure:', err)
@@ -125,6 +128,24 @@ export default function PlayerPage() {
 
     fetchStreamDetails()
   }, [ratingKey, serverInfo, serverLoading, navigate])
+
+  useEffect (() => {
+    const streams = {
+      video: availableStreams.filter(s => s.streamType === 1),
+      audio: availableStreams.filter(s => s.streamType === 2),
+      subtitles: availableStreams.filter(s => s.streamType === 3),
+    };
+    
+    setNumberOfStreams(streams);
+
+    if (availableStreams.length > 0) {
+      mediaCodecService.checkStreamCapabilities(streams);
+    }
+  }, [availableStreams])
+
+  useEffect (() => {
+    console.log(numberOfStreams)
+  }, [numberOfStreams])
 
   // Drag Seek Pointer Move and Pointer Up Observers
   useEffect(() => {
@@ -368,7 +389,7 @@ export default function PlayerPage() {
 
         {/* Stream Selection Controls */}
         <div style={styles.streamControlsRow}>
-          <FocusableItem
+          { numberOfStreams?.video?.length > 1 && <FocusableItem
             id="player-stream-video"
             rowIndex={0} colIndex={0}
             style={styles.streamBtn}
@@ -380,9 +401,9 @@ export default function PlayerPage() {
               <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
               <polyline points="17 2 12 7 7 2"></polyline>
             </svg>
-          </FocusableItem>
+          </FocusableItem>}
 
-          <FocusableItem
+          { numberOfStreams?.audio?.length > 1 && <FocusableItem
             id="player-stream-audio"
             rowIndex={0} colIndex={1}
             style={styles.streamBtn}
@@ -395,9 +416,9 @@ export default function PlayerPage() {
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="18" y1="11" x2="18" y2="13"></line>
             </svg>
-          </FocusableItem>
+          </FocusableItem>}
 
-          <FocusableItem
+          { numberOfStreams?.subtitles?.length > 0 && <FocusableItem
             id="player-stream-subtitle"
             rowIndex={0} colIndex={2}
             style={styles.streamBtn}
@@ -411,7 +432,7 @@ export default function PlayerPage() {
               <line x1="13" y1="10" x2="17" y2="10"></line>
               <line x1="7" y1="14" x2="17" y2="14"></line>
             </svg>
-          </FocusableItem>
+          </FocusableItem>}
 
           {/* Active Menu Popover */}
           {activeMenu !== 'none' && (
