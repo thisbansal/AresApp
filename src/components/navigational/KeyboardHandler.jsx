@@ -101,7 +101,27 @@ export function KeyboardHandler() {
         return;
       }
 
-      // Spatial Navigation
+      // Spatial Navigation directional locking
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          if (window.isVerticalScrolling) {
+            e.preventDefault();
+            return;
+          }
+          window.isHorizontalScrolling = true;
+          if (window.horizontalScrollTimeout) clearTimeout(window.horizontalScrollTimeout);
+          window.horizontalScrollTimeout = setTimeout(() => {
+            window.isHorizontalScrolling = false;
+          }, 300);
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          if (window.isHorizontalScrolling) {
+            e.preventDefault();
+            return;
+          }
+          window.isVerticalScrolling = true;
+        }
+      }
+
       switch (e.key) {
         case 'ArrowLeft':
           e.preventDefault();
