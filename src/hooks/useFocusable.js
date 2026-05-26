@@ -20,22 +20,15 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
     setFocused(true);
     if (onFocus) onFocus(e);
 
-    // Auto-scroll logic if triggered by remote (not cursor)
-    // We check if the last action was a remote action.
-    if (Date.now() - lastRemoteActionRef.current > 500) {
-      // It's likely a cursor action (or at least, not a recent D-pad action)
-      // Do not auto-scroll the page vertically or horizontally to follow cursor focus!
-      return;
-    }
-
     // Wait for the next frame to ensure layout is updated
     requestAnimationFrame(() => {
       if (ref.current) {
         const rect = ref.current.getBoundingClientRect();
         
         // Vertical scroll handling (page level)
-        // Only auto-center vertically if the user navigated UP or DOWN.
-        if (lastNavDirectionRef.current === 'up' || lastNavDirectionRef.current === 'down') {
+        // Only auto-center vertically if the user used the remote/D-pad UP or DOWN.
+        const isRemoteAction = Date.now() - lastRemoteActionRef.current <= 500;
+        if (isRemoteAction && (lastNavDirectionRef.current === 'up' || lastNavDirectionRef.current === 'down')) {
           const isVisible = rect.top >= 100 && rect.bottom <= window.innerHeight - 100;
 
           if (!isVisible) {
@@ -51,7 +44,7 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
         }
 
         // Horizontal scroll handling (within row)
-        // Since we use preventScroll: true on focus(), we MUST always manually scroll horizontally
+        // Always run this on focus changes (both D-pad and hover) to pull clipped thumbnails fully into view.
         const rowContainer = ref.current.closest('.row-items');
         if (rowContainer) {
           const containerRect = rowContainer.getBoundingClientRect();
