@@ -195,9 +195,15 @@ export default function PlayerPage() {
       })
     } else {
       // Direct playback or native HLS fallback
+      videoEl.removeAttribute('src') // Flush HW decoder safely before swapping stream
       videoEl.src = streamUrl
       videoEl.load()
-      videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
+      
+      const playOnCanPlay = () => {
+        videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
+        videoEl.removeEventListener('canplay', playOnCanPlay)
+      }
+      videoEl.addEventListener('canplay', playOnCanPlay)
     }
 
     return () => {
