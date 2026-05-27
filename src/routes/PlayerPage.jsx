@@ -13,6 +13,7 @@ import { usePlayerControls } from '../hooks/usePlayerControls'
 import { formatTime, formatRemainingTime } from '../utils/timeUtils'
 import { plexStreamBuilder } from '../services/plex/plexStreamBuilder'
 import { mediaCodecService } from '../services/MediaCodecService'
+import Hls from 'hls.js'
 
 export default function PlayerPage() {
   const { ratingKey } = useParams()
@@ -20,6 +21,7 @@ export default function PlayerPage() {
   const location = useLocation()
 
   const videoRef = useRef(null)
+  const hlsRef = useRef(null)
   const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
   const [loading, setLoading] = useState(true)
   const [streamUrl, setStreamUrl] = useState('')
@@ -140,14 +142,61 @@ export default function PlayerPage() {
     fetchStreamDetails()
   }, [ratingKey, serverInfo, serverLoading, navigate])
 
-  // CRITICAL: WebOS native video players do NOT automatically load a new <source> when 
-  // it is injected dynamically. We must manually trigger .load() and .play()!
   useEffect(() => {
-    if (streamUrl) {
-      const videoEl = videoRef.current || document.querySelector('video')
-      if (videoEl) {
-        videoEl.load()
+    if (!streamUrl) return
+
+    const videoEl = videoRef.current || document.querySelector('video')
+    if (!videoEl) return
+
+    // Clean up previous Hls instance if one exists
+    if (hlsRef.current) {
+      hlsRef.current.destroy()
+      hlsRef.current = null
+    }
+
+    if (streamUrl.includes('.m3u8') && Hls.isSupported()) {
+      const hls = new Hls({
+        maxBufferLength: 30,
+        maxMaxBufferLength: 600,
+      })
+      hlsRef.current = hls
+
+      hls.loadSource(streamUrl)
+      hls.attachMedia(videoEl)
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
         videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
+      })
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.error('Fatal network error encountered, try to recover')
+              hls.startLoad()
+              break
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.error('Fatal media error encountered, try to recover')
+              hls.recoverMediaError()
+              break
+            default:
+              console.error('Fatal error, cannot recover', data)
+              hls.destroy()
+              break
+          }
+        }
+      })
+    } else {
+      // Direct playback or native HLS fallback
+      videoEl.src = streamUrl
+      videoEl.load()
+      videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy()
+        hlsRef.current = null
       }
     }
   }, [streamUrl])
@@ -397,9 +446,6 @@ export default function PlayerPage() {
         autoPlay
         controls={false}
         style={styles.video}
-        src={streamUrl || undefined}
-        // Force the TV's native HLS player to recognize the stream format
-        type={streamUrl?.includes('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp4'}
       />
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
