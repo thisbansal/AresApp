@@ -24,6 +24,7 @@ export default function PlayerPage() {
   const hlsRef = useRef(null)
   const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
   const [loading, setLoading] = useState(true)
+  const [isSwitchingStream, setIsSwitchingStream] = useState(false)
   const [streamUrl, setStreamUrl] = useState('')
   const [playQueueItemID, setPlayQueueItemID] = useState(null)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
@@ -42,7 +43,9 @@ export default function PlayerPage() {
   const transcodeOffset = isTranscode && !location.state?.startOver && metaDetails.viewOffset ? metaDetails.viewOffset : 0
 
   const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
-  const { currentTime, setCurrentTime, duration, isPlaying, isBuffering } = useVideoMediaEvents(videoRef, loading, isDragging, isScrolling, transcodeOffset)
+  const { currentTime, setCurrentTime, duration, isPlaying, isBuffering } = useVideoMediaEvents(
+    videoRef, loading, isDragging, isScrolling, transcodeOffset, setIsSwitchingStream
+  )
 
   usePlayerControls({
     videoRef,
@@ -319,7 +322,7 @@ export default function PlayerPage() {
     if (!partId || !partKey) return
     triggerHUD()
     const videoEl = videoRef.current || document.querySelector('video')
-    const currentPos = videoEl ? videoEl.currentTime : 0
+    const globalTime = currentTime // Use global time to correctly factor in transcode offsets
 
     let audioId = ''
     let subtitleId = ''
@@ -372,9 +375,10 @@ export default function PlayerPage() {
         return
       }
 
-      // Reload the direct play stream to force the new track from Plex, and restore offset
-      setMetaDetails(prev => ({ ...prev, viewOffset: currentPos * 1000 }))
-      setLoading(true)
+      // Inline seamless stream replacement
+      setMetaDetails(prev => ({ ...prev, viewOffset: globalTime * 1000 }))
+      if (videoEl && !videoEl.paused) videoEl.pause()
+      setIsSwitchingStream(true)
 
       setTimeout(async () => {
         const updatedStreams = availableStreams.map(s => {
@@ -394,20 +398,13 @@ export default function PlayerPage() {
           { key: partKey }, // Mock part object for the builder
           ratingKey,
           capabilities,
-          currentPos * 1000
+          globalTime * 1000
         )
         
         // Append cache buster to force React/Video.js to reload the stream
         newUrl += newUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`
         
         setStreamUrl(newUrl)
-        setTimeout(() => {
-          if (videoRef.current) {
-            videoRef.current.currentTime = currentPos
-            videoRef.current.play().catch(e => console.error(e))
-          }
-          setLoading(false)
-        }, 500)
       }, 300)
     } else {
       useNotificationStore.getState().addNotification('Failed to change stream', { level: 'error' })
@@ -440,8 +437,13 @@ export default function PlayerPage() {
   const progressPercent = duration ? (displayTime / duration) * 100 : 0
 
   return (
-    <div style={styles.container}>
-
+    <div style={styles.container} onMouseMove={() => triggerHUD()}>
+      {isSwitchingStream && (
+        <div style={styles.inlineLoadingOverlay}>
+          <div style={styles.inlineSpinner} />
+          <div style={styles.inlineLoadingText}>Switching tracks...</div>
+        </div>
+      )}
 
       {/* Raw HTML5 Video Element for maximum Smart TV compatibility */}
       <video
@@ -812,6 +814,36 @@ const styles = {
     color: '#ffffff',
     fontWeight: '500',
     fontFamily: "'Outfit', 'Inter', sans-serif",
+  },
+  inlineLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    zIndex: 99998,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '20px',
+    backdropFilter: 'blur(2px)',
+  },
+  inlineSpinner: {
+    width: '45px',
+    height: '45px',
+    border: '3px solid rgba(255, 255, 255, 0.15)',
+    borderTop: '3px solid #ffffff',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  inlineLoadingText: {
+    fontSize: '20px',
+    color: '#ffffff',
+    fontWeight: '500',
+    fontFamily: "'Outfit', 'Inter', sans-serif",
+    textShadow: '0 2px 8px rgba(0,0,0,0.8)',
   },
 
   video: {

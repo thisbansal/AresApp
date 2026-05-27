@@ -9,9 +9,11 @@ import { useState, useEffect } from 'react'
  * @param {boolean} isDragging - Whether the user is actively dragging the timeline track.
  * @param {boolean} isScrolling - Whether the user is actively scrolling the timeline wheel.
  * @param {number} transcodeOffset - Offset in ms to add to native time
+ * @param {boolean} isSwitchingStream - Whether the stream is currently switching inline
+ * @param {Function} setIsSwitchingStream - State setter to clear the switching state
  * @returns {Object} React state representations of the video properties.
  */
-export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling, transcodeOffset = 0) {
+export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling, transcodeOffset = 0, setIsSwitchingStream) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -23,8 +25,14 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     if (!videoEl) return
 
     const handleWaiting = () => setIsBuffering(true)
-    const handlePlaying = () => setIsBuffering(false)
-    const handleCanPlay = () => setIsBuffering(false)
+    const handlePlaying = () => {
+      setIsBuffering(false)
+      if (setIsSwitchingStream) setIsSwitchingStream(false)
+    }
+    const handleCanPlay = () => {
+      setIsBuffering(false)
+      if (setIsSwitchingStream) setIsSwitchingStream(false)
+    }
     const handleSeeking = () => setIsBuffering(true)
     const handleSeeked  = () => setIsBuffering(false)
 
@@ -55,7 +63,12 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
       }
     }
     const handleDurationChange = () => setDuration(videoEl.duration || 0)
-    const handlePlayState = () => setIsPlaying(true)
+    const handlePlayState = () => {
+      setIsPlaying(true)
+      if (setIsSwitchingStream) {
+        setIsSwitchingStream(false)
+      }
+    }
     const handlePauseState = () => setIsPlaying(false)
 
     videoEl.addEventListener('timeupdate', handleTimeUpdate)
