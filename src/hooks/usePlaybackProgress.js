@@ -97,7 +97,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     return () => {
       videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
-  }, [videoRef, viewOffset, startOver])
+  }, [videoRef.current, viewOffset, startOver, transcodeOffset])
 
   // Effect 2: Handle play, pause, and periodic progress reporting
   useEffect(() => {
@@ -140,7 +140,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
       videoEl.removeEventListener('pause', handlePause)
       videoEl.removeEventListener('waiting', handleWaiting)
     }
-  }, [videoRef, ratingKey, playQueueItemID])
+  }, [videoRef.current, ratingKey, playQueueItemID, transcodeOffset])
 
   // Effect 3: Sync final progress on exit/unmount
   useEffect(() => {
