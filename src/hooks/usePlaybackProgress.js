@@ -17,13 +17,15 @@ import { PLEX_CONFIG } from '../config/app'
  * @param {boolean} params.startOver If true, ignores the saved viewOffset and plays from the start.
  * @param {boolean} params.isBuffering External state indicating if video is currently buffering.
  * @param {boolean} params.isPlaying External state indicating if video is actively playing.
+ * @param {number} params.duration The total duration of the media in milliseconds (from Plex metadata).
  */
-export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, videoRef, viewOffset, startOver, isBuffering, isPlaying }) {
+export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, videoRef, viewOffset, startOver, isBuffering, isPlaying, duration }) {
   const progressRef = useRef(0)
   const lastReportedTimeRef = useRef(0)
   const serverInfoRef = useRef(serverInfo)
   const ratingKeyRef = useRef(ratingKey)
   const playQueueItemIDRef = useRef(playQueueItemID)
+  const durationRef = useRef(duration)
 
   // Sync refs to avoid stale closures in cleanup/event listeners
   useEffect(() => {
@@ -38,6 +40,10 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     playQueueItemIDRef.current = playQueueItemID
   }, [playQueueItemID])
 
+  useEffect(() => {
+    durationRef.current = duration
+  }, [duration])
+
   // Helper to report progress to the Plex server
   const reportProgress = async (timeSeconds, state = 'playing') => {
     const activeServer = serverInfoRef.current
@@ -46,7 +52,8 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     if (!activeServer || !activeKey || !activePlayQueueItemID) return
 
     const timeMs = Math.floor(timeSeconds * 1000)
-    const durationMs = Math.floor((videoRef?.current?.duration || 0) * 1000)
+    // Fallback to videoEl duration only if metadata duration is not provided (which shouldn't happen)
+    const durationMs = durationRef.current || Math.floor((videoRef?.current?.duration || 0) * 1000)
 
     console.log(`[usePlaybackProgress] Syncing: ${timeMs}ms, duration: ${durationMs}ms, state: ${state}`)
     await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, activePlayQueueItemID, timeMs, durationMs, state)
@@ -137,7 +144,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
 
       if (finalTime > 0 && activeServer && activeKey && activePlayQueueItemID) {
         const timeMs = Math.floor(finalTime * 1000)
-        const durationMs = Math.floor((videoRef?.current?.duration || 0) * 1000)
+        const durationMs = durationRef.current || Math.floor((videoRef?.current?.duration || 0) * 1000)
         console.log(`[usePlaybackProgress] Unmount detected, reporting final time: ${timeMs}ms`)
         
         // Build direct URL with token for high-priority fetch keepalive
