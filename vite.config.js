@@ -16,7 +16,7 @@ export default defineConfig({
     terserOptions: {
       compress: {
         keep_fargs: true, // Don't drop unused function arguments
-        drop_console: true, // Strip console logs for TV performance
+        drop_console: false, // Strip console logs for TV performance
       },
       mangle: {
         safari10: true, // Prevents bugs in older WebKit/Chromium engines

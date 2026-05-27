@@ -40,23 +40,18 @@ export function usePlayerHUD(isLoading, isDragging, isScrolling) {
     }
   }, [isLoading])
 
+  // Trigger HUD presentation and reset the inactivity fadeout timeout
   const triggerHUD = useCallback(() => {
     setShowHUD(true)
     if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
 
     hudTimeoutRef.current = setTimeout(() => {
-      // Never hide while actively dragging or scrolling
-      if (isDraggingRef.current || isScrollingRef.current) return
-
-      if (cursorActiveRef.current) {
-        // Cursor still on screen — defer hiding until cursor goes idle
-        hudExpiredRef.current = true
-      } else {
+      // Avoid hiding HUD while actively dragging or scrolling
+      if (!isDragging && !isScrolling) {
         setShowHUD(false)
-        setShouldPause(0)
       }
     }, 4000)
-  }, []) // stable — all checks via refs
+  }, [isDragging, isScrolling])
 
   // Cleanup timeout on unmount
   useEffect(() => {
