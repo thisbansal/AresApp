@@ -86,7 +86,42 @@ describe('usePlaybackProgress', () => {
       mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 5000, 1, 'paused'
     )
   })
+  it('applies transcodeOffset correctly to reported time', async () => {
+    renderHook(() => usePlaybackProgress({
+      serverInfo: mockServerInfo,
+      ratingKey: mockRatingKey,
+      playQueueItemID: mockPlayQueueItemID,
+      videoRef,
+      viewOffset: 50000,
+      startOver: false,
+      isBuffering: false,
+      isPlaying: true,
+      duration: 100000,
+      transcodeOffset: 50000
+    }))
 
+    // Simulate play (video native time is 0 because of transcode)
+    act(() => {
+      videoEl.currentTime = 0
+      videoEl.dispatchEvent(new Event('play'))
+    })
+    
+    // Should report 50000 because of transcodeOffset
+    expect(plexPlaybackService.updatePlaybackProgress).toHaveBeenCalledWith(
+      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 50000, 100000, 'playing'
+    )
+    
+    // Simulate timeupdate at 15 seconds
+    act(() => {
+      videoEl.currentTime = 15
+      videoEl.dispatchEvent(new Event('timeupdate'))
+    })
+
+    // Should report 65000 (15000 + 50000)
+    expect(plexPlaybackService.updatePlaybackProgress).toHaveBeenCalledWith(
+      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 65000, 100000, 'playing'
+    )
+  })
 
 
   it('sends beacon with final progress on unmount', () => {
