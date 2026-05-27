@@ -21,7 +21,7 @@ describe('plexPlaybackService', () => {
 
       expect(result).toBe(true)
       expect(plexBridge.request).toHaveBeenCalledWith(
-        '/library/parts/part-456?audioStreamID=201&subtitleStreamID=305',
+        '/library/parts/part-456?audioStreamID=201&subtitleStreamID=305&allParts=1',
         { method: 'PUT' },
         { uri: 'http://mock', token: 'token123' }
       )
@@ -34,7 +34,7 @@ describe('plexPlaybackService', () => {
 
       expect(result).toBe(true)
       expect(plexBridge.request).toHaveBeenCalledWith(
-        '/library/parts/part-456?subtitleStreamID=0',
+        '/library/parts/part-456?subtitleStreamID=0&allParts=1',
         { method: 'PUT' },
         { uri: 'http://mock', token: 'token123' }
       )
