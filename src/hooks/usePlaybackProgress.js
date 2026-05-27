@@ -51,9 +51,18 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     const activePlayQueueItemID = playQueueItemIDRef.current
     if (!activeServer || !activeKey || !activePlayQueueItemID) return
 
+    // Protect against phantom 0 pings before seek completes
+    if (timeSeconds === 0 && viewOffset > 0 && !startOver && progressRef.current === 0) {
+      console.log('[usePlaybackProgress] Ignoring phantom 0 ping before resume offset is reached.')
+      return
+    }
+
     const timeMs = Math.floor(timeSeconds * 1000)
-    // Fallback to videoEl duration only if metadata duration is not provided (which shouldn't happen)
-    const durationMs = durationRef.current || Math.floor((videoRef?.current?.duration || 0) * 1000)
+    
+    // Ensure durationMs is absolutely never NaN
+    let rawVideoDuration = videoRef?.current?.duration
+    if (isNaN(rawVideoDuration)) rawVideoDuration = 0
+    const durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1 // Avoid 0
 
     console.log(`[usePlaybackProgress] Syncing: ${timeMs}ms, duration: ${durationMs}ms, state: ${state}`)
     await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, activePlayQueueItemID, timeMs, durationMs, state)
@@ -144,7 +153,10 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
 
       if (finalTime > 0 && activeServer && activeKey && activePlayQueueItemID) {
         const timeMs = Math.floor(finalTime * 1000)
-        const durationMs = durationRef.current || Math.floor((videoRef?.current?.duration || 0) * 1000)
+        let rawVideoDuration = videoRef?.current?.duration
+        if (isNaN(rawVideoDuration)) rawVideoDuration = 0
+        const durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1
+
         console.log(`[usePlaybackProgress] Unmount detected, reporting final time: ${timeMs}ms`)
         
         // Build direct URL with token for high-priority fetch keepalive

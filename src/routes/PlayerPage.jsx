@@ -155,9 +155,15 @@ export default function PlayerPage() {
     }
 
     if (streamUrl.includes('.m3u8') && Hls.isSupported()) {
+      let startSeconds = -1;
+      if (!location.state?.startOver && metaDetails.viewOffset) {
+        startSeconds = metaDetails.viewOffset / 1000;
+      }
+
       const hls = new Hls({
         maxBufferLength: 30,
         maxMaxBufferLength: 600,
+        startPosition: startSeconds
       })
       hlsRef.current = hls
 
