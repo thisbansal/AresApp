@@ -409,7 +409,7 @@ export default function PlayerPage() {
           {streamUrl && (
             <source 
               src={streamUrl} 
-              type={streamUrl.includes('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp4'} 
+              type={streamUrl.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4'} 
             />
           )}
         </Video>
