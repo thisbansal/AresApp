@@ -18,8 +18,9 @@ import { PLEX_CONFIG } from '../config/app'
  * @param {boolean} params.isBuffering External state indicating if video is currently buffering.
  * @param {boolean} params.isPlaying External state indicating if video is actively playing.
  * @param {number} params.duration The total duration of the media in milliseconds (from Plex metadata).
+ * @param {number} params.transcodeOffset Offset in ms added to video time for transcoded streams.
  */
-export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, videoRef, viewOffset, startOver, isBuffering, isPlaying, duration }) {
+export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, videoRef, viewOffset, startOver, isBuffering, isPlaying, duration, transcodeOffset = 0 }) {
   const progressRef = useRef(0)
   const lastReportedTimeRef = useRef(0)
   const serverInfoRef = useRef(serverInfo)
@@ -51,12 +52,6 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     const activePlayQueueItemID = playQueueItemIDRef.current
     if (!activeServer || !activeKey || !activePlayQueueItemID) return
 
-    // Protect against phantom 0 pings before seek completes
-    if (timeSeconds === 0 && viewOffset > 0 && !startOver && progressRef.current === 0) {
-      console.log('[usePlaybackProgress] Ignoring phantom 0 ping before resume offset is reached.')
-      return
-    }
-
     const timeMs = Math.floor(timeSeconds * 1000)
     
     // Ensure durationMs is absolutely never NaN
@@ -68,13 +63,12 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, activePlayQueueItemID, timeMs, durationMs, state)
   }
 
-  // Effect 1: Handle initial resume seeking
+  // Effect 1: Handle initial resume offset via loadedmetadata event
   useEffect(() => {
-    if (!videoRef.current) return
+    if (!videoRef.current || !ratingKey) return
     const videoEl = videoRef.current
-
-    let startSeconds = 0
-    if (!startOver && viewOffset) {
+    let startSeconds = -1
+    if (!startOver && viewOffset > 0 && !transcodeOffset) {
       startSeconds = viewOffset / 1000
     }
 
@@ -84,6 +78,9 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
         videoEl.currentTime = startSeconds
         lastReportedTimeRef.current = startSeconds
         progressRef.current = startSeconds
+      } else if (transcodeOffset > 0) {
+        lastReportedTimeRef.current = transcodeOffset / 1000
+        progressRef.current = transcodeOffset / 1000
       }
     }
 
@@ -108,7 +105,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     const videoEl = videoRef.current
 
     const handleTimeUpdate = () => {
-      const time = videoEl.currentTime
+      const time = videoEl.currentTime + (transcodeOffset / 1000)
       progressRef.current = time
 
       // Report progress periodically every 10 seconds of active playback
@@ -119,15 +116,17 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     }
 
     const handlePlay = () => {
-      reportProgress(videoEl.currentTime, 'playing')
+      // Don't report play if the video hasn't loaded metadata yet and is at true 0
+      if (videoEl.readyState === 0 && !transcodeOffset) return;
+      reportProgress(videoEl.currentTime + (transcodeOffset / 1000), 'playing')
     }
 
     const handlePause = () => {
-      reportProgress(videoEl.currentTime, 'paused')
+      reportProgress(videoEl.currentTime + (transcodeOffset / 1000), 'paused')
     }
 
     const handleWaiting = () => {
-      reportProgress(videoEl.currentTime, 'buffering')
+      reportProgress(videoEl.currentTime + (transcodeOffset / 1000), 'buffering')
     }
 
     videoEl.addEventListener('timeupdate', handleTimeUpdate)

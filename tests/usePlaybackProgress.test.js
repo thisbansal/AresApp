@@ -20,6 +20,7 @@ describe('usePlaybackProgress', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     videoEl = document.createElement('video')
+    Object.defineProperty(videoEl, 'readyState', { value: 4 })
     videoRef = { current: videoEl }
     
     // Mock navigator.sendBeacon
@@ -86,28 +87,7 @@ describe('usePlaybackProgress', () => {
     )
   })
 
-  it('ignores phantom zero pings before seek completes', async () => {
-    renderHook(() => usePlaybackProgress({
-      serverInfo: mockServerInfo,
-      ratingKey: mockRatingKey,
-      playQueueItemID: mockPlayQueueItemID,
-      videoRef,
-      viewOffset: 50000, // User has an existing offset
-      startOver: false,
-      isBuffering: false,
-      isPlaying: true,
-      duration: 100000
-    }))
 
-    // Simulate a timeupdate event firing at 0 seconds (e.g. hls.js booting up before jumping)
-    act(() => {
-      videoEl.currentTime = 0
-      videoEl.dispatchEvent(new Event('timeupdate'))
-    })
-
-    // It should completely ignore this phantom 0 ping to protect the user's progress!
-    expect(plexPlaybackService.updatePlaybackProgress).not.toHaveBeenCalled()
-  })
 
   it('sends beacon with final progress on unmount', () => {
     const { unmount } = renderHook(() => usePlaybackProgress({
