@@ -14,13 +14,6 @@ import { formatTime, formatRemainingTime } from '../utils/timeUtils'
 import { plexStreamBuilder } from '../services/plex/plexStreamBuilder'
 import { mediaCodecService } from '../services/MediaCodecService'
 
-// Video.js React integration
-import '@videojs/react/video/skin.css'
-import { createPlayer, videoFeatures } from '@videojs/react'
-import { Video } from '@videojs/react/video'
-
-const Player = createPlayer({ features: videoFeatures })
-
 export default function PlayerPage() {
   const { ratingKey } = useParams()
   const navigate = useNavigate()
@@ -397,23 +390,17 @@ export default function PlayerPage() {
     <div style={styles.container}>
 
 
-      {/* Video.js Provider (Raw clean Video element completely removing default black skin overlays) */}
-      <Player.Provider>
-        <Video
-          ref={videoRef}
-          playsInline
-          autoPlay
-          controls={false}
-          style={styles.video}
-        >
-          {streamUrl && (
-            <source 
-              src={streamUrl} 
-              type={streamUrl.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4'} 
-            />
-          )}
-        </Video>
-      </Player.Provider>
+      {/* Raw HTML5 Video Element for maximum Smart TV compatibility */}
+      <video
+        ref={videoRef}
+        playsInline
+        autoPlay
+        controls={false}
+        style={styles.video}
+        src={streamUrl || undefined}
+        // Force the TV's native HLS player to recognize the stream format
+        type={streamUrl?.includes('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp4'}
+      />
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
       <div
