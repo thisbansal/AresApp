@@ -36,5 +36,14 @@ Older versions of Plex Media Server will instantly reject `OPTIONS` preflight re
 ### 3. Track Switching
 Whenever the user selects a new Audio or Subtitle track, the device capabilities must be re-evaluated. If the user switches from a supported `aac` track to an unsupported `eac3` track, the app will seamlessly swap the Direct Play URL for an HLS Transcode URL from the current playback offset.
 
+### 4. Infinite Buffering on Transcode (Unsupported HLS Tags)
+**Problem**: The WebOS TV native HLS parser explicitly rejects `EXT-X-MEDIA` tags (used by Plex for multiple audio/subtitle tracks). When the native `<video>` tag is fed the Plex transcoder `.m3u8`, the hardware decoder fails to parse it and silently aborts playback, resulting in an infinite buffer state.
+**Solution**: We bypass the TV's native HLS parser completely using Media Source Extensions (MSE) via `hls.js`. The library fetches and parses the `.m3u8` manually in JavaScript, manages the complex tags correctly, and feeds raw compatible video buffers to the hardware decoder.
+
+### 5. PlayQueues Stalling on TV
+**Problem**: Our progress tracker relies on `videoRef.current.duration` to send timeline updates to Plex. When playing HLS transcodes, Smart TVs often report the `<video>` duration as `Infinity` or `NaN`. Sending `NaN` as the duration to the Plex API causes it to reject the timeline update, breaking PlayQueue sync.
+**Solution**: We extract the exact `duration` (in milliseconds) directly from the Plex metadata in `PlayerPage.jsx` and pass it into the `usePlaybackProgress` hook to completely bypass the native player's faulty duration reporting.
+
 ## Configuration
 This feature can be completely disabled for testing or internal debugging by toggling `enableSmartTranscoding: false` in `src/config/app.js`.
+
