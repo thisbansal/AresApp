@@ -195,7 +195,7 @@ export default function PlayerPage() {
       })
     } else {
       // Direct playback or native HLS fallback
-      videoEl.removeAttribute('src') // Flush HW decoder safely before swapping stream
+      videoEl.removeAttribute('src') // Safely clear blob URLs before native loading
       videoEl.src = streamUrl
       videoEl.load()
       
