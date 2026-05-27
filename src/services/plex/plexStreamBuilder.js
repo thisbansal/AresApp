@@ -47,6 +47,7 @@ class PlexStreamBuilder {
       'subtitleSize': '100',
       'audioBoost': '100',
       'session': sessionId,
+      'offset': offsetSeconds.toString(),
       'copyts': '1',
       'X-Plex-Token': serverInfo.token,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,

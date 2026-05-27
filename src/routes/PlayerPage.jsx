@@ -38,8 +38,11 @@ export default function PlayerPage() {
   const [isScrolling, setIsScrolling] = useState(false)
   const seekTimeoutRef = useRef(null)
 
+  const isTranscode = streamUrl?.includes('transcode')
+  const transcodeOffset = isTranscode && !location.state?.startOver && metaDetails.viewOffset ? metaDetails.viewOffset : 0
+
   const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
-  const { currentTime, setCurrentTime, duration, isPlaying, isBuffering } = useVideoMediaEvents(videoRef, loading, isDragging, isScrolling)
+  const { currentTime, setCurrentTime, duration, isPlaying, isBuffering } = useVideoMediaEvents(videoRef, loading, isDragging, isScrolling, transcodeOffset)
 
   usePlayerControls({
     videoRef,
@@ -65,7 +68,8 @@ export default function PlayerPage() {
     startOver: location.state?.startOver,
     isBuffering,
     isPlaying,
-    duration: metaDetails.duration
+    duration: metaDetails.duration,
+    transcodeOffset
   })
 
   useEffect(() => {
@@ -155,15 +159,9 @@ export default function PlayerPage() {
     }
 
     if (streamUrl.includes('.m3u8') && Hls.isSupported()) {
-      let startSeconds = -1;
-      if (!location.state?.startOver && metaDetails.viewOffset) {
-        startSeconds = metaDetails.viewOffset / 1000;
-      }
-
       const hls = new Hls({
         maxBufferLength: 30,
-        maxMaxBufferLength: 600,
-        startPosition: startSeconds
+        maxMaxBufferLength: 600
       })
       hlsRef.current = hls
 
@@ -312,7 +310,7 @@ export default function PlayerPage() {
       videoEl.pause()
     }
     if (videoEl) {
-      videoEl.currentTime = newTime
+      videoEl.currentTime = Math.max(0, newTime - (transcodeOffset / 1000))
     }
     setCurrentTime(newTime)
   }

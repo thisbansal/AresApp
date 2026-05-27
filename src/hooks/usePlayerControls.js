@@ -31,7 +31,8 @@ export function usePlayerControls({
   setIsScrolling,
   setCurrentTime,
   seekTimeoutRef,
-  hudTimeoutRef
+  hudTimeoutRef,
+  transcodeOffset = 0
 }) {
   const { navigate: spatialNavigate } = useSpatialNavigation()
   const [shouldPause, setShouldPause] = useState(1)
@@ -238,7 +239,7 @@ export function usePlayerControls({
 
       // Real-time scrubbing: update video frame immediately!
       videoEl.currentTime = newTime
-      setCurrentTime(newTime)
+      setCurrentTime(newTime + (transcodeOffset / 1000))
 
       // Debounce actual playback resume by 500ms of wheel stillness
       if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
