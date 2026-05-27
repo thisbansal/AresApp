@@ -341,17 +341,36 @@ export default function PlayerPage() {
 
     if (streamType === 1) return // Video stream selection is informational or handled differently
 
+    // Pre-calculate capabilities to ensure the TV actually supports the requested stream before trusting native switching
+    const updatedStreams = availableStreams.map(s => {
+      if (s.streamType === streamType) return { ...s, selected: s.id === streamId }
+      return s
+    })
+    
+    const structuredStreams = {
+      video: updatedStreams.filter(s => s.streamType === 1),
+      audio: updatedStreams.filter(s => s.streamType === 2),
+      subtitles: updatedStreams.filter(s => s.streamType === 3),
+    }
+    const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
+
     // Try native HTML5 track switching first (Instant, no reload)
     let switchedNatively = false
     try {
       if (streamType === 2 && videoEl && videoEl.audioTracks && videoEl.audioTracks.length > 0) {
-        const audioStreams = availableStreams.filter(s => s.streamType === 2)
-        const trackIndex = audioStreams.findIndex(s => s.id === streamId)
-        if (trackIndex !== -1 && trackIndex < videoEl.audioTracks.length) {
-          for (let i = 0; i < videoEl.audioTracks.length; i++) {
-            videoEl.audioTracks[i].enabled = (i === trackIndex)
+        // Only attempt native switch if the TV hardware ACTUALLY supports the codec
+        const targetAudioCapability = capabilities.audio.find(a => a.id === streamId)
+        if (targetAudioCapability && targetAudioCapability.supported) {
+          const audioStreams = availableStreams.filter(s => s.streamType === 2)
+          const trackIndex = audioStreams.findIndex(s => s.id === streamId)
+          if (trackIndex !== -1 && trackIndex < videoEl.audioTracks.length) {
+            for (let i = 0; i < videoEl.audioTracks.length; i++) {
+              videoEl.audioTracks[i].enabled = (i === trackIndex)
+            }
+            switchedNatively = true
           }
-          switchedNatively = true
+        } else {
+          console.log(`[PlayerPage] Bypassing native audio switch because codec is unsupported by HW:`, targetAudioCapability?.codec)
         }
       }
       if (streamType === 3 && videoEl && videoEl.textTracks && videoEl.textTracks.length > 0) {
@@ -381,18 +400,6 @@ export default function PlayerPage() {
       setIsSwitchingStream(true)
 
       setTimeout(async () => {
-        const updatedStreams = availableStreams.map(s => {
-          if (s.streamType === streamType) return { ...s, selected: s.id === streamId }
-          return s
-        })
-        
-        const structuredStreams = {
-          video: updatedStreams.filter(s => s.streamType === 1),
-          audio: updatedStreams.filter(s => s.streamType === 2),
-          subtitles: updatedStreams.filter(s => s.streamType === 3),
-        }
-        const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
-        
         let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
           serverInfo,
           { key: partKey }, // Mock part object for the builder
