@@ -69,7 +69,8 @@ export default function PlayerPage() {
     viewOffset: metaDetails.viewOffset,
     startOver: location.state?.startOver,
     isBuffering,
-    isPlaying
+    isPlaying,
+    duration: metaDetails.duration
   })
 
   useEffect(() => {
@@ -92,7 +93,8 @@ export default function PlayerPage() {
         setMetaDetails({
           title: metadata.title,
           subtitle: sub,
-          viewOffset: metadata.viewOffset
+          viewOffset: metadata.viewOffset,
+          duration: metadata.duration
         })
 
         // Find direct stream key from metadata
@@ -144,6 +146,18 @@ export default function PlayerPage() {
 
     fetchStreamDetails()
   }, [ratingKey, serverInfo, serverLoading, navigate])
+
+  // CRITICAL: WebOS native video players do NOT automatically load a new <source> when 
+  // it is injected dynamically. We must manually trigger .load() and .play()!
+  useEffect(() => {
+    if (streamUrl) {
+      const videoEl = videoRef.current || document.querySelector('video')
+      if (videoEl) {
+        videoEl.load()
+        videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
+      }
+    }
+  }, [streamUrl])
 
   useEffect (() => {
     const streams = {
@@ -395,7 +409,7 @@ export default function PlayerPage() {
           {streamUrl && (
             <source 
               src={streamUrl} 
-              type={streamUrl.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4'} 
+              type={streamUrl.includes('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp4'} 
             />
           )}
         </Video>
