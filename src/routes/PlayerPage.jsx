@@ -470,7 +470,25 @@ export default function PlayerPage() {
         return
       }
 
-      // Inline seamless stream replacement
+      // If we are actively transcoding, Plex seamlessly updates the FFmpeg pipeline on the fly!
+      // We just need to flush the unplayed chunks from the TV's memory so it immediately fetches the new audio.
+      if (streamUrl?.includes('transcode') && hlsRef.current) {
+        useNotificationStore.getState().addNotification('Switching track seamlessly...', { level: 'info' })
+        if (window.Hls && Hls.Events) {
+          // Keep 1 second of buffer to prevent stuttering, dump everything else
+          hlsRef.current.trigger(Hls.Events.BUFFER_FLUSHING, {
+            startOffset: videoEl.currentTime + 1,
+            endOffset: Number.POSITIVE_INFINITY
+          })
+          hlsRef.current.trigger(Hls.Events.BUFFER_FLUSHING, {
+            startOffset: 0,
+            endOffset: Math.max(0, videoEl.currentTime - 10)
+          })
+        }
+        return
+      }
+
+      // If converting from Direct Play -> Transcode, we MUST do a hard restart
       setMetaDetails(prev => ({ ...prev, viewOffset: globalTime * 1000 }))
       if (videoEl && !videoEl.paused) videoEl.pause()
       setIsSwitchingStream(true)
@@ -484,7 +502,7 @@ export default function PlayerPage() {
           globalTime * 1000
         )
         
-        // Append cache buster to force React/Video.js to reload the stream
+        // Append cache buster to force hard reload of the stream
         newUrl += newUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`
         
         setStreamUrl(newUrl)
