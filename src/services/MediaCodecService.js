@@ -123,21 +123,28 @@ class MediaCodecService {
                 // Determine if subtitle is text-based (natively renderable via track/HLS) or image-based (requires burn-in)
                 const codec = (s.codec || '').toLowerCase();
                 const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa', 'mov_text', 'tx3g'].includes(codec);
-                // PGS, VOBSUB, DVDSUB, DVB_SUBTITLE are image-based and almost never supported natively in browsers
+                
+                // Plex ONLY provides a 'key' property if the subtitle is an external sidecar file.
+                // If there is no key, it is embedded inside the MKV container, which means we CANNOT
+                // fetch it cleanly via /library/streams/. Therefore, it must be transcoded!
+                const isExternal = !!s.key;
+                const isSupported = isTextBased && isExternal;
                 
                 results.subtitles.push({
                     id: s.id,
                     codec: s.codec,
                     isTextBased,
-                    supported: isTextBased,
-                    selected: s.selected
+                    isExternal,
+                    supported: isSupported,
+                    selected: s.selected,
+                    key: s.key
                 });
 
                 const logMessage = `Subtitle [${s.codec}] - ${s.extendedDisplayTitle || s.displayTitle || s.language}`;
-                if (isTextBased) {
-                    console.log(`✅ SUPPORTED: ${logMessage} (Format: Text)`);
+                if (isSupported) {
+                    console.log(`✅ SUPPORTED: ${logMessage} (Format: Text, External)`);
                 } else {
-                    console.error(`❌ NOT SUPPORTED (Requires Burn-in): ${logMessage} (Format: Image)`);
+                    console.error(`❌ NOT SUPPORTED (Requires Burn-in): ${logMessage} (Format: ${isTextBased ? 'Text' : 'Image'}, External: ${isExternal})`);
                 }
             });
         }
