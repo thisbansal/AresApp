@@ -110,9 +110,9 @@ class PlexStreamBuilder {
     const videoSupported = selectedVideo ? selectedVideo.supported : true
     const audioSupported = selectedAudio ? selectedAudio.supported : true
     
-    // For now, since we haven't implemented native sidecar <track> rendering for Direct Play,
-    // ANY selected subtitle MUST force a transcode so Plex can burn it into the video stream.
-    const subtitleSupported = !selectedSubtitle
+    // For Direct Play, we can natively render text-based subtitles via our Sidecar injection hook.
+    // However, if the subtitle is image-based (PGS/VOBSUB), we MUST force a transcode to burn it in.
+    const subtitleSupported = !selectedSubtitle || (selectedSubtitle.isTextBased === true)
 
     if (videoSupported && audioSupported && subtitleSupported) {
       console.log('[PlexStreamBuilder] Codecs fully supported and no subtitles forced. Strategy: DIRECT PLAY')
