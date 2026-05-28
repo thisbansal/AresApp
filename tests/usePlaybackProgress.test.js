@@ -46,7 +46,7 @@ describe('usePlaybackProgress', () => {
     })
     
     expect(plexPlaybackService.updatePlaybackProgress).toHaveBeenCalledWith(
-      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 0, 100000, 'playing'
+      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 0, 100000, 'playing', undefined, undefined
     )
     
     // Fast forward 15 seconds
@@ -56,7 +56,7 @@ describe('usePlaybackProgress', () => {
     })
 
     expect(plexPlaybackService.updatePlaybackProgress).toHaveBeenCalledWith(
-      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 15000, 100000, 'playing'
+      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 15000, 100000, 'playing', undefined, undefined
     )
   })
 
@@ -83,7 +83,7 @@ describe('usePlaybackProgress', () => {
 
     // Expect duration to safely fallback to 1 instead of NaN
     expect(plexPlaybackService.updatePlaybackProgress).toHaveBeenCalledWith(
-      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 5000, 1, 'paused'
+      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 5000, 1, 'paused', undefined, undefined
     )
   })
   it('applies transcodeOffset correctly to reported time', async () => {
@@ -108,7 +108,7 @@ describe('usePlaybackProgress', () => {
     
     // Should report 50000 because of transcodeOffset
     expect(plexPlaybackService.updatePlaybackProgress).toHaveBeenCalledWith(
-      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 50000, 100000, 'playing'
+      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 50000, 100000, 'playing', undefined, undefined
     )
     
     // Simulate timeupdate at 15 seconds
@@ -119,7 +119,7 @@ describe('usePlaybackProgress', () => {
 
     // Should report 65000 (15000 + 50000)
     expect(plexPlaybackService.updatePlaybackProgress).toHaveBeenCalledWith(
-      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 65000, 100000, 'playing'
+      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 65000, 100000, 'playing', undefined, undefined
     )
   })
 

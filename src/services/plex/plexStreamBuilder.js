@@ -16,13 +16,12 @@ class PlexStreamBuilder {
    * @param {Object} serverInfo 
    * @param {string} ratingKey 
    * @param {string} partKey
+   * @param {string} playbackSessionId - Persistent UI playback session UUID
+   * @param {string} clientSessionId - Persistent client session UUID
    * @param {number} offset - Current playback time in milliseconds
    * @returns {Promise<string>} The transcode m3u8 URL
    */
-  async buildTranscodeUrl(serverInfo, ratingKey, partKey, offset = 0) {
-    // Generate a pseudo-random session ID for this transcode session
-    const sessionId = Math.random().toString(36).substring(2, 15)
-    
+  async buildTranscodeUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, offset = 0) {
     // Convert offset from milliseconds to seconds if greater than 0
     const offsetSeconds = offset > 0 ? Math.floor(offset / 1000) : 0
 
@@ -46,10 +45,12 @@ class PlexStreamBuilder {
       'subtitles': 'burn',
       'subtitleSize': '100',
       'audioBoost': '100',
-      'session': sessionId,
+      'session': clientSessionId,
       'offset': offsetSeconds.toString(),
       'copyts': '1',
       'X-Plex-Token': serverInfo.token,
+      'X-Plex-Session-Id': clientSessionId,
+      'X-Plex-Playback-Session-Id': playbackSessionId,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
       // CRITICAL: Plex Media Server will throw a 400 HTML error if it doesn't have a 
       // transcoder profile for the specified platform. We MUST use 'Chrome' instead of 
@@ -86,10 +87,12 @@ class PlexStreamBuilder {
    * @param {Object} part - The media part object (from Plex metadata)
    * @param {string} ratingKey - The item rating key
    * @param {Object} capabilities - Result object from MediaCodecService.checkStreamCapabilities
+   * @param {string} playbackSessionId - Persistent UI playback session UUID
+   * @param {string} clientSessionId - Persistent client session UUID
    * @param {number} offset - Playback offset in ms
    * @returns {Promise<string>} The optimal URL to feed to the video player
    */
-  async getOptimalStreamUrl(serverInfo, part, ratingKey, capabilities, offset = 0) {
+  async getOptimalStreamUrl(serverInfo, part, ratingKey, capabilities, playbackSessionId, clientSessionId, offset = 0) {
     // If feature flag is off, always fallback to classic direct play
     if (!PLEX_CONFIG.features?.enableSmartTranscoding) {
       console.log('[PlexStreamBuilder] Smart transcoding disabled by config. Using Direct Play.')
@@ -109,7 +112,7 @@ class PlexStreamBuilder {
     }
 
     console.log('[PlexStreamBuilder] Codecs unsupported (Video: ' + videoSupported + ', Audio: ' + audioSupported + '). Strategy: TRANSCODE')
-    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, offset)
+    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset)
   }
 }
 

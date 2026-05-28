@@ -49,9 +49,11 @@ export const createPlayQueue = async (serverUrl, token, ratingKey) => {
  * @param {number} timeMs - Current playback offset in milliseconds.
  * @param {number} durationMs - Total duration of the media in milliseconds.
  * @param {string} state - The playback state ('playing', 'paused', 'buffering', 'stopped').
+ * @param {string} playbackSessionId - The persistent UI playback session ID.
+ * @param {string} clientSessionId - The persistent client session ID.
  * @returns {Promise<boolean>} True if sync succeeded, false otherwise.
  */
-export const updatePlaybackProgress = async (serverUrl, token, ratingKey, playQueueItemID, timeMs, durationMs, state = 'playing') => {
+export const updatePlaybackProgress = async (serverUrl, token, ratingKey, playQueueItemID, timeMs, durationMs, state = 'playing', playbackSessionId = '', clientSessionId = '') => {
   try {
     if (!serverUrl || !token || !ratingKey || !playQueueItemID) {
       console.warn('[plexPlaybackService] Missing parameters for progress update')
@@ -60,8 +62,12 @@ export const updatePlaybackProgress = async (serverUrl, token, ratingKey, playQu
 
     // Call the Plex /:/timeline endpoint
     const metadataKey = encodeURIComponent(`/library/metadata/${ratingKey}`)
+    let url = `/:/timeline?ratingKey=${ratingKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${Math.floor(timeMs)}&duration=${Math.floor(durationMs)}&state=${state}&playQueueItemID=${playQueueItemID}`
+    if (playbackSessionId) url += `&X-Plex-Playback-Session-Id=${playbackSessionId}`
+    if (clientSessionId) url += `&X-Plex-Session-Id=${clientSessionId}`
+    
     await plexBridge.request(
-      `/:/timeline?ratingKey=${ratingKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${Math.floor(timeMs)}&duration=${Math.floor(durationMs)}&state=${state}&playQueueItemID=${playQueueItemID}`,
+      url,
       { method: 'GET' },
       { uri: serverUrl, token }
     )

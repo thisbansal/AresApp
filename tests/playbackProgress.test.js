@@ -185,7 +185,7 @@ describe('Playback Progress Synchronization Tests', () => {
 
       // Hook unmounted, verify fetch was called with keepalive
       expect(global.fetch).toHaveBeenCalled()
-      const fetchCall = global.fetch.mock.calls[0]
+      const fetchCall = global.fetch.mock.calls[global.fetch.mock.calls.length - 1]
       expect(fetchCall[0]).toContain('/:/timeline')
       expect(fetchCall[0]).toContain('state=stopped')
       expect(fetchCall[1].keepalive).toBe(true)
