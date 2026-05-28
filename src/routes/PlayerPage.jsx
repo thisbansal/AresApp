@@ -37,10 +37,8 @@ export default function PlayerPage() {
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
+  const [transcodeOffset, setTranscodeOffset] = useState(0)
   const seekTimeoutRef = useRef(null)
-
-  const isTranscode = streamUrl?.includes('transcode')
-  const transcodeOffset = isTranscode && !location.state?.startOver && metaDetails.viewOffset ? metaDetails.viewOffset : 0
 
   const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
   const { currentTime, setCurrentTime, duration, isPlaying, isBuffering } = useVideoMediaEvents(
@@ -132,7 +130,7 @@ export default function PlayerPage() {
           part,
           ratingKey,
           capabilities,
-          metadata.viewOffset || 0
+          location.state?.startOver ? 0 : (metadata.viewOffset || 0)
         )
         
         console.log(`[PlayerPage] Initial Optimal Stream URL: ${optimalUrl}`)
@@ -175,6 +173,15 @@ export default function PlayerPage() {
         
         // Purge ghost timestamps from previous stream session
         videoEl.currentTime = 0
+
+        let parsedOffset = 0
+        if (streamUrl.includes('transcode')) {
+          try {
+            const urlObj = new URL(streamUrl)
+            parsedOffset = Number(urlObj.searchParams.get('offset') || 0) * 1000
+          } catch(e) {}
+        }
+        setTranscodeOffset(parsedOffset)
 
         const hls = new Hls({
           maxBufferLength: 30,
@@ -233,6 +240,15 @@ export default function PlayerPage() {
       videoEl.load() // Trigger the flush
     } else {
       // Direct playback or native HLS fallback
+      let parsedOffset = 0
+      if (streamUrl.includes('transcode')) {
+        try {
+          const urlObj = new URL(streamUrl)
+          parsedOffset = Number(urlObj.searchParams.get('offset') || 0) * 1000
+        } catch(e) {}
+      }
+      setTranscodeOffset(parsedOffset)
+
       videoEl.src = streamUrl
       videoEl.load()
       
