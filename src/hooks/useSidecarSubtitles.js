@@ -34,15 +34,17 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
             console.log(`[useSidecarSubtitles] Selected subtitle is text-based (${subtitleStream.codec}). Fetching native sidecar track...`);
 
             try {
-                // Fetch the raw subtitle file from Plex using the stream's explicit key
-                if (!subtitleStream.key) {
-                    console.log(`[useSidecarSubtitles] Subtitle stream ${subtitleStream.id} is missing a 'key' property (Likely embedded). Sidecar injection aborted. Use 'Force Burn-in' if you want to see this subtitle.`);
-                    cleanupSidecar();
-                    return;
+                // Determine the fetch URL. External sidecars usually have an explicit 'key'.
+                // If missing, we fallback to the Plex API standard stream extraction path with the codec extension (e.g. .srt)
+                // This fallback path sometimes works for "On Demand" blob subtitles, though it will throw 501 for embedded MKV tracks.
+                let streamPath = subtitleStream.key;
+                if (!streamPath) {
+                    streamPath = `/library/streams/${subtitleStream.id}.${codec}`;
+                    console.log(`[useSidecarSubtitles] Subtitle stream ${subtitleStream.id} is missing a 'key' property. Attempting fallback extraction path: ${streamPath}`);
                 }
                 
-                const streamUrl = `${serverInfo.uri}${subtitleStream.key}?X-Plex-Token=${serverInfo.token}`;
-                console.log(`[useSidecarSubtitles] Executing fetch to URL: ${serverInfo.uri}${subtitleStream.key} (Token hidden)`);
+                const streamUrl = `${serverInfo.uri}${streamPath}?X-Plex-Token=${serverInfo.token}`;
+                console.log(`[useSidecarSubtitles] Executing fetch to URL: ${serverInfo.uri}${streamPath} (Token hidden)`);
                 
                 const response = await fetch(streamUrl);
                 console.log(`[useSidecarSubtitles] Fetch response status: ${response.status} ${response.statusText}`);
