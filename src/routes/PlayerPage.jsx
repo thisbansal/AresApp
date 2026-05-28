@@ -72,7 +72,7 @@ export default function PlayerPage() {
   usePlaybackProgress({
     serverInfo,
     ratingKey,
-    playQueueItemID: location.state?.playQueueItemID,
+    playQueueItemID,
     videoRef,
     viewOffset: metaDetails?.viewOffset || 0,
     startOver: location.state?.startOver,
