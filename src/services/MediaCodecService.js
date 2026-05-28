@@ -64,7 +64,8 @@ class MediaCodecService {
     checkStreamCapabilities(streamData) {
         const results = {
             video: [],
-            audio: []
+            audio: [],
+            subtitles: []
         };
 
         console.group('--- Media Codec Capabilities Check ---');
@@ -111,6 +112,29 @@ class MediaCodecService {
                     console.log(`✅ SUPPORTED: ${logMessage} (canPlayType: '${canPlay}')`);
                 } else {
                     console.error(`❌ NOT SUPPORTED: ${logMessage} (canPlayType: '${canPlay}')`);
+                }
+            });
+        }
+
+        if (streamData.subtitles && Array.isArray(streamData.subtitles)) {
+            streamData.subtitles.forEach(s => {
+                // Determine if subtitle is text-based (natively renderable via track/HLS) or image-based (requires burn-in)
+                const codec = (s.codec || '').toLowerCase();
+                const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa', 'mov_text', 'tx3g'].includes(codec);
+                // PGS, VOBSUB, DVDSUB, DVB_SUBTITLE are image-based and almost never supported natively in browsers
+                
+                results.subtitles.push({
+                    id: s.id,
+                    codec: s.codec,
+                    isTextBased,
+                    supported: isTextBased
+                });
+
+                const logMessage = `Subtitle [${s.codec}] - ${s.extendedDisplayTitle || s.displayTitle || s.language}`;
+                if (isTextBased) {
+                    console.log(`✅ SUPPORTED: ${logMessage} (Format: Text)`);
+                } else {
+                    console.error(`❌ NOT SUPPORTED (Requires Burn-in): ${logMessage} (Format: Image)`);
                 }
             });
         }
