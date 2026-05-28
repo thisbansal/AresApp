@@ -36,7 +36,9 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
             try {
                 // Fetch the raw subtitle file from Plex using the stream's explicit key
                 if (!subtitleStream.key) {
-                    throw new Error(`Subtitle stream ${subtitleStream.id} is missing a 'key' property. It might be embedded.`);
+                    console.log(`[useSidecarSubtitles] Subtitle stream ${subtitleStream.id} is missing a 'key' property (Likely embedded). Sidecar injection aborted. Use 'Force Burn-in' if you want to see this subtitle.`);
+                    cleanupSidecar();
+                    return;
                 }
                 
                 const streamUrl = `${serverInfo.uri}${subtitleStream.key}?X-Plex-Token=${serverInfo.token}`;
