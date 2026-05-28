@@ -66,14 +66,17 @@ export const updatePlaybackProgress = async (serverUrl, token, ratingKey, playQu
     if (playbackSessionId) url += `&X-Plex-Playback-Session-Id=${playbackSessionId}`
     if (clientSessionId) url += `&X-Plex-Session-Id=${clientSessionId}`
     
-    await plexBridge.request(
+    console.log(`[plexPlaybackService] EXECUTING timeline sync! URL: ${url}`)
+    
+    const response = await plexBridge.request(
       url,
       { method: 'GET' },
       { uri: serverUrl, token }
     )
+    console.log(`[plexPlaybackService] Sync response status:`, response?.status)
     return true
   } catch (err) {
-    console.error('[plexPlaybackService] Failed to update Plex playback progress:', err)
+    console.error(`[plexPlaybackService] ERROR executing timeline sync:`, err)
     return false
   }
 }

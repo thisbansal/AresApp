@@ -51,6 +51,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     const activeServer = serverInfoRef.current
     const activeKey = ratingKeyRef.current
     const activePlayQueueItemID = playQueueItemIDRef.current
+    console.log(`[usePlaybackProgress] reportProgress called!`, { timeSeconds, state, activeServer: !!activeServer, activeKey, activePlayQueueItemID })
     if (!activeServer || !activeKey || !activePlayQueueItemID) {
       console.warn(`[usePlaybackProgress] ABORTING TIMELINE SYNC! Missing parameters:`, { activeServer: !!activeServer, activeKey: !!activeKey, activePlayQueueItemID })
       return
@@ -64,8 +65,13 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     let durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1 // Avoid 0
     if (!isFinite(durationMs)) durationMs = durationRef.current || 1
 
-    console.log(`[usePlaybackProgress] Syncing: ${timeMs}ms, duration: ${durationMs}ms, state: ${state}`)
-    await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, activePlayQueueItemID, timeMs, durationMs, state, playbackSessionId, clientSessionId)
+    console.log(`[usePlaybackProgress] PRE-SYNC CHECK: timeMs=${timeMs}, durationMs=${durationMs}, state=${state}`)
+    try {
+      await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, activePlayQueueItemID, timeMs, durationMs, state, playbackSessionId, clientSessionId)
+      console.log(`[usePlaybackProgress] SUCCESS! Timeline synced!`)
+    } catch (e) {
+      console.error(`[usePlaybackProgress] ERROR syncing timeline:`, e)
+    }
   }
 
   // Effect 1: Handle initial resume offset via loadedmetadata event
@@ -111,6 +117,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
 
       // Report progress periodically every 10 seconds of active playback
       if (Math.abs(time - lastReportedTimeRef.current) >= 10) {
+        console.log(`[usePlaybackProgress] handleTimeUpdate crossed 10s threshold! time=${time}`)
         lastReportedTimeRef.current = time
         reportProgress(time, 'playing')
       }
