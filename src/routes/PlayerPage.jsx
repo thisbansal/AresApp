@@ -37,7 +37,6 @@ export default function PlayerPage() {
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
-  const [transcodeOffset, setTranscodeOffset] = useState(0)
   const seekTimeoutRef = useRef(null)
 
   // Generate persistent UI session IDs for timeline tracking and transcode termination
@@ -48,7 +47,7 @@ export default function PlayerPage() {
 
   const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
   const { currentTime, setCurrentTime, duration: videoDuration, isPlaying, isBuffering } = useVideoMediaEvents(
-    videoRef, loading, isDragging, isScrolling, transcodeOffset, setIsSwitchingStream
+    videoRef, loading, isDragging, isScrolling, setIsSwitchingStream
   )
 
   const duration = metaDetails?.duration ? metaDetails.duration / 1000 : videoDuration
@@ -80,7 +79,6 @@ export default function PlayerPage() {
     isBuffering,
     isPlaying,
     duration: metaDetails?.duration || 0,
-    transcodeOffset,
     playbackSessionId,
     clientSessionId
   })
@@ -188,15 +186,6 @@ export default function PlayerPage() {
         // Purge ghost timestamps from previous stream session
         videoEl.currentTime = 0
 
-        let parsedOffset = 0
-        if (streamUrl.includes('transcode')) {
-          try {
-            const urlObj = new URL(streamUrl)
-            parsedOffset = Number(urlObj.searchParams.get('offset') || 0) * 1000
-          } catch(e) {}
-        }
-        setTranscodeOffset(parsedOffset)
-
         const hls = new Hls({
           maxBufferLength: 30,
           maxMaxBufferLength: 600
@@ -253,16 +242,7 @@ export default function PlayerPage() {
       }
       videoEl.load() // Trigger the flush
     } else {
-      // Direct playback or native HLS fallback
-      let parsedOffset = 0
-      if (streamUrl.includes('transcode')) {
-        try {
-          const urlObj = new URL(streamUrl)
-          parsedOffset = Number(urlObj.searchParams.get('offset') || 0) * 1000
-        } catch(e) {}
-      }
-      setTranscodeOffset(parsedOffset)
-
+      // Pure direct play or raw native loading
       videoEl.src = streamUrl
       videoEl.load()
 
@@ -301,7 +281,7 @@ export default function PlayerPage() {
 
     if (streamUrl?.includes('transcode')) {
       const buffered = videoEl.buffered
-      const normalizedTarget = Math.max(0, newGlobalTime - (transcodeOffset / 1000))
+      const normalizedTarget = newGlobalTime
 
       let isBuffered = false
       for (let i = 0; i < buffered.length; i++) {
