@@ -78,5 +78,23 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
         };
     }, [availableStreams, serverInfo, partId]);
 
+    // Continuously enforce native text tracks are muted so we never get double subtitles
+    useEffect(() => {
+        const videoEl = videoRef.current || document.querySelector('video');
+        if (!videoEl) return;
+
+        const muteInterval = setInterval(() => {
+            if (videoEl.textTracks && videoEl.textTracks.length > 0) {
+                for (let i = 0; i < videoEl.textTracks.length; i++) {
+                    if (videoEl.textTracks[i].mode === 'showing') {
+                        videoEl.textTracks[i].mode = 'hidden';
+                    }
+                }
+            }
+        }, 500);
+
+        return () => clearInterval(muteInterval);
+    }, [videoRef]);
+
     return cues;
 }
