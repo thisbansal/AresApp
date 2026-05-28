@@ -316,11 +316,17 @@ export default function PlayerPage() {
         if (!videoEl.paused) videoEl.pause()
         setIsSwitchingStream(true)
 
+        const structuredStreams = {
+          video: availableStreams.filter(s => s.streamType === 1),
+          audio: availableStreams.filter(s => s.streamType === 2),
+          subtitles: availableStreams.filter(s => s.streamType === 3),
+        }
+
         let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
           serverInfo,
           { key: partKey },
           ratingKey,
-          mediaCodecService.checkStreamCapabilities(metaDetails.Media[0].Part),
+          mediaCodecService.checkStreamCapabilities(structuredStreams),
           playbackSessionId,
           clientSessionId,
           newGlobalTime * 1000
@@ -423,7 +429,6 @@ export default function PlayerPage() {
       videoEl.pause()
     }
     setCurrentTime(newTime)
-    executeSeek(newTime)
   }
 
   const handleStreamSelect = async (streamType, streamId) => {
