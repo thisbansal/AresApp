@@ -103,6 +103,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     const videoEl = videoRef.current
 
     const handleTimeUpdate = () => {
+      if (videoEl.readyState === 0) return;
       const time = videoEl.currentTime
       progressRef.current = time
 
@@ -114,16 +115,17 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     }
 
     const handlePlay = () => {
-      // Don't report play if the video hasn't loaded metadata yet and is at true 0
-      if (videoEl.readyState === 0 && viewOffset === 0) return;
+      if (videoEl.readyState === 0) return;
       reportProgress(videoEl.currentTime, 'playing')
     }
 
     const handlePause = () => {
+      if (videoEl.readyState === 0) return;
       reportProgress(videoEl.currentTime, 'paused')
     }
 
     const handleWaiting = () => {
+      if (videoEl.readyState === 0) return;
       reportProgress(videoEl.currentTime, 'buffering')
     }
 
