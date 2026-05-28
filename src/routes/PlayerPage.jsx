@@ -6,6 +6,7 @@ import { useActiveServer } from '../hooks/useActiveServer'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
+import { useSidecarSubtitles } from '../hooks/useSidecarSubtitles'
 import { PLEX_CONFIG } from '../config/app'
 import { usePlayerHUD } from '../hooks/usePlayerHUD'
 import { useVideoMediaEvents } from '../hooks/useVideoMediaEvents'
@@ -68,6 +69,8 @@ export default function PlayerPage() {
     hudTimeoutRef,
     executeSeek
   })
+
+  useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId)
 
   usePlaybackProgress({
     serverInfo,
