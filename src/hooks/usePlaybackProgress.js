@@ -19,8 +19,10 @@ import { PLEX_CONFIG } from '../config/app'
  * @param {boolean} params.isPlaying External state indicating if video is actively playing.
  * @param {number} params.duration The total duration of the media in milliseconds (from Plex metadata).
  * @param {number} params.transcodeOffset Offset in ms added to video time for transcoded streams.
+ * @param {string} params.playbackSessionId Persistent UI playback session UUID.
+ * @param {string} params.clientSessionId Persistent client session UUID.
  */
-export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, videoRef, viewOffset, startOver, isBuffering, isPlaying, duration, transcodeOffset = 0 }) {
+export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, videoRef, viewOffset, startOver, isBuffering, isPlaying, duration, transcodeOffset = 0, playbackSessionId, clientSessionId }) {
   const progressRef = useRef(0)
   const lastReportedTimeRef = useRef(0)
   const serverInfoRef = useRef(serverInfo)
@@ -60,7 +62,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     const durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1 // Avoid 0
 
     console.log(`[usePlaybackProgress] Syncing: ${timeMs}ms, duration: ${durationMs}ms, state: ${state}`)
-    await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, activePlayQueueItemID, timeMs, durationMs, state)
+    await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, activePlayQueueItemID, timeMs, durationMs, state, playbackSessionId, clientSessionId)
   }
 
   // Effect 1: Handle initial resume offset via loadedmetadata event
@@ -161,7 +163,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
         // Build direct URL with token for high-priority fetch keepalive
         const separator = activeServer.uri.includes('?') ? '&' : '?'
         const metadataKey = encodeURIComponent(`/library/metadata/${activeKey}`)
-        const url = `${activeServer.uri}/:/timeline${separator}ratingKey=${activeKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${timeMs}&duration=${durationMs}&state=stopped&playQueueItemID=${activePlayQueueItemID}&X-Plex-Token=${activeServer.token}&X-Plex-Client-Identifier=${PLEX_CONFIG.clientId}`
+        const url = `${activeServer.uri}/:/timeline${separator}ratingKey=${activeKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${timeMs}&duration=${durationMs}&state=stopped&playQueueItemID=${activePlayQueueItemID}&X-Plex-Token=${activeServer.token}&X-Plex-Client-Identifier=${PLEX_CONFIG.clientId}&X-Plex-Session-Id=${clientSessionId}&X-Plex-Playback-Session-Id=${playbackSessionId}`
         
         if (navigator.sendBeacon) {
           navigator.sendBeacon(url)

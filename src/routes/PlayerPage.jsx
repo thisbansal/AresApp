@@ -40,10 +40,18 @@ export default function PlayerPage() {
   const [transcodeOffset, setTranscodeOffset] = useState(0)
   const seekTimeoutRef = useRef(null)
 
+  // Generate persistent UI session IDs for timeline tracking and transcode termination
+  const { playbackSessionId, clientSessionId } = useMemo(() => ({
+    playbackSessionId: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+    clientSessionId: Math.random().toString(36).substring(2, 15)
+  }), [])
+
   const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
-  const { currentTime, setCurrentTime, duration, isPlaying, isBuffering } = useVideoMediaEvents(
+  const { currentTime, setCurrentTime, duration: videoDuration, isPlaying, isBuffering } = useVideoMediaEvents(
     videoRef, loading, isDragging, isScrolling, transcodeOffset, setIsSwitchingStream
   )
+
+  const duration = metaDetails?.duration ? metaDetails.duration / 1000 : videoDuration
 
   usePlayerControls({
     videoRef,
@@ -63,14 +71,16 @@ export default function PlayerPage() {
   usePlaybackProgress({
     serverInfo,
     ratingKey,
-    playQueueItemID,
+    playQueueItemID: location.state?.playQueueItemID,
     videoRef,
-    viewOffset: metaDetails.viewOffset,
+    viewOffset: metaDetails?.viewOffset || 0,
     startOver: location.state?.startOver,
     isBuffering,
     isPlaying,
-    duration: metaDetails.duration,
-    transcodeOffset
+    duration: metaDetails?.duration || 0,
+    transcodeOffset,
+    playbackSessionId,
+    clientSessionId
   })
 
   useEffect(() => {
@@ -130,6 +140,8 @@ export default function PlayerPage() {
           part,
           ratingKey,
           capabilities,
+          playbackSessionId,
+          clientSessionId,
           location.state?.startOver ? 0 : (metadata.viewOffset || 0)
         )
         
@@ -307,6 +319,8 @@ export default function PlayerPage() {
           { key: partKey }, 
           ratingKey,
           mediaCodecService.checkStreamCapabilities(metaDetails.Media[0].Part),
+          playbackSessionId,
+          clientSessionId,
           newGlobalTime * 1000
         )
         newUrl += newUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`
@@ -496,6 +510,8 @@ export default function PlayerPage() {
           { key: partKey }, // Mock part object for the builder
           ratingKey,
           capabilities,
+          playbackSessionId,
+          clientSessionId,
           globalTime * 1000
         )
         
