@@ -77,7 +77,6 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
       if (startSeconds > 0) {
         console.log(`[usePlaybackProgress] Seeking to start timestamp: ${startSeconds}s`)
         videoEl.currentTime = startSeconds
-        lastReportedTimeRef.current = startSeconds
         progressRef.current = startSeconds
       }
     }
@@ -88,7 +87,6 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     if (videoEl.readyState >= 1 && startSeconds > 0) {
       console.log(`[usePlaybackProgress] Video readyState >= 1, seeking to start timestamp: ${startSeconds}s`)
       videoEl.currentTime = startSeconds
-      lastReportedTimeRef.current = startSeconds
       progressRef.current = startSeconds
     }
 
@@ -131,12 +129,14 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
 
     videoEl.addEventListener('timeupdate', handleTimeUpdate)
     videoEl.addEventListener('play', handlePlay)
+    videoEl.addEventListener('playing', handlePlay)
     videoEl.addEventListener('pause', handlePause)
     videoEl.addEventListener('waiting', handleWaiting)
 
     return () => {
       videoEl.removeEventListener('timeupdate', handleTimeUpdate)
       videoEl.removeEventListener('play', handlePlay)
+      videoEl.removeEventListener('playing', handlePlay)
       videoEl.removeEventListener('pause', handlePause)
       videoEl.removeEventListener('waiting', handleWaiting)
     }
