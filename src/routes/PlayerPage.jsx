@@ -186,7 +186,8 @@ export default function PlayerPage() {
 
         const hls = new Hls({
           maxBufferLength: 30,
-          maxMaxBufferLength: 600
+          maxMaxBufferLength: 600,
+          renderTextTracksNatively: true
         })
         hlsRef.current = hls
 
