@@ -81,7 +81,8 @@ class MediaCodecService {
                     codec: v.codec,
                     mimeType,
                     canPlayValue: canPlay,
-                    supported
+                    supported,
+                    selected: v.selected
                 });
 
                 const logMessage = `Video [${v.codec}] - ${v.extendedDisplayTitle || v.displayTitle}`;
@@ -104,7 +105,8 @@ class MediaCodecService {
                     codec: a.codec,
                     mimeType,
                     canPlayValue: canPlay,
-                    supported
+                    supported,
+                    selected: a.selected
                 });
 
                 const logMessage = `Audio [${a.codec}] - ${a.extendedDisplayTitle || a.displayTitle}`;
@@ -127,7 +129,8 @@ class MediaCodecService {
                     id: s.id,
                     codec: s.codec,
                     isTextBased,
-                    supported: isTextBased
+                    supported: isTextBased,
+                    selected: s.selected
                 });
 
                 const logMessage = `Subtitle [${s.codec}] - ${s.extendedDisplayTitle || s.displayTitle || s.language}`;
