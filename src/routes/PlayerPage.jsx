@@ -526,14 +526,25 @@ export default function PlayerPage() {
       if (videoEl && !videoEl.paused) videoEl.pause()
       setIsSwitchingStream(true)
 
+      setTimeout(async () => {
+        // Optional manual parameter to force burn in
+        const offsetMs = videoEl ? videoEl.currentTime * 1000 : 0
+        let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
+          serverInfo,
+          { id: partId, key: partKey },
+          ratingKey,
+          capabilities,
+          playbackSessionId,
           clientSessionId,
-          globalTime * 1000
+          offsetMs,
+          forceSubtitleBurnIn
         )
 
         // Append cache buster to force hard reload of the stream
         newUrl += newUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`
 
         setStreamUrl(newUrl)
+        useNotificationStore.getState().addNotification('Reloading stream...', { level: 'info', duration: 1500 })
       }, 300)
     } else {
       useNotificationStore.getState().addNotification('Failed to change stream', { level: 'error' })
