@@ -73,6 +73,7 @@ export default function PlayerPage() {
     serverInfo,
     ratingKey,
     playQueueItemID,
+    streamUrl,
     videoRef,
     viewOffset: metaDetails?.viewOffset || 0,
     startOver: location.state?.startOver,

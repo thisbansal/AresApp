@@ -21,7 +21,7 @@ import { PLEX_CONFIG } from '../config/app'
  * @param {string} params.playbackSessionId Persistent UI playback session UUID.
  * @param {string} params.clientSessionId Persistent client session UUID.
  */
-export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, videoRef, viewOffset, startOver, isBuffering, isPlaying, duration, playbackSessionId, clientSessionId }) {
+export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, streamUrl, videoRef, viewOffset, startOver, isBuffering, isPlaying, duration, playbackSessionId, clientSessionId }) {
   const progressRef = useRef(0)
   const lastReportedTimeRef = useRef(0)
   const serverInfoRef = useRef(serverInfo)
@@ -103,7 +103,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     return () => {
       videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
-  }, [videoRef.current, viewOffset, startOver])
+  }, [videoRef.current, viewOffset, startOver, streamUrl])
 
   // Effect 2: Handle play, pause, and periodic progress reporting
   useEffect(() => {
@@ -154,7 +154,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
       videoEl.removeEventListener('pause', handlePause)
       videoEl.removeEventListener('waiting', handleWaiting)
     }
-  }, [videoRef.current, ratingKey, playQueueItemID])
+  }, [videoRef.current, ratingKey, playQueueItemID, streamUrl])
 
   // Effect 3: Sync final progress on exit/unmount
   useEffect(() => {
