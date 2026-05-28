@@ -12,6 +12,7 @@ import { usePlayerHUD } from '../hooks/usePlayerHUD'
 import { useVideoMediaEvents } from '../hooks/useVideoMediaEvents'
 import { usePlayerControls } from '../hooks/usePlayerControls'
 import { formatTime, formatRemainingTime } from '../utils/timeUtils'
+import { CustomSubtitleOverlay } from '../components/player/CustomSubtitleOverlay'
 import { plexStreamBuilder } from '../services/plex/plexStreamBuilder'
 import { mediaCodecService } from '../services/MediaCodecService'
 import Hls from 'hls.js'
@@ -71,7 +72,7 @@ export default function PlayerPage() {
     executeSeek
   })
 
-  useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId)
+  const subtitleCues = useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId)
 
   usePlaybackProgress({
     serverInfo,
@@ -594,6 +595,9 @@ export default function PlayerPage() {
         controls={false}
         style={styles.video}
       />
+      
+      {/* Custom React Subtitle Overlay (Bypasses Native Track Quirks) */}
+      <CustomSubtitleOverlay cues={subtitleCues} videoRef={videoRef} />
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
       <div
