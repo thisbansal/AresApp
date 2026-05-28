@@ -295,7 +295,7 @@ export default function PlayerPage() {
     console.log(numberOfStreams)
   }, [numberOfStreams])
 
-  const executeSeek = async (newGlobalTime) => {
+  async function executeSeek(newGlobalTime) {
     const videoEl = videoRef.current || document.querySelector('video')
     if (!videoEl) return
 
