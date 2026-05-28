@@ -22,7 +22,7 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, rati
 
         console.log(`[useSidecarSubtitles] Mounting native sidecar track via Plex Transcoder for ${subtitleStream.codec}...`);
 
-        const ratingId = ratingKey.split('/').pop();
+        const ratingId = String(ratingKey).split('/').pop();
         const metadataPath = `/library/metadata/${ratingId}`;
 
         // Build the Plex Universal Transcoder URL specifically for the subtitle track
