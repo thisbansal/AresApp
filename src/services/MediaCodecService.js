@@ -124,17 +124,14 @@ class MediaCodecService {
                 const codec = (s.codec || '').toLowerCase();
                 const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa', 'mov_text', 'tx3g'].includes(codec);
                 
-                // Plex ONLY provides a 'key' property if the subtitle is an external sidecar file.
-                // If there is no key, it is embedded inside the MKV container, which means we CANNOT
-                // fetch it cleanly via /library/streams/. Therefore, it must be transcoded!
-                const isExternal = !!s.key;
-                const isSupported = isTextBased && isExternal;
+                // Because we use the Plex Universal Transcoder to extract and convert subtitles to VTT,
+                // ALL text-based subtitles (both external and embedded) are fully supported natively via sidecars!
+                const isSupported = isTextBased;
                 
                 results.subtitles.push({
                     id: s.id,
                     codec: s.codec,
                     isTextBased,
-                    isExternal,
                     supported: isSupported,
                     selected: s.selected,
                     key: s.key
@@ -142,9 +139,9 @@ class MediaCodecService {
 
                 const logMessage = `Subtitle [${s.codec}] - ${s.extendedDisplayTitle || s.displayTitle || s.language}`;
                 if (isSupported) {
-                    console.log(`✅ SUPPORTED: ${logMessage} (Format: Text, External)`);
+                    console.log(`✅ SUPPORTED: ${logMessage} (Format: Text)`);
                 } else {
-                    console.error(`❌ NOT SUPPORTED (Requires Burn-in): ${logMessage} (Format: ${isTextBased ? 'Text' : 'Image'}, External: ${isExternal})`);
+                    console.error(`❌ NOT SUPPORTED (Requires Burn-in): ${logMessage} (Format: Image)`);
                 }
             });
         }
