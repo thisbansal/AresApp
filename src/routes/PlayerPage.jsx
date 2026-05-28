@@ -578,6 +578,7 @@ export default function PlayerPage() {
         ref={videoRef}
         playsInline
         autoPlay
+        crossOrigin="anonymous"
         controls={false}
         style={styles.video}
       />

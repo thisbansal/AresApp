@@ -58,7 +58,12 @@ class PlexStreamBuilder {
       // transcoder profile for the specified platform. We MUST use 'Chrome' instead of 
       // PLEX_CONFIG.device ('webOS TV') because all PMS instances ship with a Chrome profile.
       'X-Plex-Platform': 'Chrome',
-      'X-Plex-Product': PLEX_CONFIG.product
+      'X-Plex-Product': PLEX_CONFIG.product,
+      
+      // Since we lie and say we are 'Chrome', Plex assumes we don't support HEVC video.
+      // We must explicitly append a profile capability to inform the transcoder that HEVC is supported
+      // so it can safely Direct Stream (copy) the 4K HEVC video track instead of transcoding it to H264!
+      'X-Plex-Client-Profile-Extra': 'add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.width&value=4096&replace=true)+add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.height&value=2160&replace=true)+add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.bitDepth&value=10&replace=true)+append-transcode-target-codec(type=videoProfile&context=streaming&protocol=hls&videoCodec=hevc)'
     })
 
     const decisionUrl = `${serverInfo.uri}/video/:/transcode/universal/decision?${params.toString()}`
