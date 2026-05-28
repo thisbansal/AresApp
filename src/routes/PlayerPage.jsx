@@ -172,6 +172,9 @@ export default function PlayerPage() {
         if (initialized) return
         initialized = true
         videoEl.removeEventListener('emptied', initHls)
+        
+        // Purge ghost timestamps from previous stream session
+        videoEl.currentTime = 0
 
         const hls = new Hls({
           maxBufferLength: 30,
@@ -262,6 +265,45 @@ export default function PlayerPage() {
     console.log(numberOfStreams)
   }, [numberOfStreams])
 
+  const executeSeek = async (newGlobalTime) => {
+    const videoEl = videoRef.current || document.querySelector('video')
+    if (!videoEl) return
+
+    if (streamUrl?.includes('transcode')) {
+      const buffered = videoEl.buffered
+      const normalizedTarget = Math.max(0, newGlobalTime - (transcodeOffset / 1000))
+      
+      let isBuffered = false
+      for (let i = 0; i < buffered.length; i++) {
+        if (normalizedTarget >= buffered.start(i) && normalizedTarget <= buffered.end(i) + 5) {
+          isBuffered = true
+          break
+        }
+      }
+
+      if (!isBuffered) {
+        setMetaDetails(prev => ({ ...prev, viewOffset: newGlobalTime * 1000 }))
+        if (!videoEl.paused) videoEl.pause()
+        setIsSwitchingStream(true)
+        
+        let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
+          serverInfo,
+          { key: partKey }, 
+          ratingKey,
+          mediaCodecService.checkStreamCapabilities(metaDetails.Media[0].Part),
+          newGlobalTime * 1000
+        )
+        newUrl += newUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`
+        setStreamUrl(newUrl)
+        return
+      }
+      
+      videoEl.currentTime = normalizedTarget
+    } else {
+      videoEl.currentTime = newGlobalTime
+    }
+  }
+
   // Drag Seek Pointer Move and Pointer Up Observers
   useEffect(() => {
     if (!isDragging) return
@@ -275,15 +317,13 @@ export default function PlayerPage() {
       const clickX = e.clientX - rect.left
       const percentage = Math.max(0, Math.min(1, clickX / rect.width))
       const newTime = percentage * duration
-
-      const videoEl = videoRef.current || document.querySelector('video')
-      if (videoEl) {
-        videoEl.currentTime = newTime
-      }
-      setCurrentTime(newTime)
+      setCurrentTime(newTime) // Only visually update the UI during drag
     }
 
     const handlePointerUp = () => {
+      // Execute the actual seek when drag is released
+      executeSeek(currentTime)
+
       const videoEl = videoRef.current || document.querySelector('video')
       if (videoEl) {
         // Explicitly play video once drag pointer is released
@@ -328,13 +368,11 @@ export default function PlayerPage() {
   }
 
   const handleSeek = (direction) => {
-    const videoEl = videoRef.current || document.querySelector('video')
-    if (!videoEl) return
     triggerHUD()
     if (direction === 'back') {
-      videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
+      executeSeek(Math.max(0, currentTime - 10))
     } else {
-      videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10)
+      executeSeek(Math.min(duration || 0, currentTime + 10))
     }
   }
 
@@ -352,10 +390,8 @@ export default function PlayerPage() {
     if (videoEl && !videoEl.paused) {
       videoEl.pause()
     }
-    if (videoEl) {
-      videoEl.currentTime = Math.max(0, newTime - (transcodeOffset / 1000))
-    }
     setCurrentTime(newTime)
+    executeSeek(newTime)
   }
 
   const handleStreamSelect = async (streamType, streamId) => {
