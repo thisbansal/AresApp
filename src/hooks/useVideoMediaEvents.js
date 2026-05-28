@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react'
  * @param {Function} setIsSwitchingStream - State setter to clear the switching state
  * @returns {Object} React state representations of the video properties.
  */
-export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling, setIsSwitchingStream) {
+export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling, isSwitchingStream, setIsSwitchingStream) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -56,8 +56,8 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     if (!videoEl) return
 
     const handleTimeUpdate = () => {
-      // Do not override local UI time state if user is actively scrubbing
-      if (!isDragging && !isScrolling) {
+      // Do not override local UI time state if user is actively scrubbing or stream is switching
+      if (!isDragging && !isScrolling && !isSwitchingStream) {
         setCurrentTime(videoEl.currentTime)
       }
     }
@@ -75,8 +75,10 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     videoEl.addEventListener('play', handlePlayState)
     videoEl.addEventListener('pause', handlePauseState)
 
-    // Sync initial states if video already started loading metadata
-    setCurrentTime(videoEl.currentTime || 0)
+    // Sync initial states if video already started loading metadata, but protect UI during switches
+    if (!isSwitchingStream) {
+      setCurrentTime(videoEl.currentTime || 0)
+    }
     setDuration(videoEl.duration || 0)
     setIsPlaying(!videoEl.paused)
 
@@ -86,7 +88,7 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
       videoEl.removeEventListener('play', handlePlayState)
       videoEl.removeEventListener('pause', handlePauseState)
     }
-  }, [videoRef, isLoading, isDragging, isScrolling])
+  }, [videoRef, isLoading, isDragging, isScrolling, isSwitchingStream])
 
   return {
     currentTime,
