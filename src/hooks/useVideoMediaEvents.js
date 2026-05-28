@@ -8,12 +8,11 @@ import { useState, useEffect } from 'react'
  * @param {boolean} isLoading - Whether the player is currently resolving the stream.
  * @param {boolean} isDragging - Whether the user is actively dragging the timeline track.
  * @param {boolean} isScrolling - Whether the user is actively scrolling the timeline wheel.
- * @param {number} transcodeOffset - Offset in ms to add to native time
  * @param {boolean} isSwitchingStream - Whether the stream is currently switching inline
  * @param {Function} setIsSwitchingStream - State setter to clear the switching state
  * @returns {Object} React state representations of the video properties.
  */
-export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling, transcodeOffset = 0, setIsSwitchingStream) {
+export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling, setIsSwitchingStream) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -59,7 +58,7 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     const handleTimeUpdate = () => {
       // Do not override local UI time state if user is actively scrubbing
       if (!isDragging && !isScrolling) {
-        setCurrentTime(videoEl.currentTime + (transcodeOffset / 1000))
+        setCurrentTime(videoEl.currentTime)
       }
     }
     const handleDurationChange = () => setDuration(videoEl.duration || 0)
@@ -77,7 +76,7 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     videoEl.addEventListener('pause', handlePauseState)
 
     // Sync initial states if video already started loading metadata
-    setCurrentTime((videoEl.currentTime || 0) + (transcodeOffset / 1000))
+    setCurrentTime(videoEl.currentTime || 0)
     setDuration(videoEl.duration || 0)
     setIsPlaying(!videoEl.paused)
 

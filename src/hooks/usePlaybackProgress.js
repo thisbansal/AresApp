@@ -18,11 +18,10 @@ import { PLEX_CONFIG } from '../config/app'
  * @param {boolean} params.isBuffering External state indicating if video is currently buffering.
  * @param {boolean} params.isPlaying External state indicating if video is actively playing.
  * @param {number} params.duration The total duration of the media in milliseconds (from Plex metadata).
- * @param {number} params.transcodeOffset Offset in ms added to video time for transcoded streams.
  * @param {string} params.playbackSessionId Persistent UI playback session UUID.
  * @param {string} params.clientSessionId Persistent client session UUID.
  */
-export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, videoRef, viewOffset, startOver, isBuffering, isPlaying, duration, transcodeOffset = 0, playbackSessionId, clientSessionId }) {
+export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, videoRef, viewOffset, startOver, isBuffering, isPlaying, duration, playbackSessionId, clientSessionId }) {
   const progressRef = useRef(0)
   const lastReportedTimeRef = useRef(0)
   const serverInfoRef = useRef(serverInfo)
@@ -70,7 +69,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     if (!videoRef.current || !ratingKey) return
     const videoEl = videoRef.current
     let startSeconds = -1
-    if (!startOver && viewOffset > 0 && !transcodeOffset) {
+    if (!startOver && viewOffset > 0) {
       startSeconds = viewOffset / 1000
     }
 
@@ -80,9 +79,6 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
         videoEl.currentTime = startSeconds
         lastReportedTimeRef.current = startSeconds
         progressRef.current = startSeconds
-      } else if (transcodeOffset > 0) {
-        lastReportedTimeRef.current = transcodeOffset / 1000
-        progressRef.current = transcodeOffset / 1000
       }
     }
 
@@ -99,7 +95,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     return () => {
       videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
-  }, [videoRef.current, viewOffset, startOver, transcodeOffset])
+  }, [videoRef.current, viewOffset, startOver])
 
   // Effect 2: Handle play, pause, and periodic progress reporting
   useEffect(() => {
@@ -107,7 +103,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     const videoEl = videoRef.current
 
     const handleTimeUpdate = () => {
-      const time = videoEl.currentTime + (transcodeOffset / 1000)
+      const time = videoEl.currentTime
       progressRef.current = time
 
       // Report progress periodically every 10 seconds of active playback
@@ -119,16 +115,16 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
 
     const handlePlay = () => {
       // Don't report play if the video hasn't loaded metadata yet and is at true 0
-      if (videoEl.readyState === 0 && !transcodeOffset) return;
-      reportProgress(videoEl.currentTime + (transcodeOffset / 1000), 'playing')
+      if (videoEl.readyState === 0 && viewOffset === 0) return;
+      reportProgress(videoEl.currentTime, 'playing')
     }
 
     const handlePause = () => {
-      reportProgress(videoEl.currentTime + (transcodeOffset / 1000), 'paused')
+      reportProgress(videoEl.currentTime, 'paused')
     }
 
     const handleWaiting = () => {
-      reportProgress(videoEl.currentTime + (transcodeOffset / 1000), 'buffering')
+      reportProgress(videoEl.currentTime, 'buffering')
     }
 
     videoEl.addEventListener('timeupdate', handleTimeUpdate)
@@ -142,7 +138,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
       videoEl.removeEventListener('pause', handlePause)
       videoEl.removeEventListener('waiting', handleWaiting)
     }
-  }, [videoRef.current, ratingKey, playQueueItemID, transcodeOffset])
+  }, [videoRef.current, ratingKey, playQueueItemID])
 
   // Effect 3: Sync final progress on exit/unmount
   useEffect(() => {
