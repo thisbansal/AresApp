@@ -51,14 +51,18 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     const activeServer = serverInfoRef.current
     const activeKey = ratingKeyRef.current
     const activePlayQueueItemID = playQueueItemIDRef.current
-    if (!activeServer || !activeKey || !activePlayQueueItemID) return
+    if (!activeServer || !activeKey || !activePlayQueueItemID) {
+      console.warn(`[usePlaybackProgress] ABORTING TIMELINE SYNC! Missing parameters:`, { activeServer: !!activeServer, activeKey: !!activeKey, activePlayQueueItemID })
+      return
+    }
 
     const timeMs = Math.floor(timeSeconds * 1000)
     
     // Ensure durationMs is absolutely never NaN
     let rawVideoDuration = videoRef?.current?.duration
     if (isNaN(rawVideoDuration)) rawVideoDuration = 0
-    const durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1 // Avoid 0
+    let durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1 // Avoid 0
+    if (!isFinite(durationMs)) durationMs = durationRef.current || 1
 
     console.log(`[usePlaybackProgress] Syncing: ${timeMs}ms, duration: ${durationMs}ms, state: ${state}`)
     await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, activePlayQueueItemID, timeMs, durationMs, state, playbackSessionId, clientSessionId)
@@ -112,17 +116,20 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
       }
     }
 
-    const handlePlay = () => {
+    const handlePlay = (e) => {
+      console.log(`[usePlaybackProgress] Event: ${e.type}, readyState: ${videoEl.readyState}, time: ${videoEl.currentTime}`)
       if (videoEl.readyState === 0) return;
       reportProgress(videoEl.currentTime, 'playing')
     }
 
-    const handlePause = () => {
+    const handlePause = (e) => {
+      console.log(`[usePlaybackProgress] Event: ${e.type}, readyState: ${videoEl.readyState}, time: ${videoEl.currentTime}`)
       if (videoEl.readyState === 0) return;
       reportProgress(videoEl.currentTime, 'paused')
     }
 
-    const handleWaiting = () => {
+    const handleWaiting = (e) => {
+      console.log(`[usePlaybackProgress] Event: ${e.type}, readyState: ${videoEl.readyState}, time: ${videoEl.currentTime}`)
       if (videoEl.readyState === 0) return;
       reportProgress(videoEl.currentTime, 'buffering')
     }
@@ -154,7 +161,8 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
         const timeMs = Math.floor(finalTime * 1000)
         let rawVideoDuration = videoRef?.current?.duration
         if (isNaN(rawVideoDuration)) rawVideoDuration = 0
-        const durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1
+        let durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1
+        if (!isFinite(durationMs)) durationMs = durationRef.current || 1
 
         console.log(`[usePlaybackProgress] Unmount detected, reporting final time: ${timeMs}ms`)
         
