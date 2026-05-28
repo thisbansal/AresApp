@@ -183,9 +183,6 @@ export default function PlayerPage() {
         initialized = true
         videoEl.removeEventListener('emptied', initHls)
 
-        // Purge ghost timestamps from previous stream session
-        videoEl.currentTime = 0
-
         const hls = new Hls({
           maxBufferLength: 30,
           maxMaxBufferLength: 600
