@@ -30,9 +30,10 @@ export default function PlayerPage() {
   const [playQueueItemID, setPlayQueueItemID] = useState(null)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
   const [availableStreams, setAvailableStreams] = useState([])
-  const [numberOfStreams, setNumberOfStreams] = useState({})
+  const [numberOfStreams, setNumberOfStreams] = useState({ video: 1, audio: 1, subtitles: 0 })
   const [partId, setPartId] = useState(null)
   const [partKey, setPartKey] = useState(null)
+  const [forceSubtitleBurnIn, setForceSubtitleBurnIn] = useState(false)
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
 
   // HUD Visibility & Interaction State
@@ -474,6 +475,13 @@ export default function PlayerPage() {
     }
     const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
 
+    // Optional manual parameter to force burn in (arguments[7])
+    const newStreamUrl = await plexStreamBuilder.getOptimalStreamUrl(
+      serverInfo, { id: partId, key: partKey }, ratingKey, capabilities, playbackSessionId, clientSessionId, 
+      (videoEl ? videoEl.currentTime * 1000 : 0), 
+      forceSubtitleBurnIn
+    )
+
     // Try native HTML5 track switching first (Instant, no reload)
     let switchedNatively = false
     try {
@@ -518,13 +526,6 @@ export default function PlayerPage() {
       if (videoEl && !videoEl.paused) videoEl.pause()
       setIsSwitchingStream(true)
 
-      setTimeout(async () => {
-        let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
-          serverInfo,
-          { key: partKey }, // Mock part object for the builder
-          ratingKey,
-          capabilities,
-          playbackSessionId,
           clientSessionId,
           globalTime * 1000
         )
@@ -659,16 +660,41 @@ export default function PlayerPage() {
           {activeMenu !== 'none' && (
             <div style={styles.streamMenuPopover} className="stream-menu-popover">
               {activeMenu === 'subtitle' && (
-                <FocusableItem
-                  id={`stream-sub-none`}
-                  rowIndex={-1} colIndex={0}
-                  style={styles.streamMenuItem}
-                  className="hud-stream-menu-item"
-                  onClick={() => handleStreamSelect(3, 0)}
-                >
-                  <div style={{...styles.streamMenuRadio, backgroundColor: !availableStreams.find(s => s.streamType === 3 && s.selected) ? '#fff' : 'transparent'}} />
-                  <span>None</span>
-                </FocusableItem>
+                <>
+                  <FocusableItem
+                    id={`stream-sub-force-burn`}
+                    rowIndex={-1} colIndex={0}
+                    style={{...styles.streamMenuItem, borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
+                    className="hud-stream-menu-item"
+                    onClick={() => {
+                      const newValue = !forceSubtitleBurnIn
+                      setForceSubtitleBurnIn(newValue)
+                      useNotificationStore.getState().addNotification(newValue ? 'Burn-In Forced (Requires Transcode)' : 'Burn-In Disabled (Sidecar Allowed)', { level: 'info', duration: 2000 })
+                      
+                      // Trigger a stream reload with the active streams, but now using the new forceSubtitleBurnIn value
+                      const activeVideo = availableStreams.find(s => s.streamType === 1 && s.selected)
+                      const activeAudio = availableStreams.find(s => s.streamType === 2 && s.selected)
+                      const activeSub = availableStreams.find(s => s.streamType === 3 && s.selected)
+                      
+                      setTimeout(() => {
+                        handleStreamSelect(3, activeSub ? activeSub.id : 0)
+                      }, 100)
+                    }}
+                  >
+                    <div style={{...styles.streamMenuRadio, borderRadius: '4px', backgroundColor: forceSubtitleBurnIn ? '#e50914' : 'transparent'}} />
+                    <span style={{color: forceSubtitleBurnIn ? '#fff' : '#a8a8af', fontWeight: forceSubtitleBurnIn ? '600' : '500'}}>Force Burn-in (Transcode)</span>
+                  </FocusableItem>
+                  <FocusableItem
+                    id={`stream-sub-none`}
+                    rowIndex={-1} colIndex={1}
+                    style={styles.streamMenuItem}
+                    className="hud-stream-menu-item"
+                    onClick={() => handleStreamSelect(3, 0)}
+                  >
+                    <div style={{...styles.streamMenuRadio, backgroundColor: !availableStreams.find(s => s.streamType === 3 && s.selected) ? '#fff' : 'transparent'}} />
+                    <span>None</span>
+                  </FocusableItem>
+                </>
               )}
               {availableStreams.filter(s => {
                 if (activeMenu === 'video') return s.streamType === 1
@@ -679,7 +705,7 @@ export default function PlayerPage() {
                 <FocusableItem
                   key={stream.id}
                   id={`stream-${activeMenu}-${stream.id}`}
-                  rowIndex={-1} colIndex={activeMenu === 'subtitle' ? idx + 1 : idx}
+                  rowIndex={-1} colIndex={activeMenu === 'subtitle' ? idx + 2 : idx}
                   style={styles.streamMenuItem}
                   className="hud-stream-menu-item"
                   onClick={() => handleStreamSelect(stream.streamType, stream.id)}

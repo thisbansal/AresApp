@@ -122,13 +122,16 @@ class PlexStreamBuilder {
     // we MUST force a transcode to burn it in.
     const subtitleSupported = !selectedSubtitle || (selectedSubtitle.supported === true)
 
-    if (videoSupported && audioSupported && subtitleSupported) {
+    // User can manually toggle `userForcedBurnIn` from the UI to forcefully override capabilities
+    const needsBurnIn = !subtitleSupported || arguments[7] === true;
+
+    if (videoSupported && audioSupported && !needsBurnIn) {
       console.log('[PlexStreamBuilder] Codecs fully supported and no subtitles forced. Strategy: DIRECT PLAY')
       return this.buildDirectPlayUrl(serverInfo, part.key)
     }
 
-    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, SubtitlesForced: ${!subtitleSupported})`)
-    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, !subtitleSupported)
+    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, NeedsBurnIn: ${needsBurnIn})`)
+    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, needsBurnIn)
   }
 }
 
