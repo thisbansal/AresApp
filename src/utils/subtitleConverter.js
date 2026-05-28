@@ -90,12 +90,12 @@ const convertAssToVtt = (assContent) => {
 
 export const subtitleConverter = {
     /**
-     * Converts a raw subtitle string into a WebVTT Blob URL
+     * Converts a raw subtitle string into a WebVTT string
      * @param {string} content - The raw subtitle string
      * @param {string} codec - e.g. 'srt', 'ass', 'ssa'
-     * @returns {string|null} - A blob URL containing the WebVTT, or null if failed
+     * @returns {string|null} - WebVTT formatted string, or null if failed
      */
-    convertToVttBlobUrl: (content, codec) => {
+    convertToVttString: (content, codec) => {
         try {
             codec = (codec || '').toLowerCase();
             let vttContent = '';
@@ -111,7 +111,23 @@ export const subtitleConverter = {
                 return null;
             }
             
-            const blob = new Blob([vttContent], { type: 'text/vtt' });
+            return vttContent;
+        } catch (e) {
+            console.error('[SubtitleConverter] Failed to convert subtitle to string:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Converts a raw subtitle string into a WebVTT Blob URL
+     * @param {string} content - The raw subtitle string
+     * @param {string} codec - e.g. 'srt', 'ass', 'ssa'
+     * @returns {string|null} - A blob URL containing the WebVTT, or null if failed
+     */
+    convertToVttBlobUrl: (content, codec) => {
+        try {
+            const vttContent = subtitleConverter.convertToVttString(content, codec);
+            if (!vttContent) return null;
             return URL.createObjectURL(blob);
         } catch (e) {
             console.error('[SubtitleConverter] Failed to convert subtitle:', e);
