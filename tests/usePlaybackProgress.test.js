@@ -46,7 +46,7 @@ describe('usePlaybackProgress', () => {
     })
     
     expect(plexPlaybackService.updatePlaybackProgress).toHaveBeenCalledWith(
-      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 0, 100000, 'playing', undefined, undefined
+      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 0, 100000000, 'playing', undefined, undefined
     )
     
     // Fast forward 15 seconds
@@ -56,7 +56,7 @@ describe('usePlaybackProgress', () => {
     })
 
     expect(plexPlaybackService.updatePlaybackProgress).toHaveBeenCalledWith(
-      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 15000, 100000, 'playing', undefined, undefined
+      mockServerInfo.uri, mockServerInfo.token, mockRatingKey, mockPlayQueueItemID, 15000, 100000000, 'playing', undefined, undefined
     )
   })
 
