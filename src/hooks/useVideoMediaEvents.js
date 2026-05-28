@@ -26,7 +26,6 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     const handleWaiting = () => setIsBuffering(true)
     const handlePlaying = () => {
       setIsBuffering(false)
-      if (setIsSwitchingStream) setIsSwitchingStream(false)
     }
     const handleCanPlay = () => {
       setIsBuffering(false)
@@ -64,9 +63,6 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     const handleDurationChange = () => setDuration(videoEl.duration || 0)
     const handlePlayState = () => {
       setIsPlaying(true)
-      if (setIsSwitchingStream) {
-        setIsSwitchingStream(false)
-      }
     }
     const handlePauseState = () => setIsPlaying(false)
 
@@ -76,8 +72,11 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     videoEl.addEventListener('pause', handlePauseState)
 
     // Sync initial states if video already started loading metadata, but protect UI during switches
-    if (!isSwitchingStream) {
+    if (!isSwitchingStream || videoEl.readyState >= 3) {
       setCurrentTime(videoEl.currentTime || 0)
+      if (isSwitchingStream && setIsSwitchingStream) {
+        setIsSwitchingStream(false)
+      }
     }
     setDuration(videoEl.duration || 0)
     setIsPlaying(!videoEl.paused)
