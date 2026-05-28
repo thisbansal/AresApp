@@ -42,8 +42,7 @@ class PlexStreamBuilder {
       'autoAdjustQuality': '0',
       'location': 'lan',
       'mediaBufferSize': '102400',
-      'subtitles': 'auto',
-      'advancedSubtitles': 'text',
+      'subtitles': 'burn',
       'subtitleSize': '100',
       'audioBoost': '100',
       'session': clientSessionId,
@@ -53,9 +52,6 @@ class PlexStreamBuilder {
       'X-Plex-Session-Id': clientSessionId,
       'X-Plex-Playback-Session-Id': playbackSessionId,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
-      // Provide explicit subtitle capabilities so Plex doesn't automatically burn them in.
-      // Appends WebVTT capability to the HLS protocol for text-based subtitles.
-      'X-Plex-Client-Profile-Extra': 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=hls&videoCodec=h264,hevc&audioCodec=aac&subtitleCodec=webvtt)',
       // CRITICAL: Plex Media Server will throw a 400 HTML error if it doesn't have a 
       // transcoder profile for the specified platform. We MUST use 'Chrome' instead of 
       // PLEX_CONFIG.device ('webOS TV') because all PMS instances ship with a Chrome profile.
