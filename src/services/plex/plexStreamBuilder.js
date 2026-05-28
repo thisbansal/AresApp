@@ -43,7 +43,7 @@ class PlexStreamBuilder {
       'autoAdjustQuality': '0',
       'location': 'lan',
       'mediaBufferSize': '102400',
-      'subtitles': forceSubtitleBurnIn ? 'burn' : 'auto',
+      'subtitles': forceSubtitleBurnIn ? 'burn' : 'none',
       'advancedSubtitles': forceSubtitleBurnIn ? 'none' : 'text',
       'subtitleSize': '100',
       'audioBoost': '100',
