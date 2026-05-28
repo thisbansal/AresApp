@@ -19,9 +19,10 @@ class PlexStreamBuilder {
    * @param {string} playbackSessionId - Persistent UI playback session UUID
    * @param {string} clientSessionId - Persistent client session UUID
    * @param {number} offset - Current playback time in milliseconds
+   * @param {boolean} forceSubtitleBurnIn - Whether to force Plex to burn subtitles into the video
    * @returns {Promise<string>} The transcode m3u8 URL
    */
-  async buildTranscodeUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, offset = 0) {
+  async buildTranscodeUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, offset = 0, forceSubtitleBurnIn = false) {
     // Convert offset from milliseconds to seconds if greater than 0
     const offsetSeconds = offset > 0 ? Math.floor(offset / 1000) : 0
 
@@ -42,7 +43,8 @@ class PlexStreamBuilder {
       'autoAdjustQuality': '0',
       'location': 'lan',
       'mediaBufferSize': '102400',
-      'subtitles': 'burn',
+      'subtitles': forceSubtitleBurnIn ? 'burn' : 'auto',
+      'advancedSubtitles': forceSubtitleBurnIn ? 'none' : 'text',
       'subtitleSize': '100',
       'audioBoost': '100',
       'session': clientSessionId,
@@ -126,7 +128,7 @@ class PlexStreamBuilder {
     }
 
     console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, SubtitlesForced: ${!subtitleSupported})`)
-    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset)
+    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, !subtitleSupported)
   }
 }
 
