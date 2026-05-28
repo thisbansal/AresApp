@@ -117,13 +117,10 @@ class PlexStreamBuilder {
     const videoSupported = selectedVideo ? selectedVideo.supported : true
     const audioSupported = selectedAudio ? selectedAudio.supported : true
     
-    // For Direct Play, we can natively render text-based external sidecar subtitles via our Sidecar injection hook.
-    // However, if the subtitle is image-based (PGS/VOBSUB) OR embedded inside the MKV container,
-    // we MUST force a transcode to burn it in.
-    const subtitleSupported = !selectedSubtitle || (selectedSubtitle.supported === true)
-
-    // User can manually toggle `userForcedBurnIn` from the UI to forcefully override capabilities
-    const needsBurnIn = !subtitleSupported || arguments[7] === true;
+    // We no longer fallback to burn-in automatically if a subtitle is unsupported.
+    // The user explicitly requested that burn-in is strictly manual via the HUD toggle.
+    // "Be they visible or not that would be not sidecar's responsibility."
+    const needsBurnIn = arguments[7] === true;
 
     if (videoSupported && audioSupported && !needsBurnIn) {
       console.log('[PlexStreamBuilder] Codecs fully supported and no subtitles forced. Strategy: DIRECT PLAY')
