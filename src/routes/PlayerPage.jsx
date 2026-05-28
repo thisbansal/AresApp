@@ -47,7 +47,7 @@ export default function PlayerPage() {
 
   const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
   const { currentTime, setCurrentTime, duration: videoDuration, isPlaying, isBuffering } = useVideoMediaEvents(
-    videoRef, loading, isDragging, isScrolling, setIsSwitchingStream
+    videoRef, loading, isDragging, isScrolling, isSwitchingStream, setIsSwitchingStream
   )
 
   const duration = metaDetails?.duration ? metaDetails.duration / 1000 : videoDuration
