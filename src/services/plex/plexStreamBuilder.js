@@ -102,16 +102,24 @@ class PlexStreamBuilder {
     // Check if the currently selected video and audio streams are supported
     const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0]
     const selectedAudio = capabilities.audio.find(a => a.selected) || capabilities.audio[0]
+    
+    // Check if any subtitle is explicitly selected (id > 0)
+    // In Plex, 'none' usually means no subtitle is selected, or it's absent from the payload.
+    const selectedSubtitle = capabilities.subtitles ? capabilities.subtitles.find(s => s.selected && s.id !== 0) : null
 
     const videoSupported = selectedVideo ? selectedVideo.supported : true
     const audioSupported = selectedAudio ? selectedAudio.supported : true
+    
+    // For now, since we haven't implemented native sidecar <track> rendering for Direct Play,
+    // ANY selected subtitle MUST force a transcode so Plex can burn it into the video stream.
+    const subtitleSupported = !selectedSubtitle
 
-    if (videoSupported && audioSupported) {
-      console.log('[PlexStreamBuilder] Codecs fully supported. Strategy: DIRECT PLAY')
+    if (videoSupported && audioSupported && subtitleSupported) {
+      console.log('[PlexStreamBuilder] Codecs fully supported and no subtitles forced. Strategy: DIRECT PLAY')
       return this.buildDirectPlayUrl(serverInfo, part.key)
     }
 
-    console.log('[PlexStreamBuilder] Codecs unsupported (Video: ' + videoSupported + ', Audio: ' + audioSupported + '). Strategy: TRANSCODE')
+    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, SubtitlesForced: ${!subtitleSupported})`)
     return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset)
   }
 }
