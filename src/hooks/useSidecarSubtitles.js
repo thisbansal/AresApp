@@ -34,9 +34,13 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
             console.log(`[useSidecarSubtitles] Selected subtitle is text-based (${subtitleStream.codec}). Fetching native sidecar track...`);
 
             try {
-                // Fetch the raw subtitle file from Plex
-                const streamUrl = `${serverInfo.uri}/library/streams/${subtitleStream.id}?X-Plex-Token=${serverInfo.token}`;
-                console.log(`[useSidecarSubtitles] Executing fetch to URL: ${serverInfo.uri}/library/streams/${subtitleStream.id} (Token hidden)`);
+                // Fetch the raw subtitle file from Plex using the stream's explicit key
+                if (!subtitleStream.key) {
+                    throw new Error(`Subtitle stream ${subtitleStream.id} is missing a 'key' property. It might be embedded.`);
+                }
+                
+                const streamUrl = `${serverInfo.uri}${subtitleStream.key}?X-Plex-Token=${serverInfo.token}`;
+                console.log(`[useSidecarSubtitles] Executing fetch to URL: ${serverInfo.uri}${subtitleStream.key} (Token hidden)`);
                 
                 const response = await fetch(streamUrl);
                 console.log(`[useSidecarSubtitles] Fetch response status: ${response.status} ${response.statusText}`);
