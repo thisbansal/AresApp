@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { getMetadata } from '../services/plex/plexContentService'
 import { createPlayQueue, setStreamSelection } from '../services/plex/plexPlaybackService'
@@ -63,9 +63,11 @@ export default function PlayerPage() {
     isDragging,
     isScrolling,
     setIsScrolling,
+    currentTime,
     setCurrentTime,
     seekTimeoutRef,
-    hudTimeoutRef
+    hudTimeoutRef,
+    executeSeek
   })
 
   usePlaybackProgress({
@@ -133,7 +135,7 @@ export default function PlayerPage() {
           audio: streams.filter(s => s.streamType === 2),
           subtitles: streams.filter(s => s.streamType === 3),
         }
-        
+
         const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
         const optimalUrl = await plexStreamBuilder.getOptimalStreamUrl(
           serverInfo,
@@ -144,7 +146,7 @@ export default function PlayerPage() {
           clientSessionId,
           location.state?.startOver ? 0 : (metadata.viewOffset || 0)
         )
-        
+
         console.log(`[PlayerPage] Initial Optimal Stream URL: ${optimalUrl}`)
         setStreamUrl(optimalUrl)
       } catch (err) {
@@ -182,7 +184,7 @@ export default function PlayerPage() {
         if (initialized) return
         initialized = true
         videoEl.removeEventListener('emptied', initHls)
-        
+
         // Purge ghost timestamps from previous stream session
         videoEl.currentTime = 0
 
@@ -263,7 +265,7 @@ export default function PlayerPage() {
 
       videoEl.src = streamUrl
       videoEl.load()
-      
+
       const playOnCanPlay = () => {
         videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
         videoEl.removeEventListener('canplay', playOnCanPlay)
@@ -285,7 +287,7 @@ export default function PlayerPage() {
       audio: availableStreams.filter(s => s.streamType === 2),
       subtitles: availableStreams.filter(s => s.streamType === 3),
     };
-    
+
     setNumberOfStreams(streams);
   }, [availableStreams])
 
@@ -300,7 +302,7 @@ export default function PlayerPage() {
     if (streamUrl?.includes('transcode')) {
       const buffered = videoEl.buffered
       const normalizedTarget = Math.max(0, newGlobalTime - (transcodeOffset / 1000))
-      
+
       let isBuffered = false
       for (let i = 0; i < buffered.length; i++) {
         if (normalizedTarget >= buffered.start(i) && normalizedTarget <= buffered.end(i) + 5) {
@@ -313,10 +315,10 @@ export default function PlayerPage() {
         setMetaDetails(prev => ({ ...prev, viewOffset: newGlobalTime * 1000 }))
         if (!videoEl.paused) videoEl.pause()
         setIsSwitchingStream(true)
-        
+
         let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
           serverInfo,
-          { key: partKey }, 
+          { key: partKey },
           ratingKey,
           mediaCodecService.checkStreamCapabilities(metaDetails.Media[0].Part),
           playbackSessionId,
@@ -327,7 +329,7 @@ export default function PlayerPage() {
         setStreamUrl(newUrl)
         return
       }
-      
+
       videoEl.currentTime = normalizedTarget
     } else {
       videoEl.currentTime = newGlobalTime
@@ -452,7 +454,7 @@ export default function PlayerPage() {
       if (s.streamType === streamType) return { ...s, selected: s.id === streamId }
       return s
     })
-    
+
     const structuredStreams = {
       video: updatedStreams.filter(s => s.streamType === 1),
       audio: updatedStreams.filter(s => s.streamType === 2),
@@ -514,10 +516,10 @@ export default function PlayerPage() {
           clientSessionId,
           globalTime * 1000
         )
-        
+
         // Append cache buster to force hard reload of the stream
         newUrl += newUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`
-        
+
         setStreamUrl(newUrl)
       }, 300)
     } else {

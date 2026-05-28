@@ -15,9 +15,11 @@ import { useNotificationStore } from '../services/notifications/notificationStor
  * @param {boolean} params.isDragging - Whether user is actively pointer-dragging the timeline.
  * @param {boolean} params.isScrolling - Whether user is wheel-scrolling the timeline.
  * @param {Function} params.setIsScrolling - Function to toggle wheel-scroll state.
+ * @param {number} params.currentTime - Current global video time.
  * @param {Function} params.setCurrentTime - Function to instantaneously update local UI time state.
  * @param {React.MutableRefObject} params.seekTimeoutRef - Ref to debounce playback resume after wheel scroll.
  * @param {React.MutableRefObject} params.hudTimeoutRef - Ref to clear HUD timeouts if needed.
+ * @param {Function} params.executeSeek - Function to correctly execute a seek (handling both Direct Play and Transcode).
  */
 export function usePlayerControls({
   videoRef,
@@ -29,10 +31,11 @@ export function usePlayerControls({
   isDragging,
   isScrolling,
   setIsScrolling,
+  currentTime,
   setCurrentTime,
   seekTimeoutRef,
   hudTimeoutRef,
-  transcodeOffset = 0
+  executeSeek
 }) {
   const { navigate: spatialNavigate } = useSpatialNavigation()
   const [shouldPause, setShouldPause] = useState(1)
@@ -41,6 +44,8 @@ export function usePlayerControls({
   const showHUDRef = useRef(showHUD)
   const isScrollingRef = useRef(isScrolling)
   const durationRef = useRef(duration)
+  const currentTimeRef = useRef(currentTime)
+  const targetTimeRef = useRef(null)
   const shouldPauseRef = useRef(shouldPause)
 
   // Cursor presence tracking
@@ -51,6 +56,7 @@ export function usePlayerControls({
   useEffect(() => { showHUDRef.current = showHUD }, [showHUD])
   useEffect(() => { isScrollingRef.current = isScrolling }, [isScrolling])
   useEffect(() => { durationRef.current = duration }, [duration])
+  useEffect(() => { currentTimeRef.current = currentTime }, [currentTime])
   useEffect(() => { shouldPauseRef.current = shouldPause }, [shouldPause])
 
   useEffect(() => {
@@ -157,7 +163,9 @@ export function usePlayerControls({
             case 'ArrowLeft':
               e.preventDefault()
               if (videoEl) {
-                videoEl.currentTime = Math.max(0, videoEl.currentTime - 10)
+                const newTime = Math.max(0, currentTimeRef.current - 10)
+                executeSeek(newTime)
+                setCurrentTime(newTime)
                 useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
                 const tl = document.getElementById('player-timeline')
                 if (tl) tl.focus({ preventScroll: true })
@@ -166,7 +174,9 @@ export function usePlayerControls({
             case 'ArrowRight':
               e.preventDefault()
               if (videoEl) {
-                videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 30)
+                const newTime = Math.min(durationRef.current || 0, currentTimeRef.current + 30)
+                executeSeek(newTime)
+                setCurrentTime(newTime)
                 useNotificationStore.getState().addNotification('Seek +30s', { level: 'info' })
                 const tl = document.getElementById('player-timeline')
                 if (tl) tl.focus({ preventScroll: true })
@@ -231,15 +241,20 @@ export function usePlayerControls({
       }
 
       setIsScrolling(true)
+      
+      // Initialize target time if starting a new scroll sequence
+      if (targetTimeRef.current === null) {
+        targetTimeRef.current = currentTimeRef.current
+      }
 
-      const newTime = Math.max(
+      // Update target mathematically
+      targetTimeRef.current = Math.max(
         0,
-        Math.min(durationRef.current || videoEl.duration || 0, videoEl.currentTime + seekAmount)
+        Math.min(durationRef.current || 0, targetTimeRef.current + seekAmount)
       )
 
-      // Real-time scrubbing: update video frame immediately!
-      videoEl.currentTime = newTime
-      setCurrentTime(newTime + (transcodeOffset / 1000))
+      // Instantly update UI timeline visually
+      setCurrentTime(targetTimeRef.current)
 
       // Debounce actual playback resume by 500ms of wheel stillness
       if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
@@ -247,9 +262,12 @@ export function usePlayerControls({
         setIsScrolling(false)
         seekTimeoutRef.current = null
 
-        // Resume video playback once scroll seek completes
-        videoEl.play().catch(err => console.error('Play after scroll seek failed:', err))
-
+        // Fire single network request / native seek
+        if (targetTimeRef.current !== null) {
+          executeSeek(targetTimeRef.current)
+          targetTimeRef.current = null
+        }
+        
         // Let triggerHUD manage the timeout — it will set hudTimeoutRef internally
         // and handleMouseMove will keep extending it while cursor is alive
         triggerHUD()

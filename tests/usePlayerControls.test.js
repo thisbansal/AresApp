@@ -18,6 +18,7 @@ describe('usePlayerControls', () => {
   let triggerHUDMock
   let setIsScrollingMock
   let setCurrentTimeMock
+  let executeSeekMock
   let seekTimeoutRef
   let hudTimeoutRef
 
@@ -33,6 +34,7 @@ describe('usePlayerControls', () => {
     triggerHUDMock = vi.fn()
     setIsScrollingMock = vi.fn()
     setCurrentTimeMock = vi.fn()
+    executeSeekMock = vi.fn()
     
     seekTimeoutRef = { current: null }
     hudTimeoutRef = { current: null }
@@ -40,10 +42,7 @@ describe('usePlayerControls', () => {
     vi.useFakeTimers()
   })
 
-  it('adds transcodeOffset when scrubbing via wheel events', () => {
-    // Current time is exactly 0
-    videoEl.currentTime = 0
-    
+  it('updates local state correctly and calls executeSeek on debounce when scrolling', () => {
     renderHook(() => usePlayerControls({
       videoRef,
       navigate: navigateMock,
@@ -54,30 +53,37 @@ describe('usePlayerControls', () => {
       isDragging: false,
       isScrolling: false,
       setIsScrolling: setIsScrollingMock,
+      currentTime: 30, // Global time 30s
       setCurrentTime: setCurrentTimeMock,
       seekTimeoutRef,
       hudTimeoutRef,
-      transcodeOffset: 30000 // 30 second offset
+      executeSeek: executeSeekMock
     }), { wrapper: SpatialNavigationProvider })
 
-    // Need to bypass the shouldPause logic that absorbs first scroll tick
+    // Bypass first scroll tick block
     act(() => {
       const wheelEvent1 = new WheelEvent('wheel', { deltaY: 1 })
       window.dispatchEvent(wheelEvent1)
     })
     
-    // Dispatch second wheel event (seekAmount = -1, but bound to 0 native)
+    // Dispatch second wheel event (seekAmount = +1)
     act(() => {
       const wheelEvent2 = new WheelEvent('wheel', { deltaY: -1 })
       window.dispatchEvent(wheelEvent2) 
     })
 
-    // Because we scroll deltaY: -1, seekAmount is 1. 
-    // newTime = native 0 + 1 = 1
-    // setCurrentTime should receive newTime(1) + transcodeOffset(30) = 31
+    // currentTime starts at 30, seek is +1, so it should be 31
     expect(setCurrentTimeMock).toHaveBeenCalledWith(31)
     
-    // the native videoEl should receive the pure seek time without offset
-    expect(videoEl.currentTime).toBe(1)
+    // executeSeek should NOT be called immediately
+    expect(executeSeekMock).not.toHaveBeenCalled()
+    
+    // Advance timers by 500ms
+    act(() => {
+      vi.advanceTimersByTime(500)
+    })
+
+    // Now executeSeek should be called with final target
+    expect(executeSeekMock).toHaveBeenCalledWith(31)
   })
 })
