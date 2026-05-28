@@ -161,41 +161,75 @@ export default function PlayerPage() {
       hlsRef.current = null
     }
 
+    // Safely flush the TV's hardware decoder pipeline before injecting a new format.
+    videoEl.src = ''
+    videoEl.removeAttribute('src')
+
     if (streamUrl.includes('.m3u8') && Hls.isSupported()) {
-      const hls = new Hls({
-        maxBufferLength: 30,
-        maxMaxBufferLength: 600
-      })
-      hlsRef.current = hls
+      // Defer HLS instantiation until the hardware decoder explicitly fires 'emptied'
+      let initialized = false
+      const initHls = () => {
+        if (initialized) return
+        initialized = true
+        videoEl.removeEventListener('emptied', initHls)
 
-      hls.loadSource(streamUrl)
-      hls.attachMedia(videoEl)
+        const hls = new Hls({
+          maxBufferLength: 30,
+          maxMaxBufferLength: 600
+        })
+        hlsRef.current = hls
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
-      })
+        hls.loadSource(streamUrl)
+        hls.attachMedia(videoEl)
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.error('Fatal network error encountered, try to recover')
-              hls.startLoad()
-              break
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.error('Fatal media error encountered, try to recover')
-              hls.recoverMediaError()
-              break
-            default:
-              console.error('Fatal error, cannot recover', data)
-              hls.destroy()
-              break
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
+        })
+
+        let networkRetries = 0
+        let mediaRetries = 0
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                if (networkRetries < 3) {
+                  console.error('Fatal network error encountered, try to recover')
+                  networkRetries++
+                  hls.startLoad()
+                } else {
+                  console.error('Max network retries reached, giving up')
+                  hls.destroy()
+                }
+                break
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                if (mediaRetries < 3) {
+                  console.error('Fatal media error encountered, try to recover')
+                  mediaRetries++
+                  hls.recoverMediaError()
+                } else {
+                  console.error('Max media retries reached, giving up')
+                  hls.destroy()
+                }
+                break
+              default:
+                console.error('Fatal error, cannot recover', data)
+                hls.destroy()
+                break
+            }
           }
-        }
-      })
+        })
+      }
+
+      // If the video is already empty, initialize immediately. Otherwise wait for the flush to complete.
+      if (videoEl.readyState === 0 && !videoEl.currentSrc) {
+        initHls()
+      } else {
+        videoEl.addEventListener('emptied', initHls)
+        setTimeout(initHls, 500) // Fallback just in case 'emptied' doesn't fire
+      }
+      videoEl.load() // Trigger the flush
     } else {
       // Direct playback or native HLS fallback
-      videoEl.removeAttribute('src') // Safely clear blob URLs before native loading
       videoEl.src = streamUrl
       videoEl.load()
       
