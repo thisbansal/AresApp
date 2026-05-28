@@ -58,7 +58,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
     // Ensure durationMs is absolutely never NaN
     let rawVideoDuration = videoRef?.current?.duration
     if (isNaN(rawVideoDuration)) rawVideoDuration = 0
-    const durationMs = (durationRef.current ? Math.floor(durationRef.current * 1000) : 0) || Math.floor(rawVideoDuration * 1000) || 1 // Avoid 0
+    const durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1 // Avoid 0
 
     console.log(`[usePlaybackProgress] Syncing: ${timeMs}ms, duration: ${durationMs}ms, state: ${state}`)
     await updatePlaybackProgress(activeServer.uri, activeServer.token, activeKey, activePlayQueueItemID, timeMs, durationMs, state, playbackSessionId, clientSessionId)
@@ -154,7 +154,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, vi
         const timeMs = Math.floor(finalTime * 1000)
         let rawVideoDuration = videoRef?.current?.duration
         if (isNaN(rawVideoDuration)) rawVideoDuration = 0
-        const durationMs = (durationRef.current ? Math.floor(durationRef.current * 1000) : 0) || Math.floor(rawVideoDuration * 1000) || 1
+        const durationMs = durationRef.current || Math.floor(rawVideoDuration * 1000) || 1
 
         console.log(`[usePlaybackProgress] Unmount detected, reporting final time: ${timeMs}ms`)
         
