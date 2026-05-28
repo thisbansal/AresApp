@@ -194,9 +194,34 @@ export default function PlayerPage() {
         hls.loadSource(streamUrl)
         hls.attachMedia(videoEl)
 
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // --- SUBTITLE DIAGNOSTICS ---
+        hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+          console.log(`[HLS Subtitles] MANIFEST_PARSED! Found ${data.levels.length} quality levels.`)
           videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
         })
+
+        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
+          console.log(`[HLS Subtitles] SUBTITLE_TRACKS_UPDATED! Found ${data.subtitleTracks.length} subtitle tracks in the m3u8!`, data.subtitleTracks)
+          
+          // If we want to automatically enable the first subtitle track (if present) to test if rendering works:
+          if (data.subtitleTracks.length > 0) {
+            console.log(`[HLS Subtitles] Automatically selecting subtitle track 0 as a test...`)
+            hls.subtitleTrack = 0 
+          }
+        })
+        
+        hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, (event, data) => {
+          console.log(`[HLS Subtitles] SUBTITLE_TRACK_SWITCH! Switched to track ID:`, data.id)
+        })
+
+        hls.on(Hls.Events.NON_NATIVE_TEXT_TRACKS_FOUND, (event, data) => {
+          console.log(`[HLS Subtitles] NON_NATIVE_TEXT_TRACKS_FOUND!`, data)
+        })
+        
+        hls.on(Hls.Events.CUES_PARSED, (event, data) => {
+          console.log(`[HLS Subtitles] CUES_PARSED! Parsed ${data.cues.length} subtitle cues (e.g. sentences)!`)
+        })
+        // -----------------------------
 
         let networkRetries = 0
         let mediaRetries = 0
