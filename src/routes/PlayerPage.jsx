@@ -195,10 +195,13 @@ export default function PlayerPage() {
 
         // Shaka configuration
         player.configure({
+          manifest: {
+            dash: {
+              ignoreMinBufferTime: true, // Tolerate dynamic transcode timing quirks
+            }
+          },
           streaming: {
-            bufferingGoal: 30,
-            rebufferingGoal: 5,
-            bufferBehind: 30,
+            lowLatencyMode: true, // Optimizes for dynamic/live transcode streams
           }
         })
 
