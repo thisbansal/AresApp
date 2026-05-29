@@ -18,16 +18,13 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
             
             console.log(`[useSidecarSubtitles] Checking for active text-based subtitle track...`);
             
-            const codec = (subtitleStream?.codec || '').toLowerCase();
-            const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa'].includes(codec);
-
-            if (!subtitleStream || !isTextBased) {
-                console.log(`[useSidecarSubtitles] No valid text-based track selected. Clearing cues.`);
+            if (!subtitleStream) {
+                console.log(`[useSidecarSubtitles] No subtitle track selected. Clearing cues.`);
                 if (isMounted) setCues([]);
                 return;
             }
 
-            console.log(`[useSidecarSubtitles] Selected subtitle is text-based (${subtitleStream.codec}). Fetching for custom renderer...`);
+            console.log(`[useSidecarSubtitles] Subtitle track selected (${subtitleStream.codec || 'unknown'}). Fetching payload for custom renderer...`);
 
             try {
                 let streamUrl;
