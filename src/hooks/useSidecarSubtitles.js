@@ -18,8 +18,11 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
             
             console.log(`[useSidecarSubtitles] Checking for active text-based subtitle track...`);
             
-            if (!subtitleStream) {
-                console.log(`[useSidecarSubtitles] No subtitle track selected. Clearing cues.`);
+            const codec = (subtitleStream?.codec || '').toLowerCase();
+            const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa'].includes(codec);
+
+            if (!subtitleStream || !isTextBased) {
+                console.log(`[useSidecarSubtitles] No valid text-based subtitle track selected. Clearing cues.`);
                 if (isMounted) setCues([]);
                 return;
             }
@@ -29,10 +32,15 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
             try {
                 let streamUrl;
                 
-                if (subtitleStream.key) {
-                    // External Sidecar Subtitle
-                    streamUrl = `${serverInfo.uri}${subtitleStream.key}?X-Plex-Token=${serverInfo.token}`;
-                    console.log(`[useSidecarSubtitles] Using external sidecar path: ${subtitleStream.key}`);
+                if (subtitleStream.key || subtitleStream.codec === 'srt' || subtitleStream.codec === 'vtt') {
+                    // External Sidecar Subtitle (or explicitly text-based file)
+                    let streamPath = subtitleStream.key;
+                    if (!streamPath) {
+                        streamPath = `/library/streams/${subtitleStream.id}.${codec}`;
+                        console.log(`[useSidecarSubtitles] Subtitle stream is missing 'key'. Attempting fallback path: ${streamPath}`);
+                    }
+                    streamUrl = `${serverInfo.uri}${streamPath}?X-Plex-Token=${serverInfo.token}`;
+                    console.log(`[useSidecarSubtitles] Using sidecar extraction path: ${streamUrl}`);
                 } else {
                     // Embedded Subtitle - Request extraction via Transcoder
                     console.log(`[useSidecarSubtitles] Track is embedded. Requesting dynamic extraction via Plex Transcoder...`);
@@ -49,9 +57,10 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
                       'directStream': '1',
                       'subtitleSize': '100',
                       'audioBoost': '100',
-                      'subtitles': 'sidecar',
+                      'subtitles': 'auto',
                       'advancedSubtitles': 'text',
                       'transcodeType': 'subtitles',
+                      'session': playbackSessionId || 'unknown',
                       'X-Plex-Session-Identifier': playbackSessionId || 'unknown',
                       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
                       'X-Plex-Platform': platformInfo.platform,
