@@ -311,7 +311,10 @@ export default function PlayerPage() {
 
     if (streamUrl?.includes('transcode')) {
       const buffered = videoEl.buffered
-      const normalizedTarget = newGlobalTime
+      const isDash = streamUrl.includes('protocol=dash')
+      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
+      
+      const normalizedTarget = isDash ? newGlobalTime - startSeconds : newGlobalTime
 
       let isBuffered = false
       for (let i = 0; i < buffered.length; i++) {
@@ -370,7 +373,11 @@ export default function PlayerPage() {
 
     const handlePointerUp = () => {
       // Execute the actual seek when drag is released
-      executeSeek(currentTime)
+      const isDash = streamUrl && streamUrl.includes('protocol=dash')
+      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
+      const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
+      
+      executeSeek(displayTime)
 
       const videoEl = videoRef.current || document.querySelector('video')
       if (videoEl) {
@@ -417,10 +424,14 @@ export default function PlayerPage() {
 
   const handleSeek = (direction) => {
     triggerHUD()
+    const isDash = streamUrl && streamUrl.includes('protocol=dash')
+    const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
+    const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
+
     if (direction === 'back') {
-      executeSeek(Math.max(0, currentTime - 10))
+      executeSeek(Math.max(0, displayTime - 10))
     } else {
-      executeSeek(Math.min(duration || 0, currentTime + 10))
+      executeSeek(Math.min(duration || 0, displayTime + 10))
     }
   }
 
@@ -445,7 +456,11 @@ export default function PlayerPage() {
     if (!partId || !partKey) return
     triggerHUD()
     const videoEl = videoRef.current || document.querySelector('video')
-    const globalTime = currentTime // Use global time to correctly factor in transcode offsets
+    
+    const isDash = streamUrl && streamUrl.includes('protocol=dash')
+    const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
+    const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
+    const globalTime = displayTime // Use global time to correctly factor in transcode offsets
 
     let audioId = ''
     let subtitleId = ''
@@ -575,7 +590,9 @@ export default function PlayerPage() {
     )
   }
 
-  const displayTime = currentTime
+  const isDash = streamUrl && streamUrl.includes('protocol=dash')
+  const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
+  const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
   const progressPercent = duration ? (displayTime / duration) * 100 : 0
 
   return (
