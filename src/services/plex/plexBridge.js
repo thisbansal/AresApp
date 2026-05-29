@@ -2,6 +2,7 @@ import { getActiveServerInfo } from './plexConnectionService'
 import { useServerStore } from '../../stores/serverStore'
 import { useNotificationStore } from '../notifications/notificationStore'
 import { PLEX_CONFIG } from '../../config/app'
+import { getPlatformInfo } from '../../utils/platformInfo'
 
 export const plexBridge = {
   /**
@@ -71,10 +72,18 @@ export const plexBridge = {
     const separator = endpoint.includes('?') ? '&' : '?'
     const url = `${activeServer.uri}${endpoint}${separator}X-Plex-Token=${activeServer.token}`
     
+    const platformInfo = await getPlatformInfo()
+    
     // Auto default headers
     const headers = {
       'Accept': 'application/json',
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
+      'X-Plex-Product': PLEX_CONFIG.product,
+      'X-Plex-Version': '1.0.0',
+      'X-Plex-Platform': platformInfo.platform,
+      'X-Plex-Platform-Version': platformInfo.version,
+      'X-Plex-Device': platformInfo.device,
+      'X-Plex-Device-Name': platformInfo.device,
       ...options.headers
     }
 
