@@ -72,7 +72,7 @@ export default function PlayerPage() {
     executeSeek
   })
 
-  const subtitleCues = useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId)
+  const subtitleCues = useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId, ratingKey, playbackSessionId)
 
   usePlaybackProgress({
     serverInfo,

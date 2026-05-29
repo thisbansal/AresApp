@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { subtitleConverter } from '../utils/subtitleConverter';
 import { parseVtt } from '../utils/vttParser';
+import { PLEX_CONFIG } from '../config/app';
+import { getPlatformInfo } from '../utils/platformInfo';
 
-export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId) {
+export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId, ratingKey, playbackSessionId) {
     const [cues, setCues] = useState([]);
 
     useEffect(() => {
@@ -28,13 +30,43 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
             console.log(`[useSidecarSubtitles] Selected subtitle is text-based (${subtitleStream.codec}). Fetching for custom renderer...`);
 
             try {
-                let streamPath = subtitleStream.key;
-                if (!streamPath) {
-                    streamPath = `/library/streams/${subtitleStream.id}.${codec}`;
-                    console.log(`[useSidecarSubtitles] Subtitle stream ${subtitleStream.id} is missing a 'key' property. Attempting fallback extraction path: ${streamPath}`);
-                }
+                let streamUrl;
                 
-                const streamUrl = `${serverInfo.uri}${streamPath}?X-Plex-Token=${serverInfo.token}`;
+                if (subtitleStream.key) {
+                    // External Sidecar Subtitle
+                    streamUrl = `${serverInfo.uri}${subtitleStream.key}?X-Plex-Token=${serverInfo.token}`;
+                    console.log(`[useSidecarSubtitles] Using external sidecar path: ${subtitleStream.key}`);
+                } else {
+                    // Embedded Subtitle - Request extraction via Transcoder
+                    console.log(`[useSidecarSubtitles] Track is embedded. Requesting dynamic extraction via Plex Transcoder...`);
+                    const platformInfo = await getPlatformInfo();
+                    const ratingId = ratingKey.split('/').pop();
+                    
+                    const paramsObj = {
+                      'path': `/library/metadata/${ratingId}`,
+                      'mediaIndex': '0',
+                      'partIndex': '0',
+                      'protocol': 'http',
+                      'fastSeek': '1',
+                      'directPlay': '0',
+                      'directStream': '1',
+                      'subtitleSize': '100',
+                      'audioBoost': '100',
+                      'subtitles': 'auto',
+                      'transcodeType': 'subtitles',
+                      'X-Plex-Session-Identifier': playbackSessionId || 'unknown',
+                      'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
+                      'X-Plex-Platform': platformInfo.platform,
+                      'X-Plex-Device': platformInfo.device,
+                      'X-Plex-Platform-Version': platformInfo.version,
+                      'X-Plex-Client-Profile-Name': 'HTML TV App',
+                      'X-Plex-Product': PLEX_CONFIG.product,
+                      'X-Plex-Token': serverInfo.token
+                    };
+                    
+                    const params = new URLSearchParams(paramsObj);
+                    streamUrl = `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
+                }
                 
                 const response = await fetch(streamUrl);
                 console.log(`[useSidecarSubtitles] Fetch response status: ${response.status}`);
