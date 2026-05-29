@@ -79,10 +79,31 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
                     streamUrl = `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
                 }
                 
+                // The Transcoder will HANG if we ask it to extract subtitles before the main HLS video session 
+                // has fully spun up and started demuxing the MKV. We must wait until the video element 
+                // has actually started receiving the stream (readyState > 0).
+                const videoEl = videoRef.current || document.querySelector('video');
+                if (videoEl && videoEl.readyState === 0) {
+                    console.log('[useSidecarSubtitles] Waiting for Transcoder to spin up main video stream before requesting subtitle extraction...');
+                    await new Promise(resolve => {
+                        const onReady = () => {
+                            videoEl.removeEventListener('loadedmetadata', onReady);
+                            videoEl.removeEventListener('loadeddata', onReady);
+                            videoEl.removeEventListener('playing', onReady);
+                            resolve();
+                        };
+                        videoEl.addEventListener('loadedmetadata', onReady);
+                        videoEl.addEventListener('loadeddata', onReady);
+                        videoEl.addEventListener('playing', onReady);
+                    });
+                    console.log('[useSidecarSubtitles] Video stream initialized. Proceeding with subtitle extraction.');
+                }
+                
                 // Give the Plex Server a brief moment to update its database with the new subtitle selection
                 // before we ask the transcoder to extract it, preventing a race condition.
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
+                console.log(`[useSidecarSubtitles] Firing fetch request to transcoder for VTT payload...`);
                 const response = await fetch(streamUrl);
                 console.log(`[useSidecarSubtitles] Fetch response status: ${response.status}`);
                 
