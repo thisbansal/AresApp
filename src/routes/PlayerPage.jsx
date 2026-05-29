@@ -6,13 +6,12 @@ import { useActiveServer } from '../hooks/useActiveServer'
 import { useNotificationStore } from '../services/notifications/notificationStore'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
-import { useSidecarSubtitles } from '../hooks/useSidecarSubtitles'
+
 import { PLEX_CONFIG } from '../config/app'
 import { usePlayerHUD } from '../hooks/usePlayerHUD'
 import { useVideoMediaEvents } from '../hooks/useVideoMediaEvents'
 import { usePlayerControls } from '../hooks/usePlayerControls'
 import { formatTime, formatRemainingTime } from '../utils/timeUtils'
-import { CustomSubtitleOverlay } from '../components/player/CustomSubtitleOverlay'
 import { plexStreamBuilder } from '../services/plex/plexStreamBuilder'
 import { mediaCodecService } from '../services/MediaCodecService'
 import shaka from 'shaka-player'
@@ -72,7 +71,7 @@ export default function PlayerPage() {
     executeSeek
   })
 
-  const subtitleCues = useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId, ratingKey, playbackSessionId, streamUrl)
+
 
   usePlaybackProgress({
     serverInfo,
@@ -251,11 +250,11 @@ export default function PlayerPage() {
           console.log(`[Shaka] Loading DASH/Media URL: ${streamUrl}`)
           await player.load(streamUrl)
           console.log('[Shaka] The video has now been loaded successfully!')
-          
+
           // Print out all text tracks for debugging
           const tracks = player.getTextTracks()
           console.log(`[Shaka] Found ${tracks.length} text tracks embedded in the DASH manifest.`, tracks)
-          
+
           videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
         } catch (e) {
           console.error('[Shaka] Error loading video:', e)
@@ -313,7 +312,7 @@ export default function PlayerPage() {
       const buffered = videoEl.buffered
       const isDash = streamUrl.includes('protocol=dash')
       const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
-      
+
       const normalizedTarget = isDash ? newGlobalTime - startSeconds : newGlobalTime
 
       let isBuffered = false
@@ -376,7 +375,7 @@ export default function PlayerPage() {
       const isDash = streamUrl && streamUrl.includes('protocol=dash')
       const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
       const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
-      
+
       executeSeek(displayTime)
 
       const videoEl = videoRef.current || document.querySelector('video')
@@ -456,7 +455,7 @@ export default function PlayerPage() {
     if (!partId || !partKey) return
     triggerHUD()
     const videoEl = videoRef.current || document.querySelector('video')
-    
+
     const isDash = streamUrl && streamUrl.includes('protocol=dash')
     const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
     const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
@@ -494,8 +493,8 @@ export default function PlayerPage() {
 
     // Optional manual parameter to force burn in (arguments[7])
     const newStreamUrl = await plexStreamBuilder.getOptimalStreamUrl(
-      serverInfo, { id: partId, key: partKey }, ratingKey, capabilities, playbackSessionId, clientSessionId, 
-      (videoEl ? videoEl.currentTime * 1000 : 0), 
+      serverInfo, { id: partId, key: partKey }, ratingKey, capabilities, playbackSessionId, clientSessionId,
+      (videoEl ? videoEl.currentTime * 1000 : 0),
       forceSubtitleBurnIn
     )
 
@@ -613,9 +612,7 @@ export default function PlayerPage() {
         controls={false}
         style={styles.video}
       />
-      
-      {/* Custom React Subtitle Overlay (Bypasses Native Track Quirks) */}
-      <CustomSubtitleOverlay cues={subtitleCues} videoRef={videoRef} />
+
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
       <div
@@ -703,12 +700,12 @@ export default function PlayerPage() {
                       const newValue = !forceSubtitleBurnIn
                       setForceSubtitleBurnIn(newValue)
                       useNotificationStore.getState().addNotification(newValue ? 'Burn-In Forced (Requires Transcode)' : 'Burn-In Disabled (Sidecar Allowed)', { level: 'info', duration: 2000 })
-                      
+
                       // Trigger a stream reload with the active streams, but now using the new forceSubtitleBurnIn value
                       const activeVideo = availableStreams.find(s => s.streamType === 1 && s.selected)
                       const activeAudio = availableStreams.find(s => s.streamType === 2 && s.selected)
                       const activeSub = availableStreams.find(s => s.streamType === 3 && s.selected)
-                      
+
                       setTimeout(() => {
                         handleStreamSelect(3, activeSub ? activeSub.id : 0)
                       }, 100)
