@@ -212,7 +212,10 @@ export default function PlayerPage() {
             }
           },
           streaming: {
-            lowLatencyMode: true, // Optimizes for dynamic/live transcode streams
+            bufferingGoal: 30, // Only keep 30 seconds of video buffered ahead
+            rebufferingGoal: 2, // Resume playback after 2 seconds of buffer
+            bufferBehind: 30, // Keep 30 seconds in the past
+            lowLatencyMode: false, // Disabling this prevents the aggressive "catch-up" segment flooding
           }
         })
 
