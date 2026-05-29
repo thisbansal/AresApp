@@ -222,15 +222,35 @@ export default function PlayerPage() {
         // Listen for errors
         player.addEventListener('error', (event) => {
           console.error('[Shaka] Error code', event.detail.code, 'object', event.detail)
+          try {
+            console.error('[Shaka] Error details JSON:', JSON.stringify(event.detail, Object.getOwnPropertyNames(event.detail), 2));
+          } catch(e) {}
           if (event.detail.severity === shaka.util.Error.Severity.CRITICAL) {
              console.error('[Shaka] Fatal playback error, giving up')
           }
         })
 
+        // Add robust debugging logs
+        player.addEventListener('buffering', (event) => {
+          console.log('[Shaka] Buffering state changed:', event.buffering);
+          if (event.buffering) {
+            console.log('[Shaka] Current buffer info:', player.getBufferedInfo());
+          }
+        });
+
+        player.addEventListener('trackschanged', () => {
+          console.log('[Shaka] Tracks changed. Available tracks:', player.getVariantTracks());
+        });
+
+        player.addEventListener('adaptation', () => {
+          const activeTrack = player.getVariantTracks().find(t => t.active);
+          console.log('[Shaka] Adaptation event triggered. Active track:', activeTrack);
+        });
+
         try {
           console.log(`[Shaka] Loading DASH/Media URL: ${streamUrl}`)
           await player.load(streamUrl)
-          console.log('[Shaka] The video has now been loaded!')
+          console.log('[Shaka] The video has now been loaded successfully!')
           
           // Print out all text tracks for debugging
           const tracks = player.getTextTracks()
