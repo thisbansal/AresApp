@@ -23,7 +23,7 @@ export default function PlayerPage() {
   const location = useLocation()
 
   const videoRef = useRef(null)
-  const hlsRef = useRef(null)
+  const shakaRef = useRef(null)
   const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
   const [loading, setLoading] = useState(true)
   const [isSwitchingStream, setIsSwitchingStream] = useState(false)
@@ -172,9 +172,9 @@ export default function PlayerPage() {
     if (!videoEl) return
 
     // Clean up previous Shaka instance if one exists
-    if (hlsRef.current) {
-      hlsRef.current.destroy()
-      hlsRef.current = null
+    if (shakaRef.current) {
+      shakaRef.current.destroy()
+      shakaRef.current = null
     }
 
     // Safely flush the TV's hardware decoder pipeline before injecting a new format.
@@ -192,7 +192,7 @@ export default function PlayerPage() {
 
         const player = new shaka.Player();
         await player.attach(videoEl);
-        hlsRef.current = player // Repurposing hlsRef for the Shaka player instance
+        shakaRef.current = player;
 
         // Inject Plex authentication headers/query params into all Shaka requests
         player.getNetworkingEngine().registerRequestFilter((type, request) => {
@@ -284,9 +284,9 @@ export default function PlayerPage() {
     }
 
     return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy()
-        hlsRef.current = null
+      if (shakaRef.current) {
+        shakaRef.current.destroy()
+        shakaRef.current = null
       }
     }
   }, [streamUrl])

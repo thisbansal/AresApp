@@ -87,7 +87,7 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
                     streamUrl = `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
                 }
                 
-                // The Transcoder will HANG if we ask it to extract subtitles before the main HLS video session 
+                // The Transcoder will HANG if we ask it to extract subtitles before the main DASH video session 
                 // has fully spun up and started demuxing the MKV. We must wait until the video element 
                 // has actually started receiving the stream (readyState > 0).
                 const videoEl = videoRef.current || document.querySelector('video');

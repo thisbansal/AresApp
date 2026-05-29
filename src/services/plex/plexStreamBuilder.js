@@ -4,8 +4,8 @@ import { getPlatformInfo } from '../../utils/platformInfo'
 class PlexStreamBuilder {
   /**
    * Generates a simple Direct Play URL.
-   * @param {Object} serverInfo 
-   * @param {string} partKey 
+   * @param {Object} serverInfo
+   * @param {string} partKey
    * @returns {string} The absolute URL for direct play
    */
   buildDirectPlayUrl(serverInfo, partKey) {
@@ -13,9 +13,9 @@ class PlexStreamBuilder {
   }
 
   /**
-   * Generates a Universal Transcode HLS URL and pings the decision endpoint to validate.
-   * @param {Object} serverInfo 
-   * @param {string} ratingKey 
+   * Generates a Universal Transcode DASH URL and pings the decision endpoint to validate.
+   * @param {Object} serverInfo
+   * @param {string} ratingKey
    * @param {string} partKey
    * @param {string} playbackSessionId - Persistent UI playback session UUID
    * @param {string} clientSessionId - Persistent client session UUID
@@ -36,10 +36,10 @@ class PlexStreamBuilder {
     if (capabilities) {
       const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
       // Check if the browser's Media Source Extensions (MSE) actually support HEVC hardware decoding
-      const isHevcSupported = typeof MediaSource !== 'undefined' && 
-        (MediaSource.isTypeSupported('video/mp4; codecs="hev1"') || 
+      const isHevcSupported = typeof MediaSource !== 'undefined' &&
+        (MediaSource.isTypeSupported('video/mp4; codecs="hev1"') ||
          MediaSource.isTypeSupported('video/mp4; codecs="hvc1"'));
-         
+
       if (selectedVideo && selectedVideo.supported && (selectedVideo.codec === 'hevc' || selectedVideo.codec === 'h265' || selectedVideo.codec === 'dovi')) {
         if (isHevcSupported) {
           profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
@@ -47,12 +47,12 @@ class PlexStreamBuilder {
           console.log('[plexStreamBuilder] Original video is HEVC, but current browser lacks MSE HEVC support. Falling back to H.264 transcode.');
         }
       }
-      
+
       // Check if the browser supports AC3/EAC3 (Dolby Digital) natively. WebOS TVs do, Chrome Desktop does not.
-      const isAc3Supported = typeof MediaSource !== 'undefined' && 
-        (MediaSource.isTypeSupported('audio/mp4; codecs="ac-3"') || 
+      const isAc3Supported = typeof MediaSource !== 'undefined' &&
+        (MediaSource.isTypeSupported('audio/mp4; codecs="ac-3"') ||
          MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"'));
-         
+
       if (!isAc3Supported) {
         const audioFallback = 'append-transcode-target-codec(type=audioProfile&context=streaming&protocol=dash&audioCodec=aac)';
         profileExtra = profileExtra ? `${profileExtra}+${audioFallback}` : audioFallback;
@@ -74,7 +74,8 @@ class PlexStreamBuilder {
       'directStreamAudio': '1',
       'autoAdjustQuality': '0',
       'location': 'lan',
-      'mediaBufferSize': '102400',
+      // 'mediaBufferSize': '102400',
+      'mediaBufferSize': '128',
       'subtitles': forceSubtitleBurnIn ? 'burn' : 'auto',
       'advancedSubtitles': forceSubtitleBurnIn ? 'burn' : 'text', // Enum: 'burn', 'text', 'unknown'
       'subtitleSize': '100',
@@ -99,18 +100,18 @@ class PlexStreamBuilder {
     const params = new URLSearchParams(paramsObj);
 
     const decisionUrl = `${serverInfo.uri}/video/:/transcode/universal/decision?${params.toString()}`
-    
+
     try {
       console.log(`[PlexStreamBuilder] Pinging transcode decision endpoint:`, decisionUrl)
       // Send fetch without extra headers to avoid CORS preflight rejection from older PMS servers
       const response = await fetch(decisionUrl)
-      
+
       if (!response.ok) {
         const errorText = await response.text()
         console.error(`[PlexStreamBuilder] Transcode Decision failed with status ${response.status}:`, errorText)
         throw new Error(`Plex Transcoder rejected parameters: ${response.status}`)
       }
-      
+
       console.log(`[PlexStreamBuilder] Transcode Decision OK.`)
     } catch (err) {
       console.error(`[PlexStreamBuilder] Error hitting transcode decision:`, err)
@@ -141,11 +142,11 @@ class PlexStreamBuilder {
     // Check if the currently selected video and audio streams are supported
     const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0]
     const selectedAudio = capabilities.audio.find(a => a.selected) || capabilities.audio[0]
-    
+
     // Check if any subtitle is explicitly selected (id > 0)
     // In Plex, 'none' usually means no subtitle is selected, or it's absent from the payload.
     const selectedSubtitle = capabilities.subtitles ? capabilities.subtitles.find(s => s.selected && s.id !== 0) : null
-    
+
     // Check if the selected subtitle is embedded (lacks a stream 'key')
     // As observed in Plex Web, the Transcoder engine MUST be active (Direct Streaming)
     // in order to extract an embedded text track via the /subtitles endpoint.
@@ -153,7 +154,7 @@ class PlexStreamBuilder {
 
     const videoSupported = selectedVideo ? selectedVideo.supported : true
     const audioSupported = selectedAudio ? selectedAudio.supported : true
-    
+
     // We no longer fallback to burn-in automatically if a subtitle is unsupported.
     // The user explicitly requested that burn-in is strictly manual via the HUD toggle.
     // "Be they visible or not that would be not sidecar's responsibility."
