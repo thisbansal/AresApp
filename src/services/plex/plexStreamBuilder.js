@@ -37,7 +37,7 @@ class PlexStreamBuilder {
       const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
       // If HEVC is natively supported by the TV, explicitly inform Plex to allow Direct Stream
       if (selectedVideo && selectedVideo.supported && (selectedVideo.codec === 'hevc' || selectedVideo.codec === 'h265' || selectedVideo.codec === 'dovi')) {
-        profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=hls&videoCodec=hevc)';
+        profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
       }
     }
 
@@ -47,7 +47,7 @@ class PlexStreamBuilder {
       'path': metadataPath,
       'mediaIndex': '0',
       'partIndex': '0',
-      'protocol': 'hls',
+      'protocol': 'dash',
       'transcodeType': 'video',
       'fastSeek': '1',
       'directPlay': '0',
@@ -56,7 +56,7 @@ class PlexStreamBuilder {
       'autoAdjustQuality': '0',
       'location': 'lan',
       'mediaBufferSize': '102400',
-      'subtitles': forceSubtitleBurnIn ? 'burn' : 'none',
+      'subtitles': forceSubtitleBurnIn ? 'burn' : 'auto',
       'advancedSubtitles': forceSubtitleBurnIn ? 'burn' : 'text', // Enum: 'burn', 'text', 'unknown'
       'subtitleSize': '100',
       'audioBoost': '100',
@@ -98,7 +98,7 @@ class PlexStreamBuilder {
       throw err
     }
 
-    return `${serverInfo.uri}/video/:/transcode/universal/start.m3u8?${params.toString()}`
+    return `${serverInfo.uri}/video/:/transcode/universal/start.mpd?${params.toString()}`
   }
 
   /**
