@@ -82,7 +82,7 @@ class PlexStreamBuilder {
       'audioBoost': '100',
       'transcodeSessionId': playbackSessionId,
       'offset': offsetSeconds.toString(),
-      'copyts': '1',
+      'copyts': '0',
       'X-Plex-Token': serverInfo.token,
       'X-Plex-Session-Identifier': playbackSessionId,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
