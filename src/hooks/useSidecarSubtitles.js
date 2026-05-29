@@ -104,12 +104,16 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
                         videoEl.addEventListener('loadeddata', onReady);
                         videoEl.addEventListener('playing', onReady);
                     });
+                    
+                    if (!isMounted) return; // Abort if stream changed while we were waiting
                     console.log('[useSidecarSubtitles] Video stream initialized. Proceeding with subtitle extraction.');
                 }
                 
                 // Give the Plex Server a brief moment to update its database with the new subtitle selection
                 // before we ask the transcoder to extract it, preventing a race condition.
                 await new Promise(resolve => setTimeout(resolve, 500));
+                
+                if (!isMounted) return; // Abort if stream changed during the timeout
                 
                 console.log(`[useSidecarSubtitles] Firing fetch request to transcoder for VTT payload...`);
                 const response = await fetch(streamUrl);
