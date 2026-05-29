@@ -190,8 +190,19 @@ export default function PlayerPage() {
         initialized = true
         videoEl.removeEventListener('emptied', initShaka)
 
-        const player = new shaka.Player(videoEl)
+        const player = new shaka.Player();
+        await player.attach(videoEl);
         hlsRef.current = player // Repurposing hlsRef for the Shaka player instance
+
+        // Inject Plex authentication headers/query params into all Shaka requests
+        player.getNetworkingEngine().registerRequestFilter((type, request) => {
+          // Append X-Plex-Token to the URL for segment requests
+          const url = new URL(request.uris[0]);
+          if (!url.searchParams.has('X-Plex-Token')) {
+            url.searchParams.set('X-Plex-Token', serverInfo.token);
+            request.uris[0] = url.toString();
+          }
+        });
 
         // Shaka configuration
         player.configure({
