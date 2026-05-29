@@ -15,7 +15,7 @@ import { formatTime, formatRemainingTime } from '../utils/timeUtils'
 import { CustomSubtitleOverlay } from '../components/player/CustomSubtitleOverlay'
 import { plexStreamBuilder } from '../services/plex/plexStreamBuilder'
 import { mediaCodecService } from '../services/MediaCodecService'
-import Hls from 'hls.js'
+import shaka from 'shaka-player'
 
 export default function PlayerPage() {
   const { ratingKey } = useParams()
@@ -72,7 +72,7 @@ export default function PlayerPage() {
     executeSeek
   })
 
-  const subtitleCues = useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId, ratingKey, playbackSessionId)
+  const subtitleCues = useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId, ratingKey, playbackSessionId, streamUrl)
 
   usePlaybackProgress({
     serverInfo,
@@ -171,7 +171,7 @@ export default function PlayerPage() {
     const videoEl = videoRef.current || document.querySelector('video')
     if (!videoEl) return
 
-    // Clean up previous Hls instance if one exists
+    // Clean up previous Shaka instance if one exists
     if (hlsRef.current) {
       hlsRef.current.destroy()
       hlsRef.current = null
@@ -181,97 +181,61 @@ export default function PlayerPage() {
     videoEl.src = ''
     videoEl.removeAttribute('src')
 
-    if (streamUrl.includes('.m3u8') && Hls.isSupported()) {
-      // Defer HLS instantiation until the hardware decoder explicitly fires 'emptied'
+    // Initialize Shaka Player
+    shaka.polyfill.installAll()
+    if (shaka.Player.isBrowserSupported()) {
       let initialized = false
-      const initHls = () => {
+      const initShaka = async () => {
         if (initialized) return
         initialized = true
-        videoEl.removeEventListener('emptied', initHls)
+        videoEl.removeEventListener('emptied', initShaka)
 
-        const hls = new Hls({
-          maxBufferLength: 30,
-          maxMaxBufferLength: 600,
-          renderTextTracksNatively: true
-        })
-        hlsRef.current = hls
+        const player = new shaka.Player(videoEl)
+        hlsRef.current = player // Repurposing hlsRef for the Shaka player instance
 
-        hls.loadSource(streamUrl)
-        hls.attachMedia(videoEl)
-
-        // --- SUBTITLE DIAGNOSTICS ---
-        hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-          console.log(`[HLS Subtitles] MANIFEST_PARSED! Found ${data.levels.length} quality levels.`)
-          videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
+        // Shaka configuration
+        player.configure({
+          streaming: {
+            bufferingGoal: 30,
+            rebufferingGoal: 5,
+            bufferBehind: 30,
+          }
         })
 
-        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
-          console.log(`[HLS Subtitles] SUBTITLE_TRACKS_UPDATED! Found ${data.subtitleTracks.length} subtitle tracks in the m3u8!`, data.subtitleTracks)
+        // Listen for errors
+        player.addEventListener('error', (event) => {
+          console.error('[Shaka] Error code', event.detail.code, 'object', event.detail)
+          if (event.detail.severity === shaka.util.Error.Severity.CRITICAL) {
+             console.error('[Shaka] Fatal playback error, giving up')
+          }
+        })
+
+        try {
+          console.log(`[Shaka] Loading DASH/Media URL: ${streamUrl}`)
+          await player.load(streamUrl)
+          console.log('[Shaka] The video has now been loaded!')
           
-          // If we want to automatically enable the first subtitle track (if present) to test if rendering works:
-          if (data.subtitleTracks.length > 0) {
-            console.log(`[HLS Subtitles] Automatically selecting subtitle track 0 as a test...`)
-            hls.subtitleTrack = 0 
-          }
-        })
-        
-        hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, (event, data) => {
-          console.log(`[HLS Subtitles] SUBTITLE_TRACK_SWITCH! Switched to track ID:`, data.id)
-        })
-
-        hls.on(Hls.Events.NON_NATIVE_TEXT_TRACKS_FOUND, (event, data) => {
-          console.log(`[HLS Subtitles] NON_NATIVE_TEXT_TRACKS_FOUND!`, data)
-        })
-        
-        hls.on(Hls.Events.CUES_PARSED, (event, data) => {
-          console.log(`[HLS Subtitles] CUES_PARSED! Parsed ${data.cues.length} subtitle cues (e.g. sentences)!`)
-        })
-        // -----------------------------
-
-        let networkRetries = 0
-        let mediaRetries = 0
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                if (networkRetries < 3) {
-                  console.error('Fatal network error encountered, try to recover')
-                  networkRetries++
-                  hls.startLoad()
-                } else {
-                  console.error('Max network retries reached, giving up')
-                  hls.destroy()
-                }
-                break
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                if (mediaRetries < 3) {
-                  console.error('Fatal media error encountered, try to recover')
-                  mediaRetries++
-                  hls.recoverMediaError()
-                } else {
-                  console.error('Max media retries reached, giving up')
-                  hls.destroy()
-                }
-                break
-              default:
-                console.error('Fatal error, cannot recover', data)
-                hls.destroy()
-                break
-            }
-          }
-        })
+          // Print out all text tracks for debugging
+          const tracks = player.getTextTracks()
+          console.log(`[Shaka] Found ${tracks.length} text tracks embedded in the DASH manifest.`, tracks)
+          
+          videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
+        } catch (e) {
+          console.error('[Shaka] Error loading video:', e)
+        }
       }
 
       // If the video is already empty, initialize immediately. Otherwise wait for the flush to complete.
       if (videoEl.readyState === 0 && !videoEl.currentSrc) {
-        initHls()
+        initShaka()
       } else {
-        videoEl.addEventListener('emptied', initHls)
-        setTimeout(initHls, 500) // Fallback just in case 'emptied' doesn't fire
+        videoEl.addEventListener('emptied', initShaka)
+        setTimeout(initShaka, 500) // Fallback just in case 'emptied' doesn't fire
       }
       videoEl.load() // Trigger the flush
     } else {
-      // Pure direct play or raw native loading
+      console.error('[Shaka] Browser not supported!')
+      // Pure direct play or raw native loading fallback
       videoEl.src = streamUrl
       videoEl.load()
 

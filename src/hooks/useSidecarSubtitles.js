@@ -4,7 +4,7 @@ import { parseVtt } from '../utils/vttParser';
 import { PLEX_CONFIG } from '../config/app';
 import { getPlatformInfo } from '../utils/platformInfo';
 
-export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId, ratingKey, playbackSessionId) {
+export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, partId, ratingKey, playbackSessionId, streamUrl) {
     const [cues, setCues] = useState([]);
 
     useEffect(() => {
@@ -13,6 +13,14 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
         let isMounted = true;
 
         const loadSidecarSubtitle = async () => {
+            // If the video is playing a DASH manifest, Shaka Player natively parses and renders
+            // the multiplexed subtitles. We do not need to manually extract them.
+            if (streamUrl && streamUrl.includes('.mpd')) {
+                console.log(`[useSidecarSubtitles] Stream is DASH. Shaka Player handles subtitles natively. Bypassing extraction.`);
+                if (isMounted) setCues([]);
+                return;
+            }
+
             // Find selected subtitle stream that is text-based
             const subtitleStream = availableStreams.find(s => s.streamType === 3 && s.selected);
             
@@ -144,7 +152,7 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
         return () => {
             isMounted = false;
         };
-    }, [availableStreams, serverInfo, partId]);
+    }, [availableStreams, serverInfo, partId, ratingKey, playbackSessionId, streamUrl]);
 
     // Continuously enforce native text tracks are muted so we never get double subtitles
     useEffect(() => {
