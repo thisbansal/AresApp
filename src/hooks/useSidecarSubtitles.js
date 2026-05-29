@@ -47,7 +47,11 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
                     const platformInfo = await getPlatformInfo();
                     const ratingId = ratingKey.split('/').pop();
                     
+                    // Plex requires a unique 24-character alphanumeric transcode session ID
+                    const transcodeSessionId = Math.random().toString(36).substring(2, 14) + Math.random().toString(36).substring(2, 14);
+                    
                     const paramsObj = {
+                      'hasMDE': '1',
                       'path': `/library/metadata/${ratingId}`,
                       'mediaIndex': '0',
                       'partIndex': '0',
@@ -57,10 +61,10 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
                       'directStream': '1',
                       'subtitleSize': '100',
                       'audioBoost': '100',
+                      'location': 'lan',
+                      'session': transcodeSessionId,
                       'subtitles': 'auto',
                       'advancedSubtitles': 'text',
-                      'transcodeType': 'subtitles',
-                      'session': playbackSessionId || 'unknown',
                       'X-Plex-Session-Identifier': playbackSessionId || 'unknown',
                       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
                       'X-Plex-Platform': platformInfo.platform,
