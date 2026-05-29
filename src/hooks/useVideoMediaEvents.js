@@ -65,11 +65,37 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
       setIsPlaying(true)
     }
     const handlePauseState = () => setIsPlaying(false)
+    const handleLoadedMetadata = () => {
+      console.log('[NativeVideo] loadedmetadata fired. Inspecting embedded tracks:')
+      if (videoEl.audioTracks) {
+        console.log(`[NativeVideo] audioTracks count: ${videoEl.audioTracks.length}`)
+        for (let i = 0; i < videoEl.audioTracks.length; i++) {
+          console.log(`[NativeVideo] Audio Track ${i}:`, videoEl.audioTracks[i])
+        }
+      } else {
+        console.log('[NativeVideo] HTML5 audioTracks API not exposed/supported on this platform.')
+      }
+
+      if (videoEl.videoTracks) {
+        console.log(`[NativeVideo] videoTracks count: ${videoEl.videoTracks.length}`)
+        for (let i = 0; i < videoEl.videoTracks.length; i++) {
+          console.log(`[NativeVideo] Video Track ${i}:`, videoEl.videoTracks[i])
+        }
+      }
+
+      if (videoEl.textTracks) {
+        console.log(`[NativeVideo] textTracks count: ${videoEl.textTracks.length}`)
+        for (let i = 0; i < videoEl.textTracks.length; i++) {
+          console.log(`[NativeVideo] Text Track ${i}:`, videoEl.textTracks[i])
+        }
+      }
+    }
 
     videoEl.addEventListener('timeupdate', handleTimeUpdate)
     videoEl.addEventListener('durationchange', handleDurationChange)
     videoEl.addEventListener('play', handlePlayState)
     videoEl.addEventListener('pause', handlePauseState)
+    videoEl.addEventListener('loadedmetadata', handleLoadedMetadata)
 
     // Sync initial states if video already started loading metadata, but protect UI during switches
     if (!isSwitchingStream || videoEl.readyState >= 3) {
@@ -86,6 +112,7 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
       videoEl.removeEventListener('durationchange', handleDurationChange)
       videoEl.removeEventListener('play', handlePlayState)
       videoEl.removeEventListener('pause', handlePauseState)
+      videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
   }, [videoRef, isLoading, isDragging, isScrolling, isSwitchingStream])
 
