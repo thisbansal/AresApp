@@ -47,6 +47,17 @@ class PlexStreamBuilder {
           console.log('[plexStreamBuilder] Original video is HEVC, but current browser lacks MSE HEVC support. Falling back to H.264 transcode.');
         }
       }
+      
+      // Check if the browser supports AC3/EAC3 (Dolby Digital) natively. WebOS TVs do, Chrome Desktop does not.
+      const isAc3Supported = typeof MediaSource !== 'undefined' && 
+        (MediaSource.isTypeSupported('audio/mp4; codecs="ac-3"') || 
+         MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"'));
+         
+      if (!isAc3Supported) {
+        const audioFallback = 'append-transcode-target-codec(type=audioProfile&context=streaming&protocol=dash&audioCodec=aac)';
+        profileExtra = profileExtra ? `${profileExtra}+${audioFallback}` : audioFallback;
+        console.log('[plexStreamBuilder] Browser lacks AC3/EAC3 MSE support. Forcing AAC audio transcode.');
+      }
     }
 
     // Construct the transcode query parameters
