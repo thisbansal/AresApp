@@ -125,33 +125,44 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, st
 
     const handleTimeUpdate = () => {
       if (videoEl.readyState === 0) return;
-      const time = videoEl.currentTime
-      progressRef.current = time
+      const time = videoEl.currentTime;
+      
+      const isDash = streamUrl && streamUrl.includes('protocol=dash');
+      const startSeconds = (!startOver && viewOffset > 0) ? (viewOffset / 1000) : 0;
+      const trueTime = isDash ? time + startSeconds : time;
+      
+      progressRef.current = trueTime;
 
       // Report progress periodically every 10 seconds of active playback
-      if (Math.abs(time - lastReportedTimeRef.current) >= 10) {
-        console.log(`[usePlaybackProgress] handleTimeUpdate crossed 10s threshold! time=${time}`)
-        lastReportedTimeRef.current = time
-        reportProgress(time, 'playing')
+      if (Math.abs(trueTime - lastReportedTimeRef.current) >= 10) {
+        console.log(`[usePlaybackProgress] handleTimeUpdate crossed 10s threshold! trueTime=${trueTime}`)
+        lastReportedTimeRef.current = trueTime
+        reportProgress(trueTime, 'playing')
       }
     }
+
+    const getTrueTime = () => {
+      const isDash = streamUrl && streamUrl.includes('protocol=dash');
+      const startSeconds = (!startOver && viewOffset > 0) ? (viewOffset / 1000) : 0;
+      return isDash ? videoEl.currentTime + startSeconds : videoEl.currentTime;
+    };
 
     const handlePlay = (e) => {
       console.log(`[usePlaybackProgress] Event: ${e.type}, readyState: ${videoEl.readyState}, time: ${videoEl.currentTime}`)
       if (videoEl.readyState === 0) return;
-      reportProgress(videoEl.currentTime, 'playing')
+      reportProgress(getTrueTime(), 'playing')
     }
 
     const handlePause = (e) => {
       console.log(`[usePlaybackProgress] Event: ${e.type}, readyState: ${videoEl.readyState}, time: ${videoEl.currentTime}`)
       if (videoEl.readyState === 0) return;
-      reportProgress(videoEl.currentTime, 'paused')
+      reportProgress(getTrueTime(), 'paused')
     }
 
     const handleWaiting = (e) => {
       console.log(`[usePlaybackProgress] Event: ${e.type}, readyState: ${videoEl.readyState}, time: ${videoEl.currentTime}`)
       if (videoEl.readyState === 0) return;
-      reportProgress(videoEl.currentTime, 'buffering')
+      reportProgress(getTrueTime(), 'buffering')
     }
 
     videoEl.addEventListener('timeupdate', handleTimeUpdate)
