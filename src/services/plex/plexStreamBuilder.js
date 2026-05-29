@@ -1,4 +1,5 @@
 import { PLEX_CONFIG } from '../../config/app'
+import { getPlatformInfo } from '../../utils/platformInfo'
 
 class PlexStreamBuilder {
   /**
@@ -22,20 +23,32 @@ class PlexStreamBuilder {
    * @param {boolean} forceSubtitleBurnIn - Whether to force Plex to burn subtitles into the video
    * @returns {Promise<string>} The transcode m3u8 URL
    */
-  async buildTranscodeUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, offset = 0, forceSubtitleBurnIn = false) {
+  async buildTranscodeUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, offset = 0, forceSubtitleBurnIn = false, capabilities = null) {
+    const platformInfo = await getPlatformInfo();
+
     // Convert offset from milliseconds to seconds if greater than 0
     const offsetSeconds = offset > 0 ? Math.floor(offset / 1000) : 0
 
     const ratingId = ratingKey.split('/').pop()
     const metadataPath = `/library/metadata/${ratingId}`
 
+    let profileExtra = '';
+    if (capabilities) {
+      const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
+      // If HEVC is natively supported by the TV, explicitly inform Plex to allow Direct Stream
+      if (selectedVideo && selectedVideo.supported && (selectedVideo.codec === 'hevc' || selectedVideo.codec === 'h265' || selectedVideo.codec === 'dovi')) {
+        profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=hls&videoCodec=hevc)';
+      }
+    }
+
     // Construct the transcode query parameters
-    const params = new URLSearchParams({
+    const paramsObj = {
       'hasMDE': '1',
       'path': metadataPath,
       'mediaIndex': '0',
       'partIndex': '0',
       'protocol': 'hls',
+      'transcodeType': 'video',
       'fastSeek': '1',
       'directPlay': '0',
       'directStream': '1', // Allow copying supported streams (e.g. video)
@@ -44,27 +57,27 @@ class PlexStreamBuilder {
       'location': 'lan',
       'mediaBufferSize': '102400',
       'subtitles': forceSubtitleBurnIn ? 'burn' : 'none',
-      'advancedSubtitles': forceSubtitleBurnIn ? 'none' : 'text',
+      'advancedSubtitles': forceSubtitleBurnIn ? 'burn' : 'text', // Enum: 'burn', 'text', 'unknown'
       'subtitleSize': '100',
       'audioBoost': '100',
-      'session': clientSessionId,
+      'transcodeSessionId': playbackSessionId,
       'offset': offsetSeconds.toString(),
       'copyts': '1',
       'X-Plex-Token': serverInfo.token,
-      'X-Plex-Session-Id': clientSessionId,
-      'X-Plex-Playback-Session-Id': playbackSessionId,
+      'X-Plex-Session-Identifier': playbackSessionId,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
-      // CRITICAL: Plex Media Server will throw a 400 HTML error if it doesn't have a 
-      // transcoder profile for the specified platform. We MUST use 'Chrome' instead of 
-      // PLEX_CONFIG.device ('webOS TV') because all PMS instances ship with a Chrome profile.
-      'X-Plex-Platform': 'Chrome',
-      'X-Plex-Product': PLEX_CONFIG.product,
-      
-      // Since we lie and say we are 'Chrome', Plex assumes we don't support HEVC video.
-      // We must explicitly append a profile capability to inform the transcoder that HEVC is supported
-      // so it can safely Direct Stream (copy) the 4K HEVC video track instead of transcoding it to H264!
-      'X-Plex-Client-Profile-Extra': 'add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.width&value=4096&replace=true)+add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.height&value=2160&replace=true)+add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.bitDepth&value=10&replace=true)+append-transcode-target-codec(type=videoProfile&context=streaming&protocol=hls&videoCodec=hevc)'
-    })
+      'X-Plex-Platform': platformInfo.platform,
+      'X-Plex-Device': platformInfo.device,
+      'X-Plex-Platform-Version': platformInfo.version,
+      'X-Plex-Client-Profile-Name': 'HTML TV App',
+      'X-Plex-Product': PLEX_CONFIG.product
+    };
+
+    if (profileExtra) {
+      paramsObj['X-Plex-Client-Profile-Extra'] = profileExtra;
+    }
+
+    const params = new URLSearchParams(paramsObj);
 
     const decisionUrl = `${serverInfo.uri}/video/:/transcode/universal/decision?${params.toString()}`
     
@@ -128,7 +141,7 @@ class PlexStreamBuilder {
     }
 
     console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, NeedsBurnIn: ${needsBurnIn})`)
-    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, needsBurnIn)
+    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, needsBurnIn, capabilities)
   }
 }
 
