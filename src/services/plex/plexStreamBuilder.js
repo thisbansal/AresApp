@@ -35,9 +35,17 @@ class PlexStreamBuilder {
     let profileExtra = '';
     if (capabilities) {
       const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
-      // If HEVC is natively supported by the TV, explicitly inform Plex to allow Direct Stream
+      // Check if the browser's Media Source Extensions (MSE) actually support HEVC hardware decoding
+      const isHevcSupported = typeof MediaSource !== 'undefined' && 
+        (MediaSource.isTypeSupported('video/mp4; codecs="hev1"') || 
+         MediaSource.isTypeSupported('video/mp4; codecs="hvc1"'));
+         
       if (selectedVideo && selectedVideo.supported && (selectedVideo.codec === 'hevc' || selectedVideo.codec === 'h265' || selectedVideo.codec === 'dovi')) {
-        profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
+        if (isHevcSupported) {
+          profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
+        } else {
+          console.log('[plexStreamBuilder] Original video is HEVC, but current browser lacks MSE HEVC support. Falling back to H.264 transcode.');
+        }
       }
     }
 
