@@ -83,11 +83,20 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, st
       startSeconds = viewOffset / 1000
     }
 
+    const isDash = streamUrl && streamUrl.includes('protocol=dash');
+
     const handleLoadedMetadata = () => {
       if (startSeconds > 0) {
-        console.log(`[usePlaybackProgress] Seeking to start timestamp: ${startSeconds}s`)
-        videoEl.currentTime = startSeconds
-        progressRef.current = startSeconds
+        if (isDash) {
+          console.log(`[usePlaybackProgress] Stream is DASH. Bypassing manual seek to let Shaka Player handle the manifest timeline. (current is ${videoEl.currentTime})`);
+          progressRef.current = videoEl.currentTime;
+        } else if (Math.abs(videoEl.currentTime - startSeconds) > 2) {
+          console.log(`[usePlaybackProgress] Seeking to start timestamp: ${startSeconds}s (current is ${videoEl.currentTime})`);
+          videoEl.currentTime = startSeconds;
+          progressRef.current = startSeconds;
+        } else {
+          console.log(`[usePlaybackProgress] Already at start timestamp: ${startSeconds}s`);
+        }
       }
     }
 
@@ -95,9 +104,13 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, st
 
     // Fallback: If metadata is already loaded before this effect runs
     if (videoEl.readyState >= 1 && startSeconds > 0) {
-      console.log(`[usePlaybackProgress] Video readyState >= 1, seeking to start timestamp: ${startSeconds}s`)
-      videoEl.currentTime = startSeconds
-      progressRef.current = startSeconds
+      if (isDash) {
+        console.log(`[usePlaybackProgress] Stream is DASH (readyState >= 1). Bypassing manual seek.`);
+      } else if (Math.abs(videoEl.currentTime - startSeconds) > 2) {
+        console.log(`[usePlaybackProgress] Video readyState >= 1, seeking to start timestamp: ${startSeconds}s`);
+        videoEl.currentTime = startSeconds;
+        progressRef.current = startSeconds;
+      }
     }
 
     return () => {
