@@ -64,7 +64,8 @@ class MediaCodecService {
     checkStreamCapabilities(streamData) {
         const results = {
             video: [],
-            audio: []
+            audio: [],
+            subtitles: []
         };
 
         console.group('--- Media Codec Capabilities Check ---');
@@ -80,7 +81,8 @@ class MediaCodecService {
                     codec: v.codec,
                     mimeType,
                     canPlayValue: canPlay,
-                    supported
+                    supported,
+                    selected: v.selected
                 });
 
                 const logMessage = `Video [${v.codec}] - ${v.extendedDisplayTitle || v.displayTitle}`;
@@ -103,7 +105,8 @@ class MediaCodecService {
                     codec: a.codec,
                     mimeType,
                     canPlayValue: canPlay,
-                    supported
+                    supported,
+                    selected: a.selected
                 });
 
                 const logMessage = `Audio [${a.codec}] - ${a.extendedDisplayTitle || a.displayTitle}`;
@@ -111,6 +114,37 @@ class MediaCodecService {
                     console.log(`✅ SUPPORTED: ${logMessage} (canPlayType: '${canPlay}')`);
                 } else {
                     console.error(`❌ NOT SUPPORTED: ${logMessage} (canPlayType: '${canPlay}')`);
+                }
+            });
+        }
+
+        if (streamData.subtitles && Array.isArray(streamData.subtitles)) {
+            streamData.subtitles.forEach(s => {
+                // Determine if subtitle is text-based (natively renderable via track/HLS) or image-based (requires burn-in)
+                const codec = (s.codec || '').toLowerCase();
+                const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa', 'mov_text', 'tx3g'].includes(codec);
+                
+                // Plex ONLY provides a 'key' property if the subtitle is an external sidecar file.
+                // If there is no key, it is embedded inside the MKV container, which means we CANNOT
+                // fetch it cleanly via /library/streams/. Therefore, it must be transcoded!
+                const isExternal = !!s.key;
+                const isSupported = isTextBased && isExternal;
+                
+                results.subtitles.push({
+                    id: s.id,
+                    codec: s.codec,
+                    isTextBased,
+                    isExternal,
+                    supported: isSupported,
+                    selected: s.selected,
+                    key: s.key
+                });
+
+                const logMessage = `Subtitle [${s.codec}] - ${s.extendedDisplayTitle || s.displayTitle || s.language}`;
+                if (isSupported) {
+                    console.log(`✅ SUPPORTED: ${logMessage} (Format: Text, External)`);
+                } else {
+                    console.error(`❌ NOT SUPPORTED (Requires Burn-in): ${logMessage} (Format: ${isTextBased ? 'Text' : 'Image'}, External: ${isExternal})`);
                 }
             });
         }
