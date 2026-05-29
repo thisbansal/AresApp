@@ -252,7 +252,7 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
                 >
                   <div style={styles.episodeInner}>
                     <div style={styles.episodeThumbContainer} className="episode-thumb-container">
-                      <FallbackImage src={episode.thumb} alt={episode.title} style={styles.episodeThumb} loading="lazy" />
+                      <FallbackImage src={episode.thumb} itemId={episode.ratingKey} alt={episode.title} style={styles.episodeThumb} loading="lazy" />
                       {showUnwatchedIndicator && (
                         Number(episode.viewCount || 0) > 0 ? (
                           <div 

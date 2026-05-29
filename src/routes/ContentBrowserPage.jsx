@@ -482,6 +482,7 @@ function ContentBrowserPage() {
         >
           <FallbackImage
             src={item.thumb}
+            itemId={item.id}
             alt={item.grandparentTitle || item.title}
             style={styles.poster}
             loading="lazy"

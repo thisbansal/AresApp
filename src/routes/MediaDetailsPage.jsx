@@ -251,6 +251,7 @@ function MediaDetailsPage() {
         <div style={styles.leftColumn}>
           <FallbackImage
             src={item.thumb}
+            itemId={item.ratingKey}
             alt={item.title}
             style={{
               ...styles.poster,

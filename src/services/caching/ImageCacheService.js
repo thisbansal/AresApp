@@ -5,7 +5,7 @@
  * for truly instant offline access
  */
 
-import { getConfig, setConfig } from '../luna/lunaService'
+import { universalStorage } from '../UniversalStorage/UniversalStorage'
 
 const IMAGE_CACHE_PREFIX = 'img_cache_'
 const IMAGE_INDEX_KEY = 'img_cache_index'
@@ -23,7 +23,7 @@ class ImageCacheService {
     if (this.cacheIndex) return
 
     try {
-      const indexStr = await getConfig(IMAGE_INDEX_KEY, null)
+      const indexStr = await universalStorage.get(IMAGE_INDEX_KEY, null)
       this.cacheIndex = indexStr ? JSON.parse(indexStr) : {}
       console.log('[ImageCache] Loaded index:', Object.keys(this.cacheIndex).length, 'images')
     } catch (err) {
@@ -42,6 +42,7 @@ class ImageCacheService {
 
     // Check memory cache first
     if (this.memoryCache.has(url)) {
+      console.log(`[ImageCache] Loaded from MEMORY cache: ${itemId}`)
       return this.memoryCache.get(url)
     }
 
@@ -50,12 +51,14 @@ class ImageCacheService {
     const cached = await this.getFromStorage(cacheKey)
 
     if (cached) {
+      console.log(`[ImageCache] Loaded from STORAGE cache: ${itemId}`)
       // Store in memory for fast access
       this.memoryCache.set(url, cached)
       return cached
     }
 
     // Not cached - download and cache it
+    console.log(`[ImageCache] Cache MISS, downloading from NETWORK: ${itemId}`)
     return await this.downloadAndCache(url, itemId)
   }
 
@@ -139,8 +142,7 @@ class ImageCacheService {
     try {
       const cacheKey = this.getCacheKey(itemId)
 
-      // Save image data
-      await setConfig(cacheKey, dataUrl)
+      await universalStorage.set(cacheKey, dataUrl)
 
       // Update index
       this.cacheIndex[itemId] = {
@@ -149,7 +151,7 @@ class ImageCacheService {
         cachedAt: Date.now()
       }
 
-      await setConfig(IMAGE_INDEX_KEY, JSON.stringify(this.cacheIndex))
+      await universalStorage.set(IMAGE_INDEX_KEY, JSON.stringify(this.cacheIndex))
 
       console.log('[ImageCache] Saved:', itemId)
     } catch (err) {
@@ -162,7 +164,7 @@ class ImageCacheService {
    */
   async getFromStorage(cacheKey) {
     try {
-      const dataUrl = await getConfig(cacheKey, null)
+      const dataUrl = await universalStorage.get(cacheKey, null)
       return dataUrl
     } catch (err) {
       console.error('[ImageCache] Failed to get from storage:', err)
@@ -186,11 +188,11 @@ class ImageCacheService {
     const toDelete = entries.slice(100)
 
     for (const [itemId, data] of toDelete) {
-      await setConfig(data.key, null)
+      await universalStorage.delete(data.key)
       delete this.cacheIndex[itemId]
     }
 
-    await setConfig(IMAGE_INDEX_KEY, JSON.stringify(this.cacheIndex))
+    await universalStorage.set(IMAGE_INDEX_KEY, JSON.stringify(this.cacheIndex))
     console.log('[ImageCache] Cleared', toDelete.length, 'old entries')
   }
 
@@ -200,7 +202,7 @@ class ImageCacheService {
   async clearAll() {
     this.memoryCache.clear()
     this.cacheIndex = {}
-    await setConfig(IMAGE_INDEX_KEY, null)
+    await universalStorage.delete(IMAGE_INDEX_KEY)
     console.log('[ImageCache] Cleared all cache')
   }
 

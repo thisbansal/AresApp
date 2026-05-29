@@ -61,7 +61,7 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
               >
                 <div style={styles.episodeInner}>
                   <div style={styles.episodeThumbContainer} className="episode-thumb-container">
-                    <FallbackImage src={episode.thumb} alt={episode.title} style={styles.episodeThumb} loading="lazy" />
+                    <FallbackImage src={episode.thumb} itemId={episode.ratingKey} alt={episode.title} style={styles.episodeThumb} loading="lazy" />
                     
                     <div 
                       className="episode-play-button"

@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { useNotificationStore } from '../../services/notifications/notificationStore'
+import { SimpleCachedImage } from '../../pages/CachedImage'
 
-export function FallbackImage({ src, alt, style, className, loading, decoding, ...props }) {
+export function FallbackImage({ src, itemId, alt, style, className, loading, decoding, ...props }) {
   const [error, setError] = useState(false)
 
   const getInitials = (name) => {
@@ -51,8 +52,9 @@ export function FallbackImage({ src, alt, style, className, loading, decoding, .
   }
 
   return (
-    <img
+    <SimpleCachedImage
       src={src}
+      itemId={itemId}
       alt={alt}
       style={style}
       className={className}
