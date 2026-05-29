@@ -49,7 +49,8 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
                       'directStream': '1',
                       'subtitleSize': '100',
                       'audioBoost': '100',
-                      'subtitles': 'auto',
+                      'subtitles': 'sidecar',
+                      'advancedSubtitles': 'text',
                       'transcodeType': 'subtitles',
                       'X-Plex-Session-Identifier': playbackSessionId || 'unknown',
                       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
@@ -64,6 +65,10 @@ export function useSidecarSubtitles(videoRef, availableStreams, serverInfo, part
                     const params = new URLSearchParams(paramsObj);
                     streamUrl = `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
                 }
+                
+                // Give the Plex Server a brief moment to update its database with the new subtitle selection
+                // before we ask the transcoder to extract it, preventing a race condition.
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
                 const response = await fetch(streamUrl);
                 console.log(`[useSidecarSubtitles] Fetch response status: ${response.status}`);
