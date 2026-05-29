@@ -126,6 +126,11 @@ class PlexStreamBuilder {
     // Check if any subtitle is explicitly selected (id > 0)
     // In Plex, 'none' usually means no subtitle is selected, or it's absent from the payload.
     const selectedSubtitle = capabilities.subtitles ? capabilities.subtitles.find(s => s.selected && s.id !== 0) : null
+    
+    // Check if the selected subtitle is embedded (lacks a stream 'key')
+    // As observed in Plex Web, the Transcoder engine MUST be active (Direct Streaming)
+    // in order to extract an embedded text track via the /subtitles endpoint.
+    const isEmbeddedSubtitle = selectedSubtitle && !selectedSubtitle.key;
 
     const videoSupported = selectedVideo ? selectedVideo.supported : true
     const audioSupported = selectedAudio ? selectedAudio.supported : true
@@ -135,12 +140,12 @@ class PlexStreamBuilder {
     // "Be they visible or not that would be not sidecar's responsibility."
     const needsBurnIn = arguments[7] === true;
 
-    if (videoSupported && audioSupported && !needsBurnIn) {
-      console.log('[PlexStreamBuilder] Codecs fully supported and no subtitles forced. Strategy: DIRECT PLAY')
+    if (videoSupported && audioSupported && !needsBurnIn && !isEmbeddedSubtitle) {
+      console.log('[PlexStreamBuilder] Codecs fully supported and no embedded subtitles selected. Strategy: DIRECT PLAY')
       return this.buildDirectPlayUrl(serverInfo, part.key)
     }
 
-    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, NeedsBurnIn: ${needsBurnIn})`)
+    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, NeedsBurnIn: ${needsBurnIn}, EmbeddedSubtitle: ${!!isEmbeddedSubtitle})`)
     return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, needsBurnIn, capabilities)
   }
 }
