@@ -402,18 +402,23 @@ export default function PlayerPage() {
 
     if (!subtitleManager) return
 
+    // Create a UNIQUE session ID for the subtitle stream! 
+    // If we use the same playbackSessionId as the video, Plex will link them and force the subtitles 
+    // to start from the video's initialization offset (0), completely ignoring our absoluteStartTime!
+    const subtitleSessionId = playbackSessionId + '-sub'
+
     // Pass the absolute start time so the subtitle stream begins exactly where the video is!
     const sidecarUrl = plexStreamBuilder.buildOfficialSidecarUrl(
       serverInfo,
       ratingKey,
-      playbackSessionId,
+      subtitleSessionId,
       absoluteStartTime * 1000
     )
     
     if (!sidecarUrl) return
 
     // First, ping the /decision endpoint to initialize the background transcode session
-    plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, absoluteStartTime * 1000)
+    plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, subtitleSessionId, absoluteStartTime * 1000)
       .then(success => {
         if (!success) throw new Error('Failed to initialize sidecar transcode session')
         

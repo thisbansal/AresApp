@@ -91,7 +91,7 @@ export class VttStreamSubtitleHandler {
       if (!block.trim()) continue;
       const cue = this.parseBlock(block);
       if (cue) {
-        console.log(`[VttStreamHandler] Successfully parsed cue: [${cue.start} -> ${cue.end}]`);
+        console.log(`[VttStreamHandler] Successfully parsed cue: [${cue.start} -> ${cue.end}] "${cue.text}"`);
         this.cues.push(cue);
       }
     }
@@ -146,7 +146,7 @@ export class VttStreamSubtitleHandler {
     // Resolve absolute movie time via injected dependency
     const time = this.getTimeCallback();
 
-    if (!this.lastLoggedTime || Math.abs(time - this.lastLoggedTime) >= 1) {
+    if (this.lastLoggedTime === undefined || Math.abs(time - this.lastLoggedTime) >= 1) {
       console.log(`[VttStreamHandler] Calculated absolute time: ${time}`);
       this.lastLoggedTime = time;
     }
