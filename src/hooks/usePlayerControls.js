@@ -35,7 +35,9 @@ export function usePlayerControls({
   setCurrentTime,
   seekTimeoutRef,
   hudTimeoutRef,
-  executeSeek
+  executeSeek,
+  activeMenu,
+  setActiveMenu
 }) {
   const { navigate: spatialNavigate } = useSpatialNavigation()
   const [shouldPause, setShouldPause] = useState(1)
@@ -47,6 +49,7 @@ export function usePlayerControls({
   const currentTimeRef = useRef(currentTime)
   const targetTimeRef = useRef(null)
   const shouldPauseRef = useRef(shouldPause)
+  const activeMenuRef = useRef(activeMenu)
 
   // Cursor presence tracking
   const cursorActiveRef = useRef(false)
@@ -58,6 +61,7 @@ export function usePlayerControls({
   useEffect(() => { durationRef.current = duration }, [duration])
   useEffect(() => { currentTimeRef.current = currentTime }, [currentTime])
   useEffect(() => { shouldPauseRef.current = shouldPause }, [shouldPause])
+  useEffect(() => { activeMenuRef.current = activeMenu }, [activeMenu])
 
   useEffect(() => {
     const getVideoElement = () => {
@@ -66,6 +70,9 @@ export function usePlayerControls({
 
     // Shared helper: hide HUD and reset state
     const hideHUD = () => {
+      // Don't auto-hide HUD if a popover is actively open
+      if (activeMenuRef.current !== 'none') return
+      
       setShowHUD(false)
       setShouldPause(0)
       hudExpiredRef.current = false
@@ -104,6 +111,12 @@ export function usePlayerControls({
         // Single fire on keydown event to prevent double navigations
         if (e.type === 'keydown') {
           if (showHUDRef.current) {
+            if (activeMenuRef.current !== 'none') {
+              // Close the popover only, keep HUD visible
+              setActiveMenu('none')
+              triggerHUD()
+              return
+            }
             // Hide controls overlay if active instead of exiting the page!
             setShowHUD(false)
             if (document.activeElement) {

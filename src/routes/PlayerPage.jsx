@@ -68,7 +68,9 @@ export default function PlayerPage() {
     setCurrentTime,
     seekTimeoutRef,
     hudTimeoutRef,
-    executeSeek
+    executeSeek,
+    activeMenu,
+    setActiveMenu
   })
 
 
