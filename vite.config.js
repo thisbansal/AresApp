@@ -12,23 +12,14 @@ export default defineConfig({
     })
   ],
   build: {
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        keep_fargs: true, // Don't drop unused function arguments
-        drop_console: false, // Strip console logs for TV performance
-      },
-      mangle: {
-        safari10: true, // Prevents bugs in older WebKit/Chromium engines
-      }
-    },
+    minify: false, // Disabled minification for insanely fast builds
     target: 'es2015', // Use older JS target for better compatibility
     rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'zustand'] // Split framework code to parallelize parsing
-        }
-      }
+      // output: {
+      //   manualChunks: {
+      //     vendor: ['react', 'react-dom', 'react-router-dom', 'zustand']
+      //   }
+      // }
     }
   }
 })
