@@ -91,7 +91,8 @@ export class VttStreamSubtitleHandler {
       if (!block.trim()) continue;
       const cue = this.parseBlock(block);
       if (cue) {
-        console.log(`[VttStreamHandler] Successfully parsed cue: [${cue.start} -> ${cue.end}] "${cue.text}"`);
+        const currentAbsoluteTime = this.getTimeCallback ? this.getTimeCallback() : 'unknown';
+        console.log(`[VttStreamHandler] Successfully parsed cue: [${cue.start} -> ${cue.end}] "${cue.text}" | Video Clock: ${currentAbsoluteTime}`);
         this.cues.push(cue);
       }
     }
