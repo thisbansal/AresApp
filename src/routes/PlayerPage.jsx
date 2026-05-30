@@ -701,7 +701,6 @@ export default function PlayerPage() {
           crossOrigin="anonymous"
           style={styles.video}
         />
-        <div id="custom-subtitle-overlay" className="subtitle-overlay"></div>
       </div>
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
@@ -1044,6 +1043,12 @@ export default function PlayerPage() {
           background: #000 !important;
         }
       `}</style>
+
+      {/* 
+        Custom DOM Subtitle Overlay
+        Must be at the absolute root with max z-index to punch through WebOS DoVi hardware planes!
+      */}
+      <div id="custom-subtitle-overlay" className="subtitle-overlay"></div>
     </div>
   )
 }

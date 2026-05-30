@@ -167,7 +167,7 @@ body::-webkit-scrollbar {
     0px 0px 8px rgba(0,0,0,1);
   text-align: center;
   pointer-events: none;
-  z-index: 100;
+  z-index: 2147483647;
   white-space: pre-wrap;
   width: 90%;
 }

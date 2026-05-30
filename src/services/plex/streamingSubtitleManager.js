@@ -8,12 +8,25 @@ export class StreamingSubtitleManager {
     this.abortController = new AbortController();
     
     this.handleTimeUpdate = this.handleTimeUpdate.bind(this);
-    this.videoElement.addEventListener('timeupdate', this.handleTimeUpdate);
+    
+    // Start high-performance 60fps render loop instead of 4Hz timeupdate
+    this.animationFrameId = null;
+    this.startRenderLoop();
+  }
+
+  startRenderLoop() {
+    const loop = () => {
+      this.handleTimeUpdate();
+      this.animationFrameId = requestAnimationFrame(loop);
+    };
+    this.animationFrameId = requestAnimationFrame(loop);
   }
 
   destroy() {
     this.abortController.abort();
-    this.videoElement.removeEventListener('timeupdate', this.handleTimeUpdate);
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
     if (this.overlayElement) {
       this.overlayElement.innerText = '';
     }
@@ -114,18 +127,19 @@ export class StreamingSubtitleManager {
     if (!this.overlayElement) return;
     const time = this.videoElement.currentTime;
 
-    // Find active cue
-    // Optimization: start searching from the last known active cue index if possible, 
-    // but binary search is overkill for a few thousand cues. Linear search from the end or just standard find is fast enough.
-    // For extreme performance, we can just use `find`.
+    // Find active cue using standard array find
     const newCue = this.cues.find(c => time >= c.start && time <= c.end) || null;
 
     if (newCue !== this.activeCue) {
       this.activeCue = newCue;
+      
+      // Update DOM
+      this.overlayElement.innerText = newCue ? newCue.text : '';
+      
+      // Log for debugging
       if (newCue) {
         console.log(`[Native Subtitles] Triggering overlay text at ${time}: "${newCue.text}"`);
       }
-      this.overlayElement.innerText = newCue ? newCue.text : '';
     }
   }
 }
