@@ -396,11 +396,11 @@ export default function PlayerPage() {
 
     // The factory encapsulates all codec-checking and instantiates the correct pure logic handler
     const subtitleManager = SubtitleManagerFactory.createHandler(activeSubtitle, () => {
-      // Because we set copyts=0, the Plex Transcoder outputs zero-based subtitles relative to the offset!
-      // Therefore, we must return the Relative Time Since Offset.
-      // For HLS Transcodes, videoEl.currentTime is already zero-based!
-      // For Direct Play, videoEl.currentTime is absolute, so we subtract the initial start time to zero-base it.
-      return (isDash || isHls) ? videoEl.currentTime : (videoEl.currentTime - initialAbsoluteStartTime);
+      // Because we set copyts=1, the Plex Transcoder outputs subtitles with their original absolute timestamps!
+      // Therefore, we must return the true Absolute Time.
+      // For DASH Transcodes, videoEl.currentTime is zero-based, so we ADD the resume offset (startSeconds).
+      // For Direct Play, videoEl.currentTime is already absolute.
+      return (isDash || isHls) ? (videoEl.currentTime + startSeconds) : videoEl.currentTime;
     }, subtitleOverlayRef)
 
     if (!subtitleManager) return
