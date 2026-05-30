@@ -35,6 +35,7 @@ export default function PlayerPage() {
   const [partKey, setPartKey] = useState(null)
   const [forceSubtitleBurnIn, setForceSubtitleBurnIn] = useState(false)
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
+  const [dragTime, setDragTime] = useState(0)
 
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
@@ -370,7 +371,7 @@ export default function PlayerPage() {
       const clickX = e.clientX - rect.left
       const percentage = Math.max(0, Math.min(1, clickX / rect.width))
       const newTime = percentage * duration
-      setCurrentTime(newTime) // Only visually update the UI during drag
+      setDragTime(newTime) // Only visually update the UI during drag
     }
 
     const handlePointerUp = (e) => {
@@ -382,7 +383,7 @@ export default function PlayerPage() {
         const clickX = e.clientX - rect.left
         const percentage = Math.max(0, Math.min(1, clickX / rect.width))
         finalTime = percentage * duration
-        setCurrentTime(finalTime)
+        setDragTime(finalTime)
       }
 
       executeSeek(finalTime)
@@ -420,12 +421,13 @@ export default function PlayerPage() {
     }
   }
 
-  const handleRestartClick = () => {
+  const handleRestartClick = async () => {
     const videoEl = videoRef.current || document.querySelector('video')
     if (!videoEl) return
     triggerHUD()
     setCurrentTime(0)
-    executeSeek(0)
+    setDragTime(0)
+    await executeSeek(0)
     videoEl.play().catch(err => console.error('Restart play failed:', err))
     useNotificationStore.getState().addNotification('Restarted from beginning', { level: 'info' })
   }
@@ -434,7 +436,7 @@ export default function PlayerPage() {
     triggerHUD()
     const isDash = streamUrl && streamUrl.includes('protocol=dash')
     const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
-    const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
+    const displayTime = isDragging ? dragTime : (isDash ? currentTime + startSeconds : currentTime)
 
     if (direction === 'back') {
       executeSeek(Math.max(0, displayTime - 10))
@@ -457,7 +459,7 @@ export default function PlayerPage() {
     if (videoEl && !videoEl.paused) {
       videoEl.pause()
     }
-    setCurrentTime(newTime)
+    setDragTime(newTime)
   }
 
   const handleStreamSelect = async (streamType, streamId) => {
@@ -467,7 +469,7 @@ export default function PlayerPage() {
 
     const isDash = streamUrl && streamUrl.includes('protocol=dash')
     const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
-    const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
+    const displayTime = isDragging ? dragTime : (isDash ? currentTime + startSeconds : currentTime)
     const globalTime = displayTime // Use global time to correctly factor in transcode offsets
 
     let audioId = ''
@@ -600,7 +602,7 @@ export default function PlayerPage() {
 
   const isDash = streamUrl && streamUrl.includes('protocol=dash')
   const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
-  const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
+  const displayTime = isDragging ? dragTime : (isDash ? currentTime + startSeconds : currentTime)
   const progressPercent = duration ? (displayTime / duration) * 100 : 0
 
   const handleContainerClick = (e) => {
