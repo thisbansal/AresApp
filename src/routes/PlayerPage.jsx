@@ -175,6 +175,21 @@ export default function PlayerPage() {
   useEffect(() => {
     if (!streamUrl) return
 
+    // Diagnostic Logging for HDR / DoVi Detection
+    const activeVideo = availableStreams.find(s => s.streamType === 1 && s.selected) || availableStreams.find(s => s.streamType === 1);
+    console.log(`
+      🎥 [Diagnostic] Video Stream Loaded:
+      -------------------------------------
+      URL (src): ${streamUrl}
+      Codec: ${activeVideo?.codec || 'Unknown'}
+      Profile: ${activeVideo?.profile || 'Unknown'}
+      Color Space: ${activeVideo?.colorSpace || 'Unknown'}
+      Color Trc: ${activeVideo?.colorTrc || 'Unknown'}
+      Dolby Vision (DoVi): ${activeVideo?.codec === 'dovi' || activeVideo?.doviProfile ? 'YES' : 'NO'}
+      HDR10: ${activeVideo?.colorSpace?.includes('bt2020') && activeVideo?.colorTrc === 'smpte2084' ? 'YES' : 'NO'}
+      -------------------------------------
+    `);
+
     const videoEl = videoRef.current || document.querySelector('video')
     if (!videoEl) return
 
