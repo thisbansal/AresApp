@@ -275,8 +275,11 @@ class PlexStreamBuilder {
     };
 
     const params = new URLSearchParams(paramsObj);
-    const endpoint = isDecision ? 'decision' : 'start';
-    return `${serverInfo.uri}/video/:/transcode/universal/${endpoint}?${params.toString()}`;
+    if (isDecision) {
+      return `${serverInfo.uri}/video/:/transcode/universal/decision?${params.toString()}`;
+    } else {
+      return `${serverInfo.uri}/subtitles/:/transcode/universal/start?${params.toString()}`;
+    }
   }
 
   /**
