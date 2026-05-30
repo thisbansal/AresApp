@@ -385,28 +385,33 @@ export default function PlayerPage() {
 
     if (!activeSubtitle || !serverInfo || !videoEl) return
 
+    const isDash = streamUrl && streamUrl.includes('protocol=dash');
+    const isHls = streamUrl && streamUrl.includes('protocol=hls');
+    const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
+    
+    // Calculate the TRUE absolute movie time to pass to the Plex Subtitle Transcoder
+    const absoluteStartTime = (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
+
     // The factory encapsulates all codec-checking and instantiates the correct pure logic handler
     const subtitleManager = SubtitleManagerFactory.createHandler(activeSubtitle, () => {
-      if (!videoEl) return 0;
-      const isDash = streamUrl && streamUrl.includes('protocol=dash');
-      const isHls = streamUrl && streamUrl.includes('protocol=hls');
-      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
+      // Return the dynamically calculated absolute time during playback
       return (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
     }, subtitleOverlayRef)
 
     if (!subtitleManager) return
 
+    // Pass the absolute start time so the subtitle stream begins exactly where the video is!
     const sidecarUrl = plexStreamBuilder.buildOfficialSidecarUrl(
       serverInfo,
       ratingKey,
       playbackSessionId,
-      videoEl.currentTime * 1000
+      absoluteStartTime * 1000
     )
     
     if (!sidecarUrl) return
 
     // First, ping the /decision endpoint to initialize the background transcode session
-    plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, videoEl.currentTime * 1000)
+    plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, absoluteStartTime * 1000)
       .then(success => {
         if (!success) throw new Error('Failed to initialize sidecar transcode session')
         
