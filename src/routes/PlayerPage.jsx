@@ -420,7 +420,7 @@ export default function PlayerPage() {
     return () => {
       subtitleManager.destroy()
     }
-  }, [availableStreams, serverInfo, ratingKey, playbackSessionId])
+  }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state])
 
   // Drag Seek Pointer Move and Pointer Up Observers
   useEffect(() => {
