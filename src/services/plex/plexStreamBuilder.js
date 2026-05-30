@@ -179,7 +179,7 @@ class PlexStreamBuilder {
   buildSubtitleStreamUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities) {
     if (!serverInfo || !partKey) return null;
 
-    const params = new URLSearchParams({
+    const paramsObj = {
       hasMDE: 1,
       path: ratingKey,
       mediaIndex: 0,
@@ -197,7 +197,6 @@ class PlexStreamBuilder {
       advancedSubtitles: 'text',
       'Accept-Language': 'en',
       'X-Plex-Session-Identifier': clientSessionId,
-      'X-Plex-Client-Profile-Extra': capabilities,
       'X-Plex-Incomplete-Segments': 1,
       'X-Plex-Product': 'Plex Web',
       'X-Plex-Version': '4.159.0',
@@ -213,7 +212,28 @@ class PlexStreamBuilder {
       'X-Plex-Language': 'en',
       'X-Plex-Session-Id': playbackSessionId,
       'X-Plex-Playback-Session-Id': playbackSessionId,
-    });
+    };
+
+    // Reconstruct the profile extra string to avoid [object Object]
+    let profileExtra = '';
+    if (capabilities) {
+      const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
+      const isHevcSupported = typeof MediaSource !== 'undefined' &&
+        (MediaSource.isTypeSupported('video/mp4; codecs="hev1"') ||
+         MediaSource.isTypeSupported('video/mp4; codecs="hvc1"'));
+
+      if (selectedVideo && selectedVideo.supported && (selectedVideo.codec === 'hevc' || selectedVideo.codec === 'h265' || selectedVideo.codec === 'dovi')) {
+        if (isHevcSupported) {
+          profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
+        }
+      }
+    }
+
+    if (profileExtra) {
+      paramsObj['X-Plex-Client-Profile-Extra'] = profileExtra;
+    }
+
+    const params = new URLSearchParams(paramsObj);
 
     return `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
   }
