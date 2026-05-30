@@ -176,14 +176,46 @@ class PlexStreamBuilder {
     return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, isForcedBurnIn, capabilities)
   }
 
-  getSubtitleUrl(serverInfo, stream) {
-    if (!stream) return null;
-    
-    // For embedded subtitles, use the /library/streams extraction endpoint
-    // For external sidecar subtitles, use the /library/parts endpoint if it has a key
-    const endpoint = stream.key && stream.key.startsWith('/') ? stream.key : `/library/streams/${stream.id}`;
-    
-    return `${serverInfo.uri}${endpoint}?X-Plex-Token=${serverInfo.token}`;
+  buildSubtitleStreamUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities) {
+    if (!serverInfo || !partKey) return null;
+
+    const params = new URLSearchParams({
+      hasMDE: 1,
+      path: ratingKey,
+      mediaIndex: 0,
+      partIndex: 0,
+      protocol: 'dash',
+      fastSeek: 1,
+      directPlay: 0,
+      directStream: 0,
+      subtitleSize: 100,
+      audioBoost: 100,
+      location: 'lan',
+      session: clientSessionId,
+      directStreamAudio: 0,
+      subtitles: 'auto',
+      advancedSubtitles: 'text',
+      'Accept-Language': 'en',
+      'X-Plex-Session-Identifier': clientSessionId,
+      'X-Plex-Client-Profile-Extra': capabilities,
+      'X-Plex-Incomplete-Segments': 1,
+      'X-Plex-Product': 'Plex Web',
+      'X-Plex-Version': '4.159.0',
+      'X-Plex-Client-Identifier': serverInfo.clientIdentifier || 'ares-webos-client',
+      'X-Plex-Platform': 'Chrome',
+      'X-Plex-Platform-Version': '148.0',
+      'X-Plex-Features': 'external-media,indirect-media,hub-style-list',
+      'X-Plex-Model': 'standalone',
+      'X-Plex-Device': 'OSX',
+      'X-Plex-Device-Name': 'Chrome',
+      'X-Plex-Device-Screen-Resolution': '1920x1080',
+      'X-Plex-Token': serverInfo.token,
+      'X-Plex-Language': 'en',
+      'X-Plex-Session-Id': playbackSessionId,
+      'X-Plex-Playback-Session-Id': playbackSessionId,
+    });
+
+    return `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
   }
 }
 
