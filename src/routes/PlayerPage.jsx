@@ -409,26 +409,14 @@ export default function PlayerPage() {
     plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, videoEl.currentTime * 1000)
       .then(success => {
         if (!success) throw new Error('Failed to initialize sidecar transcode session')
-        // Now fetch the actual sidecar payload
-        return fetch(sidecarUrl, { headers })
-      })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.text()
-      })
-      .then(rawSrt => {
-        console.log('[Native Subtitles] Successfully fetched extracted SRT payload. Converting to VTT...')
-        const vttText = subtitleConverter.convertToVttString(rawSrt, 'srt')
-        if (!vttText) throw new Error('VTT Conversion returned null')
         
-        const blob = new Blob([vttText], { type: 'text/vtt' })
-        const blobUrl = URL.createObjectURL(blob)
+        console.log(`[Native Subtitles] Session initialized! Attaching sidecar streaming URL directly to video track: ${sidecarUrl}`)
 
         const trackEl = document.createElement('track')
         trackEl.kind = 'subtitles'
         trackEl.label = activeSubtitle.displayTitle || 'English'
         trackEl.srclang = activeSubtitle.languageCode || 'en'
-        trackEl.src = blobUrl
+        trackEl.src = sidecarUrl
         trackEl.default = true
 
         videoEl.appendChild(trackEl)
@@ -446,7 +434,7 @@ export default function PlayerPage() {
         }, 100);
       })
       .catch(err => {
-        console.error('[Native Subtitles] Failed to fetch or inject sidecar subtitle:', err)
+        console.error('[Native Subtitles] Failed to initialize or attach sidecar subtitle:', err)
       })
 
     return () => {

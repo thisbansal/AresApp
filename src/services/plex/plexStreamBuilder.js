@@ -271,7 +271,11 @@ class PlexStreamBuilder {
       'offset': offsetSeconds.toString(),
       'X-Plex-Token': serverInfo.token,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
-      'X-Plex-Session-Identifier': playbackSessionId
+      'X-Plex-Session-Identifier': playbackSessionId,
+      'X-Plex-Product': PLEX_CONFIG.product,
+      'X-Plex-Platform': 'webOS',
+      'X-Plex-Client-Profile-Name': 'Generic',
+      'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=vtt&container=vtt)'
     };
 
     const params = new URLSearchParams(paramsObj);
