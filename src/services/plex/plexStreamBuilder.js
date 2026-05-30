@@ -154,15 +154,36 @@ class PlexStreamBuilder {
     // "Be they visible or not that would be not sidecar's responsibility."
     const needsBurnIn = arguments[7] === true;
 
-    // If any subtitle is selected, we force a Transcode (Direct Stream DASH). 
-    // Plex will flawlessly multiplex the text into the DASH manifest for Shaka to render natively with 0 CPU overhead.
-    if (videoSupported && audioSupported && !needsBurnIn && !selectedSubtitle) {
-      console.log('[PlexStreamBuilder] Codecs fully supported and no subtitles selected. Strategy: DIRECT PLAY')
+    let imageBasedSubtitleSelected = false
+    let isForcedBurnIn = needsBurnIn
+
+    if (selectedSubtitle) {
+      const imageCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle']
+      if (imageCodecs.includes(selectedSubtitle.codec?.toLowerCase())) {
+        imageBasedSubtitleSelected = true
+        isForcedBurnIn = true // We MUST burn in image-based subtitles
+      }
+    }
+
+    // Only force Transcode if we NEED burn-in, OR if an image-based subtitle is selected (which MUST be burned in).
+    // If a text-based subtitle is selected (SRT, ASS), we can extract it on the fly and sideload it, preserving Direct Play!
+    if (videoSupported && audioSupported && !isForcedBurnIn) {
+      console.log('[PlexStreamBuilder] Codecs fully supported and no image-based subtitles selected. Strategy: DIRECT PLAY')
       return this.buildDirectPlayUrl(serverInfo, part.key)
     }
 
-    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, NeedsBurnIn: ${needsBurnIn}, HasSubtitle: ${!!selectedSubtitle})`)
-    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, needsBurnIn, capabilities)
+    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, NeedsBurnIn: ${isForcedBurnIn}, ImageSubtitle: ${imageBasedSubtitleSelected})`)
+    return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, isForcedBurnIn, capabilities)
+  }
+
+  getSubtitleUrl(serverInfo, stream) {
+    if (!stream) return null;
+    
+    // For embedded subtitles, use the /library/streams extraction endpoint
+    // For external sidecar subtitles, use the /library/parts endpoint if it has a key
+    const endpoint = stream.key && stream.key.startsWith('/') ? stream.key : `/library/streams/${stream.id}`;
+    
+    return `${serverInfo.uri}${endpoint}?X-Plex-Token=${serverInfo.token}`;
   }
 }
 

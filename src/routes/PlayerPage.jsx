@@ -4,6 +4,7 @@ import { getMetadata } from '../services/plex/plexContentService'
 import { createPlayQueue, setStreamSelection } from '../services/plex/plexPlaybackService'
 import { useActiveServer } from '../hooks/useActiveServer'
 import { useNotificationStore } from '../services/notifications/notificationStore'
+import { subtitleConverter } from '../utils/subtitleConverter'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
 
@@ -36,6 +37,7 @@ export default function PlayerPage() {
   const [forceSubtitleBurnIn, setForceSubtitleBurnIn] = useState(false)
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
   const [dragTime, setDragTime] = useState(0)
+  const [subtitleTrackUrl, setSubtitleTrackUrl] = useState(null)
 
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
@@ -358,6 +360,53 @@ export default function PlayerPage() {
     }
   }
 
+  // Subtitle Extraction & Side-loading
+  useEffect(() => {
+    const activeSubtitle = availableStreams.find(s => s.streamType === 3 && s.selected)
+    if (!activeSubtitle || !serverInfo) {
+      if (subtitleTrackUrl) {
+        URL.revokeObjectURL(subtitleTrackUrl)
+        setSubtitleTrackUrl(null)
+      }
+      return
+    }
+
+    // Image-based codecs MUST be burned in. We cannot extract them as text.
+    const imageCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle']
+    if (imageCodecs.includes(activeSubtitle.codec?.toLowerCase())) {
+      if (subtitleTrackUrl) {
+        URL.revokeObjectURL(subtitleTrackUrl)
+        setSubtitleTrackUrl(null)
+      }
+      return
+    }
+
+    // Text-based codec. Extract on the fly!
+    const fetchSubtitle = async () => {
+      try {
+        const subUrl = plexStreamBuilder.getSubtitleUrl(serverInfo, activeSubtitle)
+        const response = await fetch(subUrl)
+        if (!response.ok) throw new Error(`Subtitle extract failed: ${response.status}`)
+        
+        const rawContent = await response.text()
+        const vttBlobUrl = subtitleConverter.convertToVttBlobUrl(rawContent, activeSubtitle.codec)
+        
+        if (vttBlobUrl) {
+          if (subtitleTrackUrl) URL.revokeObjectURL(subtitleTrackUrl)
+          setSubtitleTrackUrl(vttBlobUrl)
+        }
+      } catch (err) {
+        console.error('[SubtitleExtraction] Error:', err)
+      }
+    }
+
+    fetchSubtitle()
+    
+    return () => {
+      // Cleanup blob URL on unmount or subtitle change handled above
+    }
+  }, [availableStreams, serverInfo])
+
   // Drag Seek Pointer Move and Pointer Up Observers
   useEffect(() => {
     if (!isDragging) return
@@ -641,7 +690,17 @@ export default function PlayerPage() {
         crossOrigin="anonymous"
         controls={false}
         style={styles.video}
-      />
+      >
+        {subtitleTrackUrl && (
+          <track
+            kind="subtitles"
+            src={subtitleTrackUrl}
+            srcLang="en"
+            label="English"
+            default
+          />
+        )}
+      </video>
 
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
