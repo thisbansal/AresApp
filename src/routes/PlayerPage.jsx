@@ -423,25 +423,35 @@ export default function PlayerPage() {
     )
 
     player.load(dashSubtitleUrl).then(() => {
-      console.log('[Sidecar Subtitles] Successfully loaded DASH subtitle stream.')
+      console.log(`[Sidecar Subtitles] Successfully loaded DASH subtitle stream. URL: ${dashSubtitleUrl}`)
       
       // Force Shaka to parse and emit text tracks
       player.setTextTrackVisibility(true)
       
       const track = subVideoEl.textTracks[0]
       if (track) {
+        console.log(`[Sidecar Subtitles] Text track found and bound! Mode: ${track.mode}`)
         track.mode = 'hidden'
         track.addEventListener('cuechange', () => {
           if (track.activeCues && track.activeCues.length > 0) {
             const text = Array.from(track.activeCues).map(c => c.text).join('\n')
+            console.log('[Sidecar Subtitles] 💬 CUE FIRED:', text)
             setActiveSubtitleText(text)
           } else {
+            console.log('[Sidecar Subtitles] 🫥 Cues cleared.')
             setActiveSubtitleText('')
           }
         })
+      } else {
+        console.warn('[Sidecar Subtitles] WARNING: No text track found on hidden video element after load!')
       }
     }).catch(e => {
       console.error('[Sidecar Subtitles] Error loading subtitle stream:', e)
+    })
+
+    // Listen for internal Shaka errors
+    player.addEventListener('error', (event) => {
+      console.error('[Sidecar Subtitles] Shaka Internal Error Event:', event.detail);
     })
 
     return () => {
