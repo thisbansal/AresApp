@@ -268,7 +268,10 @@ class PlexStreamBuilder {
       'subtitles': 'sidecar',
       'location': 'lan',
       'copyts': '1',
-      'offset': offsetSeconds.toString()
+      'offset': offsetSeconds.toString(),
+      'X-Plex-Token': serverInfo.token,
+      'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
+      'X-Plex-Session-Identifier': playbackSessionId
     };
 
     const params = new URLSearchParams(paramsObj);
@@ -290,7 +293,7 @@ class PlexStreamBuilder {
       'directPlay': '1',
       'directStream': '1',
       'directStreamAudio': '1',
-      'protocol': 'http',
+      'protocol': 'dash', // MUST be video protocol (dash/hls), not http!
       'fastSeek': '1',
       'path': metadataPath,
       'session': playbackSessionId,
