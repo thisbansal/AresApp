@@ -31,6 +31,7 @@ export default function PlayerPage() {
   const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
   const [loading, setLoading] = useState(true)
   const [isSwitchingStream, setIsSwitchingStream] = useState(false)
+  const [subtitleSeekTrigger, setSubtitleSeekTrigger] = useState(0)
   const [streamUrl, setStreamUrl] = useState('')
   const [playQueueItemID, setPlayQueueItemID] = useState(null)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
@@ -373,8 +374,10 @@ export default function PlayerPage() {
       }
 
       videoEl.currentTime = normalizedTarget
+      setSubtitleSeekTrigger(c => c + 1)
     } else {
       videoEl.currentTime = newGlobalTime
+      setSubtitleSeekTrigger(c => c + 1)
     }
   }
 
@@ -396,11 +399,10 @@ export default function PlayerPage() {
 
     // The factory encapsulates all codec-checking and instantiates the correct pure logic handler
     const subtitleManager = SubtitleManagerFactory.createHandler(activeSubtitle, () => {
-      // Because we set copyts=1, the Plex Transcoder outputs subtitles with their original absolute timestamps!
-      // Therefore, we must return the true Absolute Time.
-      // For DASH Transcodes, videoEl.currentTime is zero-based, so we ADD the resume offset (startSeconds).
-      // For Direct Play, videoEl.currentTime is already absolute.
-      return (isDash || isHls) ? (videoEl.currentTime + startSeconds) : videoEl.currentTime;
+      // Because we set copyts=1, the Plex Transcoder outputs subtitles with their true absolute movie timestamps!
+      // videoEl.currentTime is ALSO always the true absolute movie time.
+      // Therefore, we just return it exactly as is, regardless of DASH or Direct Play.
+      return videoEl.currentTime;
     }, subtitleOverlayRef)
 
     if (!subtitleManager) return
@@ -432,7 +434,7 @@ export default function PlayerPage() {
     return () => {
       subtitleManager.destroy()
     }
-  }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state])
+  }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state, subtitleSeekTrigger])
 
   // Drag Seek Pointer Move and Pointer Up Observers
   useEffect(() => {
