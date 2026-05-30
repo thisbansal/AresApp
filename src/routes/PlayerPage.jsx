@@ -425,6 +425,9 @@ export default function PlayerPage() {
     player.load(dashSubtitleUrl).then(() => {
       console.log('[Sidecar Subtitles] Successfully loaded DASH subtitle stream.')
       
+      // Force Shaka to parse and emit text tracks
+      player.setTextTrackVisibility(true)
+      
       const track = subVideoEl.textTracks[0]
       if (track) {
         track.mode = 'hidden'
@@ -457,9 +460,17 @@ export default function PlayerPage() {
 
     if (!mainVideo || !subVideo) return
 
+    const handlePlay = () => {
+      subVideo.play().catch(e => console.error('[Sidecar Subtitles] Play failed:', e))
+    }
+
+    const handlePause = () => {
+      subVideo.pause()
+    }
+
     const handleTimeUpdate = () => {
-      // Keep them strictly in sync. Only seek the subtitle video if drift > 0.25s
-      if (Math.abs(subVideo.currentTime - mainVideo.currentTime) > 0.25) {
+      // Keep them strictly in sync. Only seek the subtitle video if drift > 0.5s
+      if (Math.abs(subVideo.currentTime - mainVideo.currentTime) > 0.5) {
          subVideo.currentTime = mainVideo.currentTime
       }
     }
@@ -468,10 +479,14 @@ export default function PlayerPage() {
        subVideo.currentTime = mainVideo.currentTime
     }
 
+    mainVideo.addEventListener('play', handlePlay)
+    mainVideo.addEventListener('pause', handlePause)
     mainVideo.addEventListener('timeupdate', handleTimeUpdate)
     mainVideo.addEventListener('seeking', handleSeeking)
 
     return () => {
+      mainVideo.removeEventListener('play', handlePlay)
+      mainVideo.removeEventListener('pause', handlePause)
       mainVideo.removeEventListener('timeupdate', handleTimeUpdate)
       mainVideo.removeEventListener('seeking', handleSeeking)
     }
