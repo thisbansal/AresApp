@@ -1,7 +1,7 @@
 export class StreamingSubtitleManager {
-  constructor(videoElement, overlayElement) {
+  constructor(videoElement, getTimeCallback) {
     this.videoElement = videoElement;
-    this.overlayElement = overlayElement;
+    this.getTimeCallback = getTimeCallback || (() => this.videoElement.currentTime);
     this.cues = [];
     this.activeCue = null;
     this.reader = null;
@@ -27,8 +27,9 @@ export class StreamingSubtitleManager {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
     }
-    if (this.overlayElement) {
-      this.overlayElement.innerText = '';
+    const overlayEl = document.getElementById('custom-subtitle-overlay');
+    if (overlayEl) {
+      overlayEl.innerText = '';
     }
   }
 
@@ -124,8 +125,11 @@ export class StreamingSubtitleManager {
   }
 
   handleTimeUpdate() {
-    if (!this.overlayElement) return;
-    const time = this.videoElement.currentTime;
+    const overlayElement = document.getElementById('custom-subtitle-overlay');
+    if (!overlayElement) return;
+    
+    // Use the callback to get the true absolute movie time (handles transcode offsets)
+    const time = this.getTimeCallback();
 
     // Find active cue using standard array find
     const newCue = this.cues.find(c => time >= c.start && time <= c.end) || null;
@@ -134,7 +138,7 @@ export class StreamingSubtitleManager {
       this.activeCue = newCue;
       
       // Update DOM
-      this.overlayElement.innerText = newCue ? newCue.text : '';
+      overlayElement.innerText = newCue ? newCue.text : '';
       
       // Log for debugging
       if (newCue) {

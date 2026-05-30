@@ -396,9 +396,16 @@ export default function PlayerPage() {
     
     if (!sidecarUrl) return
 
-    // Initialize our custom streaming subtitle overlay manager
-    const overlayEl = document.getElementById('custom-subtitle-overlay')
-    const subtitleManager = new StreamingSubtitleManager(videoEl, overlayEl)
+    // Initialize our custom streaming subtitle manager with a time resolution callback
+    // We MUST factor in the transcode offset, because if the video is transcoded (HLS/DASH),
+    // videoEl.currentTime resets to 0, but the Plex subtitle stream uses absolute movie timestamps!
+    const subtitleManager = new StreamingSubtitleManager(videoEl, () => {
+      if (!videoEl) return 0;
+      const isDash = streamUrl && streamUrl.includes('protocol=dash');
+      const isHls = streamUrl && streamUrl.includes('protocol=hls');
+      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
+      return (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
+    })
 
     // First, ping the /decision endpoint to initialize the background transcode session
     plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, videoEl.currentTime * 1000)
