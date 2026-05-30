@@ -35,6 +35,7 @@ export function usePlayerControls({
   setCurrentTime,
   seekTimeoutRef,
   hudTimeoutRef,
+  hudLockoutRef,
   executeSeek,
   activeMenu,
   setActiveMenu
@@ -119,6 +120,7 @@ export function usePlayerControls({
             }
             // Hide controls overlay if active instead of exiting the page!
             setShowHUD(false)
+            if (hudLockoutRef) hudLockoutRef.current = true // Lockout wobbly cursor events from instantly waking HUD back up!
             if (document.activeElement) {
               document.activeElement.blur()
             }

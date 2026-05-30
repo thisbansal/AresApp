@@ -47,7 +47,7 @@ export default function PlayerPage() {
     clientSessionId: Math.random().toString(36).substring(2, 15)
   }), [])
 
-  const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
+  const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef, hudLockoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
   const { currentTime, setCurrentTime, duration: videoDuration, isPlaying, isBuffering } = useVideoMediaEvents(
     videoRef, loading, isDragging, isScrolling, isSwitchingStream, setIsSwitchingStream
   )
@@ -68,6 +68,7 @@ export default function PlayerPage() {
     setCurrentTime,
     seekTimeoutRef,
     hudTimeoutRef,
+    hudLockoutRef,
     executeSeek,
     activeMenu,
     setActiveMenu
@@ -597,7 +598,7 @@ export default function PlayerPage() {
   const progressPercent = duration ? (displayTime / duration) * 100 : 0
 
   return (
-    <div style={styles.container} onMouseMove={() => triggerHUD()}>
+    <div style={styles.container} onMouseMove={() => triggerHUD(true)}>
       {isSwitchingStream && (
         <div style={styles.inlineLoadingOverlay}>
           <div style={styles.inlineSpinner} />

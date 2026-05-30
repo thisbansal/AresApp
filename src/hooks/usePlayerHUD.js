@@ -11,6 +11,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 export function usePlayerHUD(isLoading, isDragging, isScrolling) {
   const [showHUD, setShowHUD] = useState(true)
   const hudTimeoutRef = useRef(null)
+  const hudLockoutRef = useRef(false) // Tracks manual dismissal
 
   // Auto-clear focus when HUD hides
   useEffect(() => {
@@ -28,6 +29,7 @@ export function usePlayerHUD(isLoading, isDragging, isScrolling) {
       if (!isVisible) {
         // Automatically hide the controls overlay when the system pointer fades out
         setShowHUD(false)
+        hudLockoutRef.current = false // Unlock when system cursor sleeps
         if (document.activeElement) {
           document.activeElement.blur()
         }
@@ -41,7 +43,15 @@ export function usePlayerHUD(isLoading, isDragging, isScrolling) {
   }, [isLoading])
 
   // Trigger HUD presentation and reset the inactivity fadeout timeout
-  const triggerHUD = useCallback(() => {
+  const triggerHUD = useCallback((fromMouseMove = false) => {
+    // Ignore mouse movements if HUD was manually dismissed
+    if (fromMouseMove && hudLockoutRef.current) return
+
+    // Explicit button presses unlock the HUD
+    if (!fromMouseMove) {
+      hudLockoutRef.current = false
+    }
+
     setShowHUD(true)
     if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
 
@@ -60,5 +70,5 @@ export function usePlayerHUD(isLoading, isDragging, isScrolling) {
     }
   }, [])
 
-  return { showHUD, setShowHUD, triggerHUD, hudTimeoutRef }
+  return { showHUD, setShowHUD, triggerHUD, hudTimeoutRef, hudLockoutRef }
 }
