@@ -20,10 +20,10 @@ export class SubtitleManagerFactory {
 
     const codec = activeSubtitle.codec?.toLowerCase()
 
-    // 1. Image-based codecs MUST be burned in by the Plex Universal Transcoder.
-    // They cannot be extracted as sidecar text streams.
-    const imageCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle']
-    if (imageCodecs.includes(codec)) {
+    // Image-based codecs and highly stylized text codecs (ASS/SSA) MUST be burned in by the Plex Universal Transcoder.
+    // They cannot be extracted as sidecar VTT streams without catastrophic loss of formatting (or outright 400 Bad Requests).
+    const unsupportedSidecarCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle', 'ass', 'ssa']
+    if (unsupportedSidecarCodecs.includes(codec)) {
       console.log(`[SubtitleFactory] Selected subtitle is image-based (${codec}). Returning null (Burn-in required).`)
       return null
     }
