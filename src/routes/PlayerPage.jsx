@@ -37,9 +37,6 @@ export default function PlayerPage() {
   const [forceSubtitleBurnIn, setForceSubtitleBurnIn] = useState(false)
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
   const [dragTime, setDragTime] = useState(0)
-  const [activeSubtitleText, setActiveSubtitleText] = useState('')
-  const subtitleVideoRef = useRef(null)
-  const subtitleShakaRef = useRef(null)
 
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
@@ -377,130 +374,74 @@ export default function PlayerPage() {
     }
   }
 
-  // Dual-Player Subtitle Stream Engine
+  // Native HTTP Sidecar Subtitle Engine
   useEffect(() => {
     const activeSubtitle = availableStreams.find(s => s.streamType === 3 && s.selected)
-    
-    // Cleanup previous instance
-    if (subtitleShakaRef.current) {
-      subtitleShakaRef.current.destroy()
-      subtitleShakaRef.current = null
-      setActiveSubtitleText('')
+    const videoEl = videoRef.current
+
+    // Cleanup previous track
+    if (videoEl) {
+      const existingTracks = videoEl.querySelectorAll('track')
+      existingTracks.forEach(t => {
+        if (t.src && t.src.startsWith('blob:')) URL.revokeObjectURL(t.src)
+        videoEl.removeChild(t)
+      })
     }
 
-    if (!activeSubtitle || !serverInfo) return
+    if (!activeSubtitle || !serverInfo || !videoEl) return
 
     // Image-based codecs MUST be burned in by the main transcoder. We cannot extract them as text.
     const imageCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle']
     if (imageCodecs.includes(activeSubtitle.codec?.toLowerCase())) return
 
-    // Text-based codec. Spin up the Sidecar DASH parser!
-    const subVideoEl = subtitleVideoRef.current
-    if (!subVideoEl || !shaka.Player.isBrowserSupported()) return
-
-    const player = new shaka.Player(subVideoEl)
-    subtitleShakaRef.current = player
-
-    player.getNetworkingEngine().registerRequestFilter((type, request) => {
-      if (!request.uris[0].includes('X-Plex-Token')) {
-        request.uris[0] += (request.uris[0].includes('?') ? '&' : '?') + `X-Plex-Token=${serverInfo.token}`
-      }
-    })
-
-    const capabilities = mediaCodecService.checkStreamCapabilities({
-      video: availableStreams.filter(s => s.streamType === 1),
-      audio: availableStreams.filter(s => s.streamType === 2),
-      subtitles: [],
-    })
-
-    const dashSubtitleUrl = plexStreamBuilder.buildSubtitleStreamUrl(
+    const sidecarUrl = plexStreamBuilder.buildOfficialSidecarUrl(
       serverInfo,
       ratingKey,
-      partKey,
       playbackSessionId,
-      clientSessionId,
-      capabilities
+      videoEl.currentTime * 1000
     )
-
-    player.load(dashSubtitleUrl).then(() => {
-      console.log(`[Sidecar Subtitles] Successfully loaded DASH subtitle stream. URL: ${dashSubtitleUrl}`)
-      
-      // Force Shaka to parse and emit text tracks
-      player.setTextTrackVisibility(true)
-      
-      const track = subVideoEl.textTracks[0]
-      if (track) {
-        console.log(`[Sidecar Subtitles] Text track found and bound! Mode: ${track.mode}`)
-        track.mode = 'hidden'
-        track.addEventListener('cuechange', () => {
-          if (track.activeCues && track.activeCues.length > 0) {
-            const text = Array.from(track.activeCues).map(c => c.text).join('\n')
-            console.log('[Sidecar Subtitles] 💬 CUE FIRED:', text)
-            setActiveSubtitleText(text)
-          } else {
-            console.log('[Sidecar Subtitles] 🫥 Cues cleared.')
-            setActiveSubtitleText('')
-          }
-        })
-      } else {
-        console.warn('[Sidecar Subtitles] WARNING: No text track found on hidden video element after load!')
-      }
-    }).catch(e => {
-      console.error('[Sidecar Subtitles] Error loading subtitle stream:', e)
-    })
-
-    // Listen for internal Shaka errors
-    player.addEventListener('error', (event) => {
-      console.error('[Sidecar Subtitles] Shaka Internal Error Event:', event.detail);
-    })
-
-    return () => {
-      if (subtitleShakaRef.current) {
-        subtitleShakaRef.current.destroy()
-        subtitleShakaRef.current = null
-      }
-      setActiveSubtitleText('')
-    }
-  }, [availableStreams, serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId])
-
-  // Sync main video time to hidden subtitle parser
-  useEffect(() => {
-    const mainVideo = videoRef.current
-    const subVideo = subtitleVideoRef.current
-
-    if (!mainVideo || !subVideo) return
-
-    const handlePlay = () => {
-      subVideo.play().catch(e => console.error('[Sidecar Subtitles] Play failed:', e))
-    }
-
-    const handlePause = () => {
-      subVideo.pause()
-    }
-
-    const handleTimeUpdate = () => {
-      // Keep them strictly in sync. Only seek the subtitle video if drift > 0.5s
-      if (Math.abs(subVideo.currentTime - mainVideo.currentTime) > 0.5) {
-         subVideo.currentTime = mainVideo.currentTime
-      }
-    }
     
-    const handleSeeking = () => {
-       subVideo.currentTime = mainVideo.currentTime
-    }
+    if (!sidecarUrl) return
 
-    mainVideo.addEventListener('play', handlePlay)
-    mainVideo.addEventListener('pause', handlePause)
-    mainVideo.addEventListener('timeupdate', handleTimeUpdate)
-    mainVideo.addEventListener('seeking', handleSeeking)
+    const headers = plexStreamBuilder.getOfficialSidecarHeaders(serverInfo, playbackSessionId)
+
+    fetch(sidecarUrl, { headers })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.text()
+      })
+      .then(rawSrt => {
+        console.log('[Native Subtitles] Successfully fetched extracted SRT payload. Converting to VTT...')
+        const vttText = subtitleConverter.convertToVttString(rawSrt, 'srt')
+        if (!vttText) throw new Error('VTT Conversion returned null')
+        
+        const blob = new Blob([vttText], { type: 'text/vtt' })
+        const blobUrl = URL.createObjectURL(blob)
+
+        const trackEl = document.createElement('track')
+        trackEl.kind = 'subtitles'
+        trackEl.label = activeSubtitle.displayTitle || 'English'
+        trackEl.srclang = activeSubtitle.languageCode || 'en'
+        trackEl.src = blobUrl
+        trackEl.default = true
+
+        videoEl.appendChild(trackEl)
+      })
+      .catch(err => {
+        console.error('[Native Subtitles] Failed to fetch or inject sidecar subtitle:', err)
+      })
 
     return () => {
-      mainVideo.removeEventListener('play', handlePlay)
-      mainVideo.removeEventListener('pause', handlePause)
-      mainVideo.removeEventListener('timeupdate', handleTimeUpdate)
-      mainVideo.removeEventListener('seeking', handleSeeking)
+      // Cleanup on unmount or stream switch
+      if (videoEl) {
+        const existingTracks = videoEl.querySelectorAll('track')
+        existingTracks.forEach(t => {
+          if (t.src && t.src.startsWith('blob:')) URL.revokeObjectURL(t.src)
+          videoEl.removeChild(t)
+        })
+      }
     }
-  }, [])
+  }, [availableStreams, serverInfo, ratingKey, playbackSessionId])
 
   // Drag Seek Pointer Move and Pointer Up Observers
   useEffect(() => {
@@ -787,41 +728,7 @@ export default function PlayerPage() {
         style={styles.video}
       />
 
-      {/* Hidden Secondary Player for Sidecar Subtitles */}
-      <video
-        ref={subtitleVideoRef}
-        muted
-        style={{ display: 'none' }}
-      />
 
-      {/* Custom Subtitle Overlay */}
-      {activeSubtitleText && (
-        <div style={{
-          position: 'absolute',
-          bottom: showHUD ? '180px' : '60px',
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          pointerEvents: 'none',
-          zIndex: 9000,
-          transition: 'bottom 0.3s ease',
-          padding: '0 10%'
-        }}>
-          <span style={{
-            color: '#fff',
-            fontSize: '42px',
-            fontFamily: "'Inter', sans-serif",
-            fontWeight: '600',
-            textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5)',
-            whiteSpace: 'pre-wrap',
-            backgroundColor: 'rgba(0,0,0,0.25)',
-            padding: '4px 12px',
-            borderRadius: '8px'
-          }}>
-            {activeSubtitleText}
-          </span>
-        </div>
-      )}
 
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}

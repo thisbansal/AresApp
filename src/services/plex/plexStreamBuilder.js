@@ -237,6 +237,59 @@ class PlexStreamBuilder {
 
     return `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
   }
+
+  /**
+   * Constructs the official LG HTTP Subtitle Extraction URL.
+   */
+  buildOfficialSidecarUrl(serverInfo, ratingKey, playbackSessionId, offset = 0) {
+    if (!serverInfo || !ratingKey) return null;
+
+    const ratingId = ratingKey.split('/').pop()
+    const metadataPath = `/library/metadata/${ratingId}`
+    const offsetSeconds = offset > 0 ? Math.floor(offset / 1000) : 0
+
+    const paramsObj = {
+      'directPlay': '1',
+      'directStream': '1',
+      'directStreamAudio': '1',
+      'protocol': 'http',
+      'fastSeek': '1',
+      'path': metadataPath,
+      'session': playbackSessionId,
+      'mediaIndex': '0',
+      'partIndex': '0',
+      'mediaBufferSize': '50000',
+      'hasMDE': '1',
+      'subtitleSize': '100',
+      'videoQuality': '100',
+      'videoResolution': '3840x2160',
+      'audioBoost': '100',
+      'autoAdjustSubtitle': '1',
+      'subtitles': 'sidecar',
+      'location': 'lan',
+      'copyts': '1',
+      'offset': offsetSeconds.toString()
+    };
+
+    const params = new URLSearchParams(paramsObj);
+    return `${serverInfo.uri}/subtitles/:/transcode/universal/start?${params.toString()}`;
+  }
+
+  /**
+   * Returns the headers required to successfully fetch the official sidecar subtitle.
+   */
+  getOfficialSidecarHeaders(serverInfo, playbackSessionId) {
+    return {
+      'Accept': 'application/json, */*',
+      'X-Plex-Token': serverInfo.token,
+      'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
+      'X-Plex-Product': PLEX_CONFIG.product,
+      'X-Plex-Platform': 'webOS',
+      'X-Plex-Session-Id': playbackSessionId,
+      'X-Plex-Client-Profile-Name': 'Generic',
+      'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=srt&container=srt)'
+    };
+  }
 }
 
 export const plexStreamBuilder = new PlexStreamBuilder()
