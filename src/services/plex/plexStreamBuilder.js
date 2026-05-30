@@ -282,8 +282,7 @@ class PlexStreamBuilder {
     if (isDecision) {
       return `${serverInfo.uri}/video/:/transcode/universal/decision?${params.toString()}`;
     } else {
-      // Use the modern /video/:/transcode/universal/subtitles endpoint which supports seeking!
-      return `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
+      return `${serverInfo.uri}/subtitles/:/transcode/universal/start?${params.toString()}`;
     }
   }
 
