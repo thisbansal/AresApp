@@ -14,8 +14,10 @@ import { useVideoMediaEvents } from '../hooks/useVideoMediaEvents'
 import { usePlayerControls } from '../hooks/usePlayerControls'
 import { formatTime, formatRemainingTime } from '../utils/timeUtils'
 import { plexStreamBuilder } from '../services/plex/plexStreamBuilder'
+import { StreamingSubtitleManager } from '../services/plex/streamingSubtitleManager'
 import { mediaCodecService } from '../services/MediaCodecService'
 import shaka from 'shaka-player'
+import '../style.css'
 
 export default function PlayerPage() {
   const { ratingKey } = useParams()
@@ -379,15 +381,6 @@ export default function PlayerPage() {
     const activeSubtitle = availableStreams.find(s => s.streamType === 3 && s.selected)
     const videoEl = videoRef.current
 
-    // Cleanup previous track
-    if (videoEl) {
-      const existingTracks = videoEl.querySelectorAll('track')
-      existingTracks.forEach(t => {
-        if (t.src && t.src.startsWith('blob:')) URL.revokeObjectURL(t.src)
-        videoEl.removeChild(t)
-      })
-    }
-
     if (!activeSubtitle || !serverInfo || !videoEl) return
 
     // Image-based codecs MUST be burned in by the main transcoder. We cannot extract them as text.
@@ -403,49 +396,24 @@ export default function PlayerPage() {
     
     if (!sidecarUrl) return
 
-    const headers = plexStreamBuilder.getOfficialSidecarHeaders(serverInfo, playbackSessionId)
+    // Initialize our custom streaming subtitle overlay manager
+    const overlayEl = document.getElementById('custom-subtitle-overlay')
+    const subtitleManager = new StreamingSubtitleManager(videoEl, overlayEl)
 
     // First, ping the /decision endpoint to initialize the background transcode session
     plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, videoEl.currentTime * 1000)
       .then(success => {
         if (!success) throw new Error('Failed to initialize sidecar transcode session')
         
-        console.log(`[Native Subtitles] Session initialized! Attaching sidecar streaming URL directly to video track: ${sidecarUrl}`)
-
-        const trackEl = document.createElement('track')
-        trackEl.kind = 'subtitles'
-        trackEl.label = activeSubtitle.displayTitle || 'English'
-        trackEl.srclang = activeSubtitle.languageCode || 'en'
-        trackEl.src = sidecarUrl
-        trackEl.default = true
-
-        videoEl.appendChild(trackEl)
-
-        // Dynamically added tracks often require explicit activation
-        setTimeout(() => {
-          if (videoEl.textTracks && videoEl.textTracks.length > 0) {
-            // Find the track we just added (usually the last one)
-            const t = videoEl.textTracks[videoEl.textTracks.length - 1];
-            if (t) {
-              t.mode = 'showing';
-              console.log('[Native Subtitles] Forced textTrack mode to showing.');
-            }
-          }
-        }, 100);
+        console.log(`[Native Subtitles] Session initialized! Starting custom streaming parser for URL: ${sidecarUrl}`)
+        subtitleManager.startStream(sidecarUrl)
       })
       .catch(err => {
         console.error('[Native Subtitles] Failed to initialize or attach sidecar subtitle:', err)
       })
 
     return () => {
-      // Cleanup on unmount or stream switch
-      if (videoEl) {
-        const existingTracks = videoEl.querySelectorAll('track')
-        existingTracks.forEach(t => {
-          if (t.src && t.src.startsWith('blob:')) URL.revokeObjectURL(t.src)
-          videoEl.removeChild(t)
-        })
-      }
+      subtitleManager.destroy()
     }
   }, [availableStreams, serverInfo, ratingKey, playbackSessionId])
 
@@ -725,17 +693,16 @@ export default function PlayerPage() {
       )}
 
       {/* Raw HTML5 Video Element for maximum Smart TV compatibility */}
-      <video
-        ref={videoRef}
-        playsInline
-        autoPlay
-        crossOrigin="anonymous"
-        controls={false}
-        style={styles.video}
-      />
-
-
-
+      <div className="video-wrapper">
+        <video
+          ref={videoRef}
+          className="video-element"
+          autoPlay
+          crossOrigin="anonymous"
+          style={styles.video}
+        />
+        <div id="custom-subtitle-overlay" className="subtitle-overlay"></div>
+      </div>
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
       <div
