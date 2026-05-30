@@ -31,7 +31,6 @@ export default function PlayerPage() {
   const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
   const [loading, setLoading] = useState(true)
   const [isSwitchingStream, setIsSwitchingStream] = useState(false)
-  const [subtitleSeekTrigger, setSubtitleSeekTrigger] = useState(0)
   const [streamUrl, setStreamUrl] = useState('')
   const [playQueueItemID, setPlayQueueItemID] = useState(null)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
@@ -374,10 +373,8 @@ export default function PlayerPage() {
       }
 
       videoEl.currentTime = normalizedTarget
-      setSubtitleSeekTrigger(c => c + 1)
     } else {
       videoEl.currentTime = newGlobalTime
-      setSubtitleSeekTrigger(c => c + 1)
     }
   }
 
@@ -434,7 +431,7 @@ export default function PlayerPage() {
     return () => {
       subtitleManager.destroy()
     }
-  }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state, subtitleSeekTrigger])
+  }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state])
 
   // Drag Seek Pointer Move and Pointer Up Observers
   useEffect(() => {
