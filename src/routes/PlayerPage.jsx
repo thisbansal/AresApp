@@ -392,12 +392,15 @@ export default function PlayerPage() {
     const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
     
     // Calculate the TRUE absolute movie time to pass to the Plex Subtitle Transcoder
-    const absoluteStartTime = (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
+    const initialAbsoluteStartTime = (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
 
     // The factory encapsulates all codec-checking and instantiates the correct pure logic handler
     const subtitleManager = SubtitleManagerFactory.createHandler(activeSubtitle, () => {
-      // Return the dynamically calculated absolute time during playback
-      return (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
+      // Because we set copyts=0, the Plex Transcoder outputs zero-based subtitles relative to the offset!
+      // Therefore, we must return the Relative Time Since Offset.
+      // For HLS Transcodes, videoEl.currentTime is already zero-based!
+      // For Direct Play, videoEl.currentTime is absolute, so we subtract the initial start time to zero-base it.
+      return (isDash || isHls) ? videoEl.currentTime : (videoEl.currentTime - initialAbsoluteStartTime);
     }, subtitleOverlayRef)
 
     if (!subtitleManager) return
@@ -412,13 +415,13 @@ export default function PlayerPage() {
       serverInfo,
       ratingKey,
       subtitleSessionId,
-      absoluteStartTime * 1000
+      initialAbsoluteStartTime * 1000
     )
     
     if (!sidecarUrl) return
 
     // First, ping the /decision endpoint to initialize the background transcode session
-    plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, subtitleSessionId, absoluteStartTime * 1000)
+    plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, subtitleSessionId, initialAbsoluteStartTime * 1000)
       .then(success => {
         if (!success) throw new Error('Failed to initialize sidecar transcode session')
         

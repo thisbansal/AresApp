@@ -267,7 +267,7 @@ class PlexStreamBuilder {
       'autoAdjustSubtitle': '1',
       'subtitles': 'sidecar',
       'location': 'lan',
-      'copyts': '1',
+      'copyts': '0',
       'offset': offsetSeconds.toString(),
       'X-Plex-Token': serverInfo.token,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
