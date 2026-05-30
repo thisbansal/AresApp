@@ -30,6 +30,7 @@ export default function PlayerPage() {
   const shakaRef = useRef(null)
   const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
   const [loading, setLoading] = useState(true)
+  const [isSubtitleCaching, setIsSubtitleCaching] = useState(false)
   const [isSwitchingStream, setIsSwitchingStream] = useState(false)
   const [streamUrl, setStreamUrl] = useState('')
   const [playQueueItemID, setPlayQueueItemID] = useState(null)
@@ -400,7 +401,7 @@ export default function PlayerPage() {
       // videoEl.currentTime is ALSO always the true absolute movie time.
       // Therefore, we just return it exactly as is, regardless of DASH or Direct Play.
       return videoEl.currentTime;
-    }, subtitleOverlayRef)
+    }, subtitleOverlayRef, setIsSubtitleCaching)
 
     if (!subtitleManager) return
 
@@ -784,12 +785,17 @@ export default function PlayerPage() {
             onClick={() => setActiveMenu(activeMenu === 'subtitle' ? 'none' : 'subtitle')}
           >
             {/* Classic Subtitle Icon */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect>
-              <line x1="7" y1="10" x2="11" y2="10"></line>
-              <line x1="13" y1="10" x2="17" y2="10"></line>
-              <line x1="7" y1="14" x2="17" y2="14"></line>
-            </svg>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect>
+                <line x1="7" y1="10" x2="11" y2="10"></line>
+                <line x1="13" y1="10" x2="17" y2="10"></line>
+                <line x1="7" y1="14" x2="17" y2="14"></line>
+              </svg>
+              {isSubtitleCaching && (
+                <div className="subtitle-caching-spinner"></div>
+              )}
+            </div>
           </FocusableItem>}
 
           {/* Active Menu Popover */}
@@ -1041,10 +1047,23 @@ export default function PlayerPage() {
           transition: transform 0.15s ease, background-color 0.15s ease !important;
         }
         .hud-stream-btn.focused, .hud-stream-btn:hover {
-          background-color: rgba(255, 255, 255, 0.25) !important;
-          border-color: rgba(255, 255, 255, 0.5) !important;
-          transform: scale(1.1) !important;
+          background: rgba(255,255,255,0.25);
+          border-color: rgba(255,255,255,0.4);
         }
+
+        .subtitle-caching-spinner {
+          width: 14px;
+          height: 14px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: subtitle-spin 1s linear infinite;
+        }
+
+        @keyframes subtitle-spin {
+          to { transform: rotate(360deg); }
+        }
+
         .hud-stream-menu-item {
           transition: background-color 0.1s ease !important;
         }

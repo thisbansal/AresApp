@@ -8,11 +8,13 @@
 export class VttStreamSubtitleHandler {
   /**
    * @param {Function} getTimeCallback - Returns the absolute movie time in seconds
-   * @param {Object} overlayRef - A React ref object exposing .current.setText(text) and .current.clearText()
+   * @param {Function} setTextCallback - A function (text) => void to display subtitles
+   * @param {Function} onCachingStateChange - A function (isCaching) => void to handle stream status
    */
-  constructor(getTimeCallback, overlayRef) {
+  constructor(getTimeCallback, setTextCallback, onCachingStateChange) {
     this.getTimeCallback = getTimeCallback;
-    this.overlayRef = overlayRef;
+    this.setTextCallback = setTextCallback;
+    this.onCachingStateChange = onCachingStateChange;
     
     this.cues = [];
     this.activeCue = null;
@@ -91,7 +93,17 @@ export class VttStreamSubtitleHandler {
       if (!block.trim()) continue;
       const cue = this.parseBlock(block);
       if (cue) {
-        const currentAbsoluteTime = this.getTimeCallback ? this.getTimeCallback() : 'unknown';
+        const currentAbsoluteTime = this.getTimeCallback ? this.getTimeCallback() : 0;
+        
+        // If the cue is more than 5 seconds behind the video clock, we are still caching!
+        if (this.onCachingStateChange) {
+          if (cue.end < currentAbsoluteTime - 5) {
+            this.onCachingStateChange(true);
+          } else {
+            this.onCachingStateChange(false);
+          }
+        }
+        
         console.log(`[VttStreamHandler] Successfully parsed cue: [${cue.start} -> ${cue.end}] "${cue.text}" | Video Clock: ${currentAbsoluteTime}`);
         this.cues.push(cue);
       }
@@ -135,23 +147,13 @@ export class VttStreamSubtitleHandler {
   }
 
   handleTimeUpdate() {
-    if (!this.overlayRef) {
-      console.warn('[VttStreamHandler] overlayRef is entirely undefined');
-      return;
-    }
-    if (!this.overlayRef.current) {
-      console.warn('[VttStreamHandler] overlayRef.current is null - component not mounted?');
+    if (!this.setTextCallback) {
       return;
     }
     
     // Resolve absolute movie time via injected dependency
     const time = this.getTimeCallback();
-
-    if (this.lastLoggedTime === undefined || Math.abs(time - this.lastLoggedTime) >= 1) {
-      console.log(`[VttStreamHandler] Calculated absolute time: ${time}`);
-      this.lastLoggedTime = time;
-    }
-
+    
     // Find active cue using standard array find
     const newCue = this.cues.find(c => time >= c.start && time <= c.end) || null;
 
@@ -160,11 +162,9 @@ export class VttStreamSubtitleHandler {
       
       // Update Presentation Layer via Inversion of Control
       if (newCue) {
-        console.log(`[VttStreamHandler] Calling setText with: "${newCue.text}" at time ${time}`);
-        this.overlayRef.current.setText(newCue.text);
+        this.setTextCallback(newCue.text);
       } else {
-        // console.log(`[VttStreamHandler] Clearing text at time ${time}`);
-        this.overlayRef.current.clearText();
+        this.setTextCallback('');
       }
     }
   }

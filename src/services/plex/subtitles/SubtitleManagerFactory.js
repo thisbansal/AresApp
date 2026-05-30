@@ -13,9 +13,10 @@ export class SubtitleManagerFactory {
    * @param {Object} activeSubtitle - The selected Plex stream object (streamType === 3)
    * @param {Function} getTimeCallback - Resolves the absolute movie time
    * @param {Object} subtitleOverlayRef - A React ref exposing setText(text) and clearText()
+   * @param {Function} onCachingStateChange - Callback for cache status updates
    * @returns {Object|null} A handler with start(url) and destroy() methods, or null if unhandled
    */
-  static createHandler(activeSubtitle, getTimeCallback, subtitleOverlayRef) {
+  static createHandler(activeSubtitle, getTimeCallback, subtitleOverlayRef, onCachingStateChange) {
     if (!activeSubtitle) return null;
 
     const codec = activeSubtitle.codec?.toLowerCase()
@@ -29,10 +30,20 @@ export class SubtitleManagerFactory {
     }
 
     // 2. Text-based codecs (SRT, VTT, ASS, etc.)
-    // We utilize the custom VttStreamSubtitleHandler which fetches the extracted VTT sidecar 
     // and syncs it precisely to the video using the provided DOM overlay ref.
     console.log(`[SubtitleFactory] Selected text-based subtitle (${codec}). Instantiating VttStreamSubtitleHandler.`)
-    return new VttStreamSubtitleHandler(getTimeCallback, subtitleOverlayRef)
+    
+    const setTextCallback = (text) => {
+      if (subtitleOverlayRef && subtitleOverlayRef.current) {
+        if (text) {
+          subtitleOverlayRef.current.setText(text);
+        } else {
+          subtitleOverlayRef.current.clearText();
+        }
+      }
+    };
+    
+    return new VttStreamSubtitleHandler(getTimeCallback, setTextCallback, onCachingStateChange)
 
     // Future Extensibility:
     // If we wanted to support native HTML5 <track> elements for simple SRT files, we could add:
