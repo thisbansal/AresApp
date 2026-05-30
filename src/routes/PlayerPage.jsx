@@ -373,13 +373,19 @@ export default function PlayerPage() {
       setCurrentTime(newTime) // Only visually update the UI during drag
     }
 
-    const handlePointerUp = () => {
-      // Execute the actual seek when drag is released
-      const isDash = streamUrl && streamUrl.includes('protocol=dash')
-      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
-      const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
+    const handlePointerUp = (e) => {
+      // Calculate final time based on where the pointer was released
+      let finalTime = 0
+      const trackEl = document.querySelector('.timeline-track')
+      if (trackEl) {
+        const rect = trackEl.getBoundingClientRect()
+        const clickX = e.clientX - rect.left
+        const percentage = Math.max(0, Math.min(1, clickX / rect.width))
+        finalTime = percentage * duration
+        setCurrentTime(finalTime)
+      }
 
-      executeSeek(displayTime)
+      executeSeek(finalTime)
 
       const videoEl = videoRef.current || document.querySelector('video')
       if (videoEl) {
@@ -418,8 +424,8 @@ export default function PlayerPage() {
     const videoEl = videoRef.current || document.querySelector('video')
     if (!videoEl) return
     triggerHUD()
-    videoEl.currentTime = 0
     setCurrentTime(0)
+    executeSeek(0)
     videoEl.play().catch(err => console.error('Restart play failed:', err))
     useNotificationStore.getState().addNotification('Restarted from beginning', { level: 'info' })
   }
