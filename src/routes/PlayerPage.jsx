@@ -597,8 +597,27 @@ export default function PlayerPage() {
   const displayTime = (isDash && !isDragging) ? currentTime + startSeconds : currentTime
   const progressPercent = duration ? (displayTime / duration) * 100 : 0
 
+  const handleContainerClick = (e) => {
+    // Only toggle playback if the user clicked exactly on the background container, the video, or the bottom gradient mask.
+    // If they clicked on buttons, timeline, menus, or text, do not toggle playback.
+    const isBackgroundClick = 
+      e.target === e.currentTarget || 
+      e.target.tagName === 'VIDEO' ||
+      e.target.id === 'bottom-gradient-mask'
+
+    if (isBackgroundClick && videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch(err => console.error(err))
+        useNotificationStore.getState().addNotification('Play', { level: 'success' })
+      } else {
+        videoRef.current.pause()
+        useNotificationStore.getState().addNotification('Pause', { level: 'success' })
+      }
+    }
+  }
+
   return (
-    <div style={styles.container} onMouseMove={() => triggerHUD(true)}>
+    <div style={styles.container} onMouseMove={() => triggerHUD(true)} onClick={handleContainerClick}>
       {isSwitchingStream && (
         <div style={styles.inlineLoadingOverlay}>
           <div style={styles.inlineSpinner} />
@@ -619,6 +638,7 @@ export default function PlayerPage() {
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
       <div
+        id="bottom-gradient-mask"
         style={{
           ...styles.bottomGradient,
           opacity: showHUD ? 1 : 0,
