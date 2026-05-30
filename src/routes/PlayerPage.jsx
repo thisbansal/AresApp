@@ -14,17 +14,19 @@ import { useVideoMediaEvents } from '../hooks/useVideoMediaEvents'
 import { usePlayerControls } from '../hooks/usePlayerControls'
 import { formatTime, formatRemainingTime } from '../utils/timeUtils'
 import { plexStreamBuilder } from '../services/plex/plexStreamBuilder'
-import { StreamingSubtitleManager } from '../services/plex/streamingSubtitleManager'
+import { SubtitleManagerFactory } from '../services/plex/subtitles/SubtitleManagerFactory'
+import SubtitleOverlay from '../components/media/SubtitleOverlay'
 import { mediaCodecService } from '../services/MediaCodecService'
 import shaka from 'shaka-player'
 import '../style.css'
 
 export default function PlayerPage() {
-  const { ratingKey } = useParams()
-  const navigate = useNavigate()
+  const { serverId, ratingKey } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const videoRef = useRef(null)
+  const subtitleOverlayRef = useRef(null)
   const shakaRef = useRef(null)
   const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
   const [loading, setLoading] = useState(true)
@@ -383,9 +385,16 @@ export default function PlayerPage() {
 
     if (!activeSubtitle || !serverInfo || !videoEl) return
 
-    // Image-based codecs MUST be burned in by the main transcoder. We cannot extract them as text.
-    const imageCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle']
-    if (imageCodecs.includes(activeSubtitle.codec?.toLowerCase())) return
+    // The factory encapsulates all codec-checking and instantiates the correct pure logic handler
+    const subtitleManager = SubtitleManagerFactory.createHandler(activeSubtitle, () => {
+      if (!videoEl) return 0;
+      const isDash = streamUrl && streamUrl.includes('protocol=dash');
+      const isHls = streamUrl && streamUrl.includes('protocol=hls');
+      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
+      return (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
+    }, subtitleOverlayRef)
+
+    if (!subtitleManager) return
 
     const sidecarUrl = plexStreamBuilder.buildOfficialSidecarUrl(
       serverInfo,
@@ -396,24 +405,13 @@ export default function PlayerPage() {
     
     if (!sidecarUrl) return
 
-    // Initialize our custom streaming subtitle manager with a time resolution callback
-    // We MUST factor in the transcode offset, because if the video is transcoded (HLS/DASH),
-    // videoEl.currentTime resets to 0, but the Plex subtitle stream uses absolute movie timestamps!
-    const subtitleManager = new StreamingSubtitleManager(videoEl, () => {
-      if (!videoEl) return 0;
-      const isDash = streamUrl && streamUrl.includes('protocol=dash');
-      const isHls = streamUrl && streamUrl.includes('protocol=hls');
-      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
-      return (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
-    })
-
     // First, ping the /decision endpoint to initialize the background transcode session
     plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, videoEl.currentTime * 1000)
       .then(success => {
         if (!success) throw new Error('Failed to initialize sidecar transcode session')
         
         console.log(`[Native Subtitles] Session initialized! Starting custom streaming parser for URL: ${sidecarUrl}`)
-        subtitleManager.startStream(sidecarUrl)
+        subtitleManager.start(sidecarUrl)
       })
       .catch(err => {
         console.error('[Native Subtitles] Failed to initialize or attach sidecar subtitle:', err)
@@ -1052,10 +1050,9 @@ export default function PlayerPage() {
       `}</style>
 
       {/* 
-        Custom DOM Subtitle Overlay
-        Must be at the absolute root with max z-index to punch through WebOS DoVi hardware planes!
+        Custom Subtitle Overlay (Managed fully by React, updated imperatively by pure logic handlers)
       */}
-      <div id="custom-subtitle-overlay" className="subtitle-overlay"></div>
+      <SubtitleOverlay ref={subtitleOverlayRef} />
     </div>
   )
 }
