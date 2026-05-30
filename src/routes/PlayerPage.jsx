@@ -432,6 +432,18 @@ export default function PlayerPage() {
         trackEl.default = true
 
         videoEl.appendChild(trackEl)
+
+        // Dynamically added tracks often require explicit activation
+        setTimeout(() => {
+          if (videoEl.textTracks && videoEl.textTracks.length > 0) {
+            // Find the track we just added (usually the last one)
+            const t = videoEl.textTracks[videoEl.textTracks.length - 1];
+            if (t) {
+              t.mode = 'showing';
+              console.log('[Native Subtitles] Forced textTrack mode to showing.');
+            }
+          }
+        }, 100);
       })
       .catch(err => {
         console.error('[Native Subtitles] Failed to fetch or inject sidecar subtitle:', err)
