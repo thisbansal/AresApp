@@ -383,7 +383,9 @@ export default function PlayerPage() {
     const activeSubtitle = availableStreams.find(s => s.streamType === 3 && s.selected)
     const videoEl = videoRef.current
 
-    if (!activeSubtitle || !serverInfo || !videoEl) return
+    // Wait for the streamUrl to be fully resolved before starting subtitles, 
+    // otherwise Plex locks the transcode session at offset 0!
+    if (!activeSubtitle || !serverInfo || !videoEl || !streamUrl) return
 
     const isDash = streamUrl && streamUrl.includes('protocol=dash');
     const isHls = streamUrl && streamUrl.includes('protocol=hls');
