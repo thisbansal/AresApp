@@ -276,6 +276,65 @@ class PlexStreamBuilder {
   }
 
   /**
+   * Pings the /decision endpoint to initialize a background transcode session for sidecar extraction.
+   * This is required even for Direct Play, otherwise the /subtitles endpoint returns 400 Bad Request.
+   */
+  async pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, offset = 0) {
+    if (!serverInfo || !ratingKey) return false;
+
+    const ratingId = ratingKey.split('/').pop()
+    const metadataPath = `/library/metadata/${ratingId}`
+    const offsetSeconds = offset > 0 ? Math.floor(offset / 1000) : 0
+
+    const paramsObj = {
+      'directPlay': '1',
+      'directStream': '1',
+      'directStreamAudio': '1',
+      'protocol': 'http',
+      'fastSeek': '1',
+      'path': metadataPath,
+      'session': playbackSessionId,
+      'mediaIndex': '0',
+      'partIndex': '0',
+      'mediaBufferSize': '50000',
+      'hasMDE': '1',
+      'subtitleSize': '100',
+      'videoQuality': '100',
+      'videoResolution': '3840x2160',
+      'audioBoost': '100',
+      'autoAdjustSubtitle': '1',
+      'subtitles': 'sidecar',
+      'location': 'lan',
+      'copyts': '1',
+      'offset': offsetSeconds.toString(),
+      'X-Plex-Token': serverInfo.token,
+      'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
+      'X-Plex-Product': PLEX_CONFIG.product,
+      'X-Plex-Platform': 'webOS',
+      'X-Plex-Session-Id': playbackSessionId,
+      'X-Plex-Client-Profile-Name': 'Generic',
+      'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=srt&container=srt)'
+    };
+
+    const params = new URLSearchParams(paramsObj);
+    const decisionUrl = `${serverInfo.uri}/video/:/transcode/universal/decision?${params.toString()}`;
+
+    try {
+      console.log(`[PlexStreamBuilder] Pinging Sidecar Decision endpoint to initialize session...`);
+      const response = await fetch(decisionUrl);
+      if (!response.ok) {
+        console.error(`[PlexStreamBuilder] Sidecar Decision failed: ${response.status}`);
+        return false;
+      }
+      console.log(`[PlexStreamBuilder] Sidecar Session Initialized!`);
+      return true;
+    } catch (e) {
+      console.error(`[PlexStreamBuilder] Error pinging sidecar decision:`, e);
+      return false;
+    }
+  }
+
+  /**
    * Returns the headers required to successfully fetch the official sidecar subtitle.
    */
   getOfficialSidecarHeaders(serverInfo, playbackSessionId) {

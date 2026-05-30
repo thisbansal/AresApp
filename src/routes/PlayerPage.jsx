@@ -405,7 +405,13 @@ export default function PlayerPage() {
 
     const headers = plexStreamBuilder.getOfficialSidecarHeaders(serverInfo, playbackSessionId)
 
-    fetch(sidecarUrl, { headers })
+    // First, ping the /decision endpoint to initialize the background transcode session
+    plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, videoEl.currentTime * 1000)
+      .then(success => {
+        if (!success) throw new Error('Failed to initialize sidecar transcode session')
+        // Now fetch the actual sidecar payload
+        return fetch(sidecarUrl, { headers })
+      })
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.text()
