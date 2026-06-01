@@ -323,7 +323,8 @@ export default function PlayerPage() {
 
           videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
         } catch (e) {
-          if (e.code !== shaka.util.Error.Code.LOAD_INTERRUPTED) {
+          if (isCancelled) return;
+          if (e && e.code !== shaka?.util?.Error?.Code?.LOAD_INTERRUPTED) {
             console.error('[Shaka] CRITICAL LOAD ERROR:', e.code, e.message);
             console.error('[Shaka] Full Error Object:', e);
             try {
