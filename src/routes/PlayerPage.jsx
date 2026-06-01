@@ -47,6 +47,7 @@ export default function PlayerPage() {
   const [isDragging, setIsDragging] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
   const seekTimeoutRef = useRef(null)
+  const lastStreamUrlRef = useRef(null)
 
   // Generate persistent UI session IDs for timeline tracking and transcode termination
   const { playbackSessionId, clientSessionId } = useMemo(() => ({
@@ -375,6 +376,7 @@ export default function PlayerPage() {
 
       videoEl.currentTime = normalizedTarget
     } else {
+      setMetaDetails(prev => ({ ...prev, viewOffset: newGlobalTime * 1000 }))
       videoEl.currentTime = newGlobalTime
     }
   }
@@ -392,15 +394,25 @@ export default function PlayerPage() {
     const isHls = streamUrl && streamUrl.includes('protocol=hls');
     const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
     
+    // Detect if this effect is running because the video URL changed (e.g. initial mount or unbuffered seek).
+    // If it did, Shaka hasn't reset videoEl.currentTime yet, meaning videoEl.currentTime holds the STALE time
+    // of the previous stream. In this case, we MUST only use startSeconds as the offset.
+    const isNewStream = lastStreamUrlRef.current !== streamUrl;
+    lastStreamUrlRef.current = streamUrl;
+
     // Calculate the TRUE absolute movie time to pass to the Plex Subtitle Transcoder
-    const initialAbsoluteStartTime = (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
+    const initialAbsoluteStartTime = isNewStream 
+      ? startSeconds 
+      : (isDash || isHls) 
+        ? videoEl.currentTime + startSeconds 
+        : Math.max(videoEl.currentTime, startSeconds);
 
     // The factory encapsulates all codec-checking and instantiates the correct pure logic handler
     const subtitleManager = SubtitleManagerFactory.createHandler(activeSubtitle, () => {
       // Because we set copyts=1, the Plex Transcoder outputs subtitles with their true absolute movie timestamps!
-      // videoEl.currentTime is ALSO always the true absolute movie time.
-      // Therefore, we just return it exactly as is, regardless of DASH or Direct Play.
-      return videoEl.currentTime;
+      // For Direct Play, videoEl.currentTime is the absolute time.
+      // For DASH/HLS transcodes, videoEl.currentTime starts at 0, so we MUST add startSeconds!
+      return (isDash || isHls) ? videoEl.currentTime + startSeconds : videoEl.currentTime;
     }, subtitleOverlayRef, setIsSubtitleCaching)
 
     if (!subtitleManager) return

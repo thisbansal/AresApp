@@ -16,35 +16,49 @@ const SubtitleOverlay = forwardRef((props, ref) => {
       if (overlayRef.current) {
         // Fast, imperative DOM update bypassing React state
         overlayRef.current.innerText = text || ''
+        overlayRef.current.style.opacity = text ? '1' : '0'
       }
     },
     clearText: () => {
       if (overlayRef.current) {
         overlayRef.current.innerText = ''
+        overlayRef.current.style.opacity = '0'
       }
     }
   }))
 
   return (
     <div
-      ref={overlayRef}
-      className="subtitle-overlay"
       style={{
         position: 'absolute',
-        bottom: '120px',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        bottom: '8%',
+        left: '10%',
+        right: '10%',
         textAlign: 'center',
-        color: 'white',
-        fontSize: '42px',
-        fontFamily: "'Outfit', 'Inter', sans-serif",
-        fontWeight: 500,
-        textShadow: '0px 2px 8px rgba(0,0,0,0.9), 0px 4px 16px rgba(0,0,0,0.7)',
-        zIndex: 2147483647,
         pointerEvents: 'none',
-        width: '90%'
+        zIndex: 2147483647,
       }}
-    />
+    >
+      <span
+        ref={overlayRef}
+        className="subtitle-overlay"
+        style={{
+          display: 'inline-block',
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          color: '#ffffff',
+          fontSize: '2.5rem',
+          fontFamily: "'Outfit', 'Inter', sans-serif",
+          fontWeight: 400,
+          lineHeight: 1.4,
+          padding: '4px 16px',
+          borderRadius: '6px',
+          textShadow: '0px 2px 4px rgba(0,0,0,0.8)',
+          whiteSpace: 'pre-line',
+          opacity: 0,
+          transition: 'opacity 0.1s ease-in-out'
+        }}
+      />
+    </div>
   )
 })
 

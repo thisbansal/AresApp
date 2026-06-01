@@ -19,7 +19,6 @@ export class VttStreamSubtitleHandler {
     this.cues = [];
     this.activeCue = null;
     this.reader = null;
-    this.abortController = new AbortController();
     
     this.handleTimeUpdate = this.handleTimeUpdate.bind(this);
     
@@ -47,6 +46,10 @@ export class VttStreamSubtitleHandler {
   }
 
   async start(url) {
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+    this.abortController = new AbortController();
     this.cues = [];
     this.activeCue = null;
     
