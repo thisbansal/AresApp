@@ -58,7 +58,10 @@ export function usePlayerControls({
   const cursorTimeoutRef = useRef(null)
 
   useEffect(() => { showHUDRef.current = showHUD }, [showHUD])
-  useEffect(() => { isScrollingRef.current = isScrolling }, [isScrolling])
+  useEffect(() => { 
+    isScrollingRef.current = isScrolling
+    if (!isScrolling) targetTimeRef.current = null
+  }, [isScrolling])
   useEffect(() => { durationRef.current = duration }, [duration])
   useEffect(() => { currentTimeRef.current = currentTime }, [currentTime])
   useEffect(() => { shouldPauseRef.current = shouldPause }, [shouldPause])

@@ -709,8 +709,8 @@ export default function PlayerPage() {
         return
       }
 
-      // Optional manual parameter to force burn in
-      const offsetMs = videoEl ? videoEl.currentTime * 1000 : 0
+      // Use global time which correctly accounts for pending wheel seeks and drag states
+      const offsetMs = globalTime * 1000
       let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
         serverInfo,
         { id: partId, key: partKey },
@@ -747,6 +747,12 @@ export default function PlayerPage() {
       }
 
       // If converting from Direct Play -> Transcode, or switching Transcoded streams, we MUST do a hard restart
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current)
+        seekTimeoutRef.current = null
+        setIsScrolling(false)
+      }
+
       if (videoEl && !videoEl.paused) videoEl.pause()
       setIsSwitchingStream(true)
 
