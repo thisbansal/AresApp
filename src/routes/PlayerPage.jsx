@@ -722,10 +722,25 @@ export default function PlayerPage() {
         forceSubtitleBurnIn
       )
 
-      const coreNewUrl = newUrl.split('#')[0];
-      const coreOldUrl = streamUrl.split('#')[0];
+      // Strip offset and hash to compare if the underlying stream is actually identical
+      const removeOffset = (url) => {
+        if (!url) return '';
+        try {
+          const u = new URL(url.split('#')[0], 'http://dummy.com');
+          u.searchParams.delete('offset');
+          return u.pathname + u.search;
+        } catch {
+          return url.split('#')[0];
+        }
+      }
 
-      if (coreNewUrl === coreOldUrl) {
+      const coreNewUrl = removeOffset(newUrl);
+      const coreOldUrl = removeOffset(streamUrl);
+
+      // If we are ONLY switching a subtitle, and the new URL (minus offset) is the same,
+      // we can skip the hard restart and let the Sidecar engine handle it seamlessly.
+      // But if we switched AUDIO (streamType === 2), we MUST restart the transcoder to get the new audio track!
+      if (coreNewUrl === coreOldUrl && streamType === 3) {
         console.log('[PlayerPage] Video stream URL unchanged. Skipping hard restart for seamless Sidecar subtitle toggle.');
         // Don't even pause the video. Just return.
         return;
