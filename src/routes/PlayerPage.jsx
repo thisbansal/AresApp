@@ -50,6 +50,7 @@ export default function PlayerPage() {
   const [isScrolling, setIsScrolling] = useState(false)
   const seekTimeoutRef = useRef(null)
   const lastStreamUrlRef = useRef(null)
+  const lastDragEndTimeRef = useRef(0)
 
   // Generate persistent UI session IDs for timeline tracking and transcode termination
   const { playbackSessionId, clientSessionId } = useMemo(() => ({
@@ -552,6 +553,7 @@ export default function PlayerPage() {
         videoEl.play().catch(err => console.error('Play after drag failed:', err))
       }
       setIsDragging(false)
+      lastDragEndTimeRef.current = Date.now()
       // Restart HUD hide timer on release
       if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
       hudTimeoutRef.current = setTimeout(() => {
@@ -772,6 +774,9 @@ export default function PlayerPage() {
   const progressPercent = duration ? (displayTime / duration) * 100 : 0
 
   const handleContainerClick = (e) => {
+    // Prevent rogue click events from firing immediately after a scrubber drag release
+    if (Date.now() - lastDragEndTimeRef.current < 500) return
+
     // Only toggle playback if the user clicked exactly on the background container, the video, or the bottom gradient mask.
     // If they clicked on buttons, timeline, menus, or text, do not toggle playback.
     const isBackgroundClick = 
