@@ -362,13 +362,13 @@ function ContentBrowserPage() {
     }
   }, [])
 
-  const handleItemClick = (item, isContinueWatching = false) => {
+  const handleItemClick = (item, isContinueWatching = false, uid) => {
     console.log('Selected item:', item, 'isContinueWatching:', isContinueWatching)
     const { path } = resolveMediaNavigation(item, isContinueWatching)
 
     if (document.startViewTransition) {
-      globalClickedItemId = item.id
-      setClickedItemId(item.id)
+      globalClickedItemId = uid
+      setClickedItemId(uid)
       // Allow React to paint the view-transition-name on the clicked card first
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -465,19 +465,21 @@ function ContentBrowserPage() {
       isUnwatched = !isMediaWatched(item) && !item.viewOffset
     }
 
+    const uid = `${prefix}-${item.id}`
+
     return (
       <FocusableItem
         key={`${prefix}-${item.id}-${colIndex}`}
         id={`poster-${prefix}-${item.id}`}
         rowIndex={rowIndex}
         colIndex={colIndex}
-        onClick={() => handleItemClick(item, prefix === 'cw')}
+        onClick={() => handleItemClick(item, prefix === 'cw', uid)}
         style={{ flexShrink: 0 }}
       >
         <div 
           style={{
             ...styles.card,
-            viewTransitionName: clickedItemId === item.id ? 'active-poster' : 'none'
+            viewTransitionName: clickedItemId === uid ? 'active-poster' : 'none'
           }}
         >
           <FallbackImage
