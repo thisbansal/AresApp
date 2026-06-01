@@ -27,4 +27,5 @@ dist-ssr
 .nix-bin
 .npm-global
 com.*
-.continueplex.log
+.continue
+plex.log
