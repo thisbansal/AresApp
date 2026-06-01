@@ -36,7 +36,9 @@ export class VttStreamSubtitleHandler {
   }
 
   destroy() {
-    this.abortController.abort();
+    if (this.abortController) {
+      this.abortController.abort();
+    }
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
     }
@@ -54,8 +56,25 @@ export class VttStreamSubtitleHandler {
     this.activeCue = null;
     
     try {
-      const response = await fetch(url, { signal: this.abortController.signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      let response = null;
+      let retries = 3;
+      
+      while (retries > 0) {
+        response = await fetch(url, { signal: this.abortController.signal });
+        
+        // Plex's transcoder engine sometimes takes ~500ms to synchronize with the database 
+        // after a subtitle toggle (setStreamSelection). If we hit it too fast, it throws 400.
+        if (response.status === 400 && retries > 1) {
+          console.log(`[VttStreamHandler] Plex Transcoder returned 400 (sync race condition). Retrying in 500ms... (${retries - 1} left)`);
+          await new Promise(r => setTimeout(r, 500));
+          retries--;
+          continue;
+        }
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        break;
+      }
+      
       if (!response.body) throw new Error('ReadableStream not supported');
 
       this.reader = response.body.getReader();

@@ -7,7 +7,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from 'react'
  * This ensures React owns the DOM lifecycle (preventing ghost nodes) while allowing
  * the subtitle handler to bypass the Virtual DOM for 60fps time-synced updates.
  */
-const SubtitleOverlay = forwardRef((props, ref) => {
+const SubtitleOverlay = forwardRef(({ isVisible }, ref) => {
   const overlayRef = useRef(null)
 
   // Expose the setText API directly to the parent via the ref
@@ -16,7 +16,7 @@ const SubtitleOverlay = forwardRef((props, ref) => {
       if (overlayRef.current) {
         // Fast, imperative DOM update bypassing React state
         overlayRef.current.innerText = text || ''
-        overlayRef.current.style.opacity = text ? '1' : '0'
+        overlayRef.current.style.opacity = (text && isVisible !== false) ? '1' : '0'
       }
     },
     clearText: () => {
@@ -26,6 +26,13 @@ const SubtitleOverlay = forwardRef((props, ref) => {
       }
     }
   }))
+
+  React.useEffect(() => {
+    if (overlayRef.current) {
+      const text = overlayRef.current.innerText;
+      overlayRef.current.style.opacity = (text && isVisible !== false) ? '1' : '0'
+    }
+  }, [isVisible])
 
   return (
     <div

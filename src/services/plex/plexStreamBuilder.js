@@ -324,6 +324,21 @@ class PlexStreamBuilder {
       'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=srt&container=srt)'
     };
   }
+
+  /**
+   * Explicitly stops a background sidecar transcode session on the Plex server to prevent zombies.
+   * This frees up the client's transcode slot so rapid toggling doesn't throw 400 Bad Request.
+   */
+  async stopSidecarSession(serverInfo, sidecarSessionId) {
+    if (!serverInfo || !sidecarSessionId) return;
+    const stopUrl = `${serverInfo.uri}/video/:/transcode/universal/stop?session=${sidecarSessionId}&X-Plex-Token=${serverInfo.token}&X-Plex-Client-Identifier=${PLEX_CONFIG.clientId}`;
+    try {
+      console.log(`[PlexStreamBuilder] Stopping sidecar session to free slot: ${sidecarSessionId}`);
+      await fetch(stopUrl, { method: 'GET' });
+    } catch (e) {
+      console.error(`[PlexStreamBuilder] Failed to stop sidecar session:`, e);
+    }
+  }
 }
 
 export const plexStreamBuilder = new PlexStreamBuilder()

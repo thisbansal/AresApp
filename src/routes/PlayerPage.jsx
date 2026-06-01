@@ -43,6 +43,7 @@ export default function PlayerPage() {
   const [forceSubtitleBurnIn, setForceSubtitleBurnIn] = useState(false)
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
   const [dragTime, setDragTime] = useState(0)
+  const [isSubtitleVisible, setIsSubtitleVisible] = useState(true)
 
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
@@ -142,6 +143,27 @@ export default function PlayerPage() {
             if (defaultStream) defaultStream.selected = true
           }
         })
+
+        // Auto-select English text subtitle for background streaming if none is selected
+        const subtitleStreams = streams.filter(s => s.streamType === 3)
+        const isAnySubtitleSelected = subtitleStreams.some(s => s.selected)
+        
+        if (!isAnySubtitleSelected && subtitleStreams.length > 0) {
+          const bestEnglishTextSub = subtitleStreams.find(s => 
+            (s.languageCode === 'eng' || s.language === 'English' || s.languageCode === 'en') &&
+            (s.codec === 'srt' || s.codec === 'vtt' || s.codec === 'ass' || s.codec === 'ssa')
+          )
+          if (bestEnglishTextSub) {
+            console.log(`[PlayerPage] Auto-selecting English subtitle: ${bestEnglishTextSub.id} for background streaming`);
+            bestEnglishTextSub.selected = true;
+            setIsSubtitleVisible(false); // Hidden by default
+            setStreamSelection(serverInfo.uri, serverInfo.token, part.id, '', bestEnglishTextSub.id).catch(console.error)
+          } else {
+            setIsSubtitleVisible(false);
+          }
+        } else if (!isAnySubtitleSelected) {
+          setIsSubtitleVisible(false);
+        }
 
         setAvailableStreams(streams)
 
@@ -448,24 +470,28 @@ export default function PlayerPage() {
 
     if (!subtitleManager) return
 
+    let activeSidecarSessionId = null;
+
     if (isDash) {
       console.log('[Native Subtitles] DASH Stream detected. Using in-band subtitle parser (no sidecar).')
       subtitleManager.start()
     } else {
-      // Relink the subtitle session to the master video session!
-      // Since the premature offset=0 race condition is fixed, sharing the session UUID allows 
-      // the subtitle extractor to piggyback off the video's seeked demuxer, giving us instant subtitles!
+      // Create a completely isolated session UUID for the Sidecar Transcoder.
+      // This prevents Plex from throwing '400 Bad Request' (Session already exists) 
+      // if the user rapidly toggles the subtitles off and on.
+      activeSidecarSessionId = `${playbackSessionId}-sub-${Date.now()}`;
+
       const sidecarUrl = plexStreamBuilder.buildOfficialSidecarUrl(
         serverInfo,
         ratingKey,
-        playbackSessionId,
+        activeSidecarSessionId,
         initialAbsoluteStartTime * 1000
       )
       
       if (!sidecarUrl) return
 
       // First, ping the /decision endpoint to initialize the background transcode session
-      plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, initialAbsoluteStartTime * 1000)
+      plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, activeSidecarSessionId, initialAbsoluteStartTime * 1000)
         .then(success => {
           if (!success) throw new Error('Failed to initialize sidecar transcode session')
           
@@ -479,6 +505,11 @@ export default function PlayerPage() {
 
     return () => {
       subtitleManager.destroy()
+      if (activeSidecarSessionId) {
+        // Explicitly kill the zombie transcoder session on the Plex server!
+        // Plex limits active transcode slots per client. If we just abort the socket, it stays alive.
+        plexStreamBuilder.stopSidecarSession(serverInfo, activeSidecarSessionId);
+      }
     }
   }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state, isShakaReady])
 
@@ -673,24 +704,33 @@ export default function PlayerPage() {
         return
       }
 
+      // Optional manual parameter to force burn in
+      const offsetMs = videoEl ? videoEl.currentTime * 1000 : 0
+      let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
+        serverInfo,
+        { id: partId, key: partKey },
+        ratingKey,
+        capabilities,
+        playbackSessionId,
+        clientSessionId,
+        offsetMs,
+        forceSubtitleBurnIn
+      )
+
+      const coreNewUrl = newUrl.split('#')[0];
+      const coreOldUrl = streamUrl.split('#')[0];
+
+      if (coreNewUrl === coreOldUrl) {
+        console.log('[PlayerPage] Video stream URL unchanged. Skipping hard restart for seamless Sidecar subtitle toggle.');
+        // Don't even pause the video. Just return.
+        return;
+      }
+
       // If converting from Direct Play -> Transcode, or switching Transcoded streams, we MUST do a hard restart
       if (videoEl && !videoEl.paused) videoEl.pause()
       setIsSwitchingStream(true)
 
-      setTimeout(async () => {
-        // Optional manual parameter to force burn in
-        const offsetMs = videoEl ? videoEl.currentTime * 1000 : 0
-        let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
-          serverInfo,
-          { id: partId, key: partKey },
-          ratingKey,
-          capabilities,
-          playbackSessionId,
-          clientSessionId,
-          offsetMs,
-          forceSubtitleBurnIn
-        )
-
+      setTimeout(() => {
         // Append cache buster to force hard reload of the stream
         newUrl += `#t=${Date.now()}`
         setStreamUrl(newUrl)
@@ -874,14 +914,17 @@ export default function PlayerPage() {
                     <span style={{color: forceSubtitleBurnIn ? '#fff' : '#a8a8af', fontWeight: forceSubtitleBurnIn ? '600' : '500'}}>Force Burn-in (Transcode)</span>
                   </FocusableItem>
                   <FocusableItem
-                    id={`stream-sub-none`}
+                    id={`stream-sub-visibility`}
                     rowIndex={-1} colIndex={1}
-                    style={styles.streamMenuItem}
+                    style={{...styles.streamMenuItem, borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
                     className="hud-stream-menu-item"
-                    onClick={() => handleStreamSelect(3, 0)}
+                    onClick={() => {
+                      setIsSubtitleVisible(!isSubtitleVisible)
+                      useNotificationStore.getState().addNotification(isSubtitleVisible ? 'Subtitles Disabled' : 'Subtitles Enabled', { level: 'info' })
+                    }}
                   >
-                    <div style={{...styles.streamMenuRadio, backgroundColor: !availableStreams.find(s => s.streamType === 3 && s.selected) ? '#fff' : 'transparent'}} />
-                    <span>None</span>
+                    <div style={{...styles.streamMenuRadio, borderRadius: '2px', backgroundColor: isSubtitleVisible ? '#fff' : 'transparent'}} />
+                    <span style={{ fontWeight: 600 }}>{isSubtitleVisible ? 'Disable Subtitles' : 'Enable Subtitles'}</span>
                   </FocusableItem>
                 </>
               )}
@@ -897,7 +940,10 @@ export default function PlayerPage() {
                   rowIndex={-1} colIndex={activeMenu === 'subtitle' ? idx + 2 : idx}
                   style={styles.streamMenuItem}
                   className="hud-stream-menu-item"
-                  onClick={() => handleStreamSelect(stream.streamType, stream.id)}
+                  onClick={() => {
+                    handleStreamSelect(stream.streamType, stream.id)
+                    if (stream.streamType === 3) setIsSubtitleVisible(true)
+                  }}
                 >
                   <div style={{...styles.streamMenuRadio, backgroundColor: stream.selected ? '#fff' : 'transparent'}} />
                   <span>{stream.extendedDisplayTitle || stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span>
@@ -1129,7 +1175,7 @@ export default function PlayerPage() {
       {/* 
         Custom Subtitle Overlay (Managed fully by React, updated imperatively by pure logic handlers)
       */}
-      <SubtitleOverlay ref={subtitleOverlayRef} />
+      <SubtitleOverlay ref={subtitleOverlayRef} isVisible={isSubtitleVisible} />
     </div>
   )
 }
