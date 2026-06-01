@@ -51,7 +51,6 @@ const SubtitleOverlay = forwardRef(({ isVisible }, ref) => {
         className="subtitle-overlay"
         style={{
           display: 'inline-block',
-          backgroundColor: 'rgba(0,0,0,0.7)',
           color: '#ffffff',
           fontSize: '2.5rem',
           fontFamily: "'Outfit', 'Inter', sans-serif",
