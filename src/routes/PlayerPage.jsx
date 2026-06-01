@@ -382,7 +382,7 @@ export default function PlayerPage() {
 
   async function executeSeek(newGlobalTime) {
     const videoEl = videoRef.current || document.querySelector('video')
-    if (!videoEl) return
+    if (!videoEl) return false
 
     if (streamUrl?.includes('transcode')) {
       const buffered = videoEl.buffered
@@ -421,13 +421,15 @@ export default function PlayerPage() {
         )
         newUrl += `#t=${Date.now()}`
         setStreamUrl(newUrl)
-        return
+        return true
       }
 
       videoEl.currentTime = normalizedTarget
+      return false
     } else {
       setMetaDetails(prev => ({ ...prev, viewOffset: newGlobalTime * 1000 }))
       videoEl.currentTime = newGlobalTime
+      return false
     }
   }
 
@@ -529,7 +531,7 @@ export default function PlayerPage() {
       setDragTime(newTime) // Only visually update the UI during drag
     }
 
-    const handlePointerUp = (e) => {
+    const handlePointerUp = async (e) => {
       // Calculate final time based on where the pointer was released
       let finalTime = 0
       const trackEl = document.querySelector('.timeline-track')
@@ -541,11 +543,12 @@ export default function PlayerPage() {
         setDragTime(finalTime)
       }
 
-      executeSeek(finalTime)
+      const streamChanged = await executeSeek(finalTime)
 
       const videoEl = videoRef.current || document.querySelector('video')
-      if (videoEl) {
-        // Explicitly play video once drag pointer is released
+      // Only explicitly play if we didn't initiate a stream switch. 
+      // If the stream switched, the new VideoLayer will remount and autoplay.
+      if (videoEl && !streamChanged) {
         videoEl.play().catch(err => console.error('Play after drag failed:', err))
       }
       setIsDragging(false)

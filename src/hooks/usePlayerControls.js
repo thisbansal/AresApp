@@ -252,6 +252,7 @@ export function usePlayerControls({
 
       // Pause video instantly as scrolling starts
       if (!videoEl.paused && !isScrollingRef.current) {
+        videoEl.dataset.wasPlaying = 'true'
         videoEl.pause()
       }
 
@@ -273,14 +274,23 @@ export function usePlayerControls({
 
       // Debounce actual playback resume by 500ms of wheel stillness
       if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
-      seekTimeoutRef.current = setTimeout(() => {
+      seekTimeoutRef.current = setTimeout(async () => {
         setIsScrolling(false)
         seekTimeoutRef.current = null
 
         // Fire single network request / native seek
         if (targetTimeRef.current !== null) {
-          executeSeek(targetTimeRef.current)
+          const streamChanged = await executeSeek(targetTimeRef.current)
           targetTimeRef.current = null
+
+          // Resume playback if we paused it internally and the stream didn't change
+          const videoEl = getVideoElement()
+          if (videoEl && videoEl.dataset.wasPlaying === 'true') {
+            videoEl.dataset.wasPlaying = 'false'
+            if (!streamChanged) {
+              videoEl.play().catch(e => console.error('Play after scroll failed:', e))
+            }
+          }
         }
         
         // Let triggerHUD manage the timeout — it will set hudTimeoutRef internally
