@@ -10,10 +10,10 @@ export async function getPlatformInfo() {
       version: '1.0' // Use a numeric fallback to prevent XML version constraint crashes
     };
 
-    const ua = navigator.userAgent || '';
+    const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
 
     // If running in a true webOS environment
-    if (window.webOS && window.webOS.deviceInfo) {
+    if (typeof window !== 'undefined' && window.webOS && window.webOS.deviceInfo) {
       window.webOS.deviceInfo(function (device) {
         cachedInfo = {
           platform: 'webOS',
