@@ -75,8 +75,12 @@ export default function PlayerPage() {
     isDragging,
     isScrolling,
     setIsScrolling,
-    currentTime,
-    setCurrentTime,
+    currentTime: globalTime,
+    setCurrentTime: (newGlobalTime) => {
+      const isDash = streamUrl && streamUrl.includes('protocol=dash')
+      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
+      setCurrentTime(isDash ? Math.max(0, newGlobalTime - startSeconds) : newGlobalTime)
+    },
     seekTimeoutRef,
     hudTimeoutRef,
     hudLockoutRef,
@@ -639,12 +643,7 @@ export default function PlayerPage() {
     if (streamType === 3) subtitleId = streamId
     if (streamType === 2) audioId = streamId
 
-    setAvailableStreams(prev => prev.map(s => {
-      if (s.streamType === streamType) {
-        return { ...s, selected: s.id === streamId }
-      }
-      return s
-    }))
+    // setAvailableStreams moved to after API success to prevent race conditions
 
     setActiveMenu('none')
 
@@ -705,6 +704,8 @@ export default function PlayerPage() {
 
     const success = await setStreamSelection(serverInfo.uri, serverInfo.token, partId, audioId, subtitleId)
     if (success) {
+      setAvailableStreams(updatedStreams)
+
       if (switchedNatively) {
         useNotificationStore.getState().addNotification('Track switched natively', { level: 'info' })
         return
