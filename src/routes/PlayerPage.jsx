@@ -75,7 +75,11 @@ export default function PlayerPage() {
     isDragging,
     isScrolling,
     setIsScrolling,
-    currentTime: globalTime,
+    currentTime: (() => {
+      const isDash = streamUrl && streamUrl.includes('protocol=dash')
+      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
+      return isDragging ? dragTime : (isDash ? currentTime + startSeconds : currentTime)
+    })(),
     setCurrentTime: (newGlobalTime) => {
       const isDash = streamUrl && streamUrl.includes('protocol=dash')
       const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
