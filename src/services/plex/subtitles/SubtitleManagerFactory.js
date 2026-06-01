@@ -1,4 +1,5 @@
 import { VttStreamSubtitleHandler } from './VttStreamSubtitleHandler'
+import { NativeTextTrackSubtitleHandler } from './NativeTextTrackSubtitleHandler'
 
 /**
  * SubtitleManagerFactory
@@ -11,12 +12,15 @@ export class SubtitleManagerFactory {
    * Creates a subtitle handler based on the stream type and capabilities.
    * 
    * @param {Object} activeSubtitle - The selected Plex stream object (streamType === 3)
-   * @param {Function} getTimeCallback - Resolves the absolute movie time
+   * @param {boolean} isDash - Whether the active video stream is DASH (uses in-band subtitles)
+   * @param {Object} shakaRef - React ref pointing to the Shaka player instance
+   * @param {Object} videoRef - React ref pointing to the HTML5 video element
+   * @param {Function} getTimeCallback - Resolves the absolute movie time (used by Sidecar)
    * @param {Object} subtitleOverlayRef - A React ref exposing setText(text) and clearText()
-   * @param {Function} onCachingStateChange - Callback for cache status updates
+   * @param {Function} onCachingStateChange - Callback for cache status updates (used by Sidecar)
    * @returns {Object|null} A handler with start(url) and destroy() methods, or null if unhandled
    */
-  static createHandler(activeSubtitle, getTimeCallback, subtitleOverlayRef, onCachingStateChange) {
+  static createHandler(activeSubtitle, isDash, shakaRef, videoRef, getTimeCallback, subtitleOverlayRef, onCachingStateChange) {
     if (!activeSubtitle) return null;
 
     const codec = activeSubtitle.codec?.toLowerCase()
@@ -29,10 +33,6 @@ export class SubtitleManagerFactory {
       return null
     }
 
-    // 2. Text-based codecs (SRT, VTT, ASS, etc.)
-    // and syncs it precisely to the video using the provided DOM overlay ref.
-    console.log(`[SubtitleFactory] Selected text-based subtitle (${codec}). Instantiating VttStreamSubtitleHandler.`)
-    
     const setTextCallback = (text) => {
       if (subtitleOverlayRef && subtitleOverlayRef.current) {
         if (text) {
@@ -42,11 +42,13 @@ export class SubtitleManagerFactory {
         }
       }
     };
-    
-    return new VttStreamSubtitleHandler(getTimeCallback, setTextCallback, onCachingStateChange)
 
-    // Future Extensibility:
-    // If we wanted to support native HTML5 <track> elements for simple SRT files, we could add:
-    // return new NativeTrackSubtitleHandler(...)
+    if (isDash) {
+      console.log(`[SubtitleFactory] Selected text-based subtitle (${codec}) on a DASH stream. Instantiating NativeTextTrackSubtitleHandler.`)
+      return new NativeTextTrackSubtitleHandler(shakaRef, videoRef, setTextCallback);
+    } else {
+      console.log(`[SubtitleFactory] Selected text-based subtitle (${codec}) on Direct Play. Instantiating VttStreamSubtitleHandler.`)
+      return new VttStreamSubtitleHandler(getTimeCallback, setTextCallback, onCachingStateChange);
+    }
   }
 }

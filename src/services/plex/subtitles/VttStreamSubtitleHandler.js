@@ -40,8 +40,8 @@ export class VttStreamSubtitleHandler {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
     }
-    if (this.overlayRef && this.overlayRef.current) {
-      this.overlayRef.current.clearText();
+    if (this.setTextCallback) {
+      this.setTextCallback('');
     }
   }
 
@@ -71,7 +71,6 @@ export class VttStreamSubtitleHandler {
         }
 
         buffer += decoder.decode(value, { stream: true });
-        console.log(`[VttStreamHandler] Received chunk! Size: ${value.length} bytes.`);
         buffer = this.processBuffer(buffer, false);
       }
     } catch (err) {
@@ -107,7 +106,6 @@ export class VttStreamSubtitleHandler {
           }
         }
         
-        console.log(`[VttStreamHandler] Successfully parsed cue: [${cue.start} -> ${cue.end}] "${cue.text}" | Video Clock: ${currentAbsoluteTime}`);
         this.cues.push(cue);
       }
     }

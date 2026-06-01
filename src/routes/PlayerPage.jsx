@@ -33,6 +33,7 @@ export default function PlayerPage() {
   const [isSubtitleCaching, setIsSubtitleCaching] = useState(false)
   const [isSwitchingStream, setIsSwitchingStream] = useState(false)
   const [streamUrl, setStreamUrl] = useState('')
+  const [isShakaReady, setIsShakaReady] = useState(false)
   const [playQueueItemID, setPlayQueueItemID] = useState(null)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
   const [availableStreams, setAvailableStreams] = useState([])
@@ -178,19 +179,25 @@ export default function PlayerPage() {
   useEffect(() => {
     if (!streamUrl) return
 
-    // Diagnostic Logging for HDR / DoVi Detection
+    setIsShakaReady(false)
+
+    let isCancelled = false
+    let fallbackTimeout = null
     const activeVideo = availableStreams.find(s => s.streamType === 1 && s.selected) || availableStreams.find(s => s.streamType === 1);
+    const activeAudio = availableStreams.find(s => s.streamType === 2 && s.selected) || availableStreams.find(s => s.streamType === 2);
+
     console.log(`
-      🎥 [Diagnostic] Video Stream Loaded:
+      =====================================
+      STREAM DIAGNOSTICS:
+      URL: ${streamUrl}
       -------------------------------------
-      URL (src): ${streamUrl}
-      Codec: ${activeVideo?.codec || 'Unknown'}
-      Profile: ${activeVideo?.profile || 'Unknown'}
+      Selected Video: ${activeVideo?.codec || 'Unknown'} (${activeVideo?.displayTitle || 'Unknown'})
+      Selected Audio: ${activeAudio?.codec || 'Unknown'} (${activeAudio?.displayTitle || 'Unknown'})
       Color Space: ${activeVideo?.colorSpace || 'Unknown'}
       Color Trc: ${activeVideo?.colorTrc || 'Unknown'}
       Dolby Vision (DoVi): ${activeVideo?.codec === 'dovi' || activeVideo?.doviProfile ? 'YES' : 'NO'}
       HDR10: ${activeVideo?.colorSpace?.includes('bt2020') && activeVideo?.colorTrc === 'smpte2084' ? 'YES' : 'NO'}
-      -------------------------------------
+      =====================================
     `);
 
     const videoEl = videoRef.current || document.querySelector('video')
@@ -208,12 +215,16 @@ export default function PlayerPage() {
 
     // Initialize Shaka Player
     shaka.polyfill.installAll()
+    let initShaka;
+
     if (shaka.Player.isBrowserSupported()) {
       let initialized = false
-      const initShaka = async () => {
+      initShaka = async () => {
+        if (isCancelled) return
         if (initialized) return
         initialized = true
         videoEl.removeEventListener('emptied', initShaka)
+        if (fallbackTimeout) clearTimeout(fallbackTimeout)
 
         const player = new shaka.Player();
         await player.attach(videoEl);
@@ -246,6 +257,7 @@ export default function PlayerPage() {
 
         // Listen for errors
         player.addEventListener('error', (event) => {
+          if (isCancelled) return;
           console.error('[Shaka] Error code', event.detail.code, 'object', event.detail)
           try {
             console.error('[Shaka] Error details JSON:', JSON.stringify(event.detail, Object.getOwnPropertyNames(event.detail), 2));
@@ -257,6 +269,7 @@ export default function PlayerPage() {
 
         // Add robust debugging logs
         player.addEventListener('buffering', (event) => {
+          if (isCancelled) return;
           console.log('[Shaka] Buffering state changed:', event.buffering);
           if (event.buffering) {
             console.log('[Shaka] Current buffer info:', player.getBufferedInfo());
@@ -264,10 +277,12 @@ export default function PlayerPage() {
         });
 
         player.addEventListener('trackschanged', () => {
+          if (isCancelled) return;
           console.log('[Shaka] Tracks changed. Available tracks:', player.getVariantTracks());
         });
 
         player.addEventListener('adaptation', () => {
+          if (isCancelled) return;
           const activeTrack = player.getVariantTracks().find(t => t.active);
           console.log('[Shaka] Adaptation event triggered. Active track:', activeTrack);
         });
@@ -275,7 +290,9 @@ export default function PlayerPage() {
         try {
           console.log(`[Shaka] Loading DASH/Media URL: ${streamUrl}`)
           await player.load(streamUrl)
+          if (isCancelled) return;
           console.log('[Shaka] The video has now been loaded successfully!')
+          setIsShakaReady(true)
 
           // Print out all text tracks for debugging
           const tracks = player.getTextTracks()
@@ -283,7 +300,13 @@ export default function PlayerPage() {
 
           videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
         } catch (e) {
-          console.error('[Shaka] Error loading video:', e)
+          if (e.code !== shaka.util.Error.Code.LOAD_INTERRUPTED) {
+            console.error('[Shaka] CRITICAL LOAD ERROR:', e.code, e.message);
+            console.error('[Shaka] Full Error Object:', e);
+            try {
+              console.error('[Shaka] Error details JSON:', JSON.stringify(e, Object.getOwnPropertyNames(e), 2));
+            } catch(err) {}
+          }
         }
       }
 
@@ -292,7 +315,7 @@ export default function PlayerPage() {
         initShaka()
       } else {
         videoEl.addEventListener('emptied', initShaka)
-        setTimeout(initShaka, 500) // Fallback just in case 'emptied' doesn't fire
+        fallbackTimeout = setTimeout(initShaka, 500) // Fallback just in case 'emptied' doesn't fire
       }
       videoEl.load() // Trigger the flush
     } else {
@@ -302,6 +325,7 @@ export default function PlayerPage() {
       videoEl.load()
 
       const playOnCanPlay = () => {
+        if (isCancelled) return;
         videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
         videoEl.removeEventListener('canplay', playOnCanPlay)
       }
@@ -309,6 +333,10 @@ export default function PlayerPage() {
     }
 
     return () => {
+      isCancelled = true
+      if (fallbackTimeout) clearTimeout(fallbackTimeout)
+      if (initShaka) videoEl.removeEventListener('emptied', initShaka)
+
       if (shakaRef.current) {
         shakaRef.current.destroy()
         shakaRef.current = null
@@ -369,7 +397,7 @@ export default function PlayerPage() {
           clientSessionId,
           newGlobalTime * 1000
         )
-        newUrl += newUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`
+        newUrl += `#t=${Date.now()}`
         setStreamUrl(newUrl)
         return
       }
@@ -407,8 +435,11 @@ export default function PlayerPage() {
         ? videoEl.currentTime + startSeconds 
         : Math.max(videoEl.currentTime, startSeconds);
 
+    // If it's a DASH stream, we MUST wait for Shaka to fully load before attaching the native handler
+    if (isDash && !isShakaReady) return;
+
     // The factory encapsulates all codec-checking and instantiates the correct pure logic handler
-    const subtitleManager = SubtitleManagerFactory.createHandler(activeSubtitle, () => {
+    const subtitleManager = SubtitleManagerFactory.createHandler(activeSubtitle, isDash, shakaRef, videoRef, () => {
       // Because we set copyts=1, the Plex Transcoder outputs subtitles with their true absolute movie timestamps!
       // For Direct Play, videoEl.currentTime is the absolute time.
       // For DASH/HLS transcodes, videoEl.currentTime starts at 0, so we MUST add startSeconds!
@@ -417,34 +448,39 @@ export default function PlayerPage() {
 
     if (!subtitleManager) return
 
-    // Relink the subtitle session to the master video session!
-    // Since the premature offset=0 race condition is fixed, sharing the session UUID allows 
-    // the subtitle extractor to piggyback off the video's seeked demuxer, giving us instant subtitles!
-    const sidecarUrl = plexStreamBuilder.buildOfficialSidecarUrl(
-      serverInfo,
-      ratingKey,
-      playbackSessionId,
-      initialAbsoluteStartTime * 1000
-    )
-    
-    if (!sidecarUrl) return
+    if (isDash) {
+      console.log('[Native Subtitles] DASH Stream detected. Using in-band subtitle parser (no sidecar).')
+      subtitleManager.start()
+    } else {
+      // Relink the subtitle session to the master video session!
+      // Since the premature offset=0 race condition is fixed, sharing the session UUID allows 
+      // the subtitle extractor to piggyback off the video's seeked demuxer, giving us instant subtitles!
+      const sidecarUrl = plexStreamBuilder.buildOfficialSidecarUrl(
+        serverInfo,
+        ratingKey,
+        playbackSessionId,
+        initialAbsoluteStartTime * 1000
+      )
+      
+      if (!sidecarUrl) return
 
-    // First, ping the /decision endpoint to initialize the background transcode session
-    plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, initialAbsoluteStartTime * 1000)
-      .then(success => {
-        if (!success) throw new Error('Failed to initialize sidecar transcode session')
-        
-        console.log(`[Native Subtitles] Session initialized! Starting custom streaming parser for URL: ${sidecarUrl}`)
-        subtitleManager.start(sidecarUrl)
-      })
-      .catch(err => {
-        console.error('[Native Subtitles] Failed to initialize or attach sidecar subtitle:', err)
-      })
+      // First, ping the /decision endpoint to initialize the background transcode session
+      plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, initialAbsoluteStartTime * 1000)
+        .then(success => {
+          if (!success) throw new Error('Failed to initialize sidecar transcode session')
+          
+          console.log(`[Native Subtitles] Session initialized! Starting custom streaming parser for URL: ${sidecarUrl}`)
+          subtitleManager.start(sidecarUrl)
+        })
+        .catch(err => {
+          console.error('[Native Subtitles] Failed to initialize or attach sidecar subtitle:', err)
+        })
+    }
 
     return () => {
       subtitleManager.destroy()
     }
-  }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state])
+  }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state, isShakaReady])
 
   // Drag Seek Pointer Move and Pointer Up Observers
   useEffect(() => {
@@ -656,8 +692,7 @@ export default function PlayerPage() {
         )
 
         // Append cache buster to force hard reload of the stream
-        newUrl += newUrl.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`
-
+        newUrl += `#t=${Date.now()}`
         setStreamUrl(newUrl)
         useNotificationStore.getState().addNotification('Reloading stream...', { level: 'info', duration: 1500 })
       }, 300)
