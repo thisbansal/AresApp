@@ -1,4 +1,4 @@
-import { DB_KINDS, getData } from './lunaService'
+import { DB_KINDS, getData, setData } from './lunaService'
 import { deleteUserData, saveUserProfile, getUserToken } from './tokenStorage'
 import { KINDS } from '../../config/app'
 import { isWebOS } from '../Environment/environment'
@@ -41,7 +41,8 @@ export const saveProfileSession = async (profileId, userName, token, pin = null,
     rememberPin: rememberPin,
     isProtected: isProtected,
     serverUri: serverConnection?.uri || null,
-    serverToken: serverConnection?.token || null
+    serverToken: serverConnection?.token || null,
+    serverOwned: serverConnection?.owned ?? true
   }
 
   await deleteUserData()
@@ -63,4 +64,20 @@ export const updateRememberPinInSession = async (rememberPin) => {
     }
     await saveUserProfile(profile)
   }
+}
+
+export const getSelectedLibraries = async () => {
+  if (!isWebOS()) {
+    const val = localStorage.getItem('app_selectedLibraries')
+    return val ? JSON.parse(val) : []
+  }
+  return await getData(DB_KINDS.PREFERENCES, 'selectedLibraries', [])
+}
+
+export const saveSelectedLibraries = async (libraryIds) => {
+  if (!isWebOS()) {
+    localStorage.setItem('app_selectedLibraries', JSON.stringify(libraryIds))
+    return
+  }
+  await setData(DB_KINDS.PREFERENCES, 'selectedLibraries', libraryIds)
 }

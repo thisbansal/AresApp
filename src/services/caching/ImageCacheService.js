@@ -87,7 +87,23 @@ class ImageCacheService {
       return dataUrl
     } catch (err) {
       console.error('[ImageCache] Failed to download image:', err)
-      return url // Fallback to original URL
+      
+      // Fallback: If transcoder fails (e.g. 401 on shared servers), try the raw image URL
+      if (url.includes('/photo/:/transcode')) {
+        try {
+          const urlObj = new URL(url)
+          const innerUrlStr = urlObj.searchParams.get('url')
+          if (innerUrlStr) {
+            const innerUrl = decodeURIComponent(innerUrlStr)
+            console.log('[ImageCache] Transcoder failed, falling back to raw image URL:', innerUrl)
+            return await this.downloadAndCache(innerUrl, itemId)
+          }
+        } catch (fallbackErr) {
+          console.error('[ImageCache] Fallback extraction failed:', fallbackErr)
+        }
+      }
+
+      return url // Ultimate fallback to original URL
     }
   }
 

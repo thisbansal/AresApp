@@ -59,4 +59,9 @@ export const clearAllStoredInfo = async () => {
     deleteData(DB_KINDS.SERVER, KINDS.server),
     deleteData(DB_KINDS.PREFERENCES, KINDS.preferences)
   ])
+
+  // Free up space by explicitly clearing localStorage caches
+  localStorage.removeItem('cached_users_list')
+  localStorage.removeItem('cached_current_profile')
+  localStorage.removeItem('app_selectedLibraries')
 }

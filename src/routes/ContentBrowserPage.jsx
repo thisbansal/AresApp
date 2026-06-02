@@ -242,6 +242,15 @@ function ContentBrowserPage() {
           if (prefs.showSubtitleHUDControls !== undefined) setShowSubtitleHUDControls(prefs.showSubtitleHUDControls)
         }
 
+        const handleSetLibraries = (libs) => {
+          const selectedIds = useAppStore.getState().selectedLibraryIds;
+          if (selectedIds && selectedIds.length > 0) {
+            setLibraries(libs.filter(l => selectedIds.includes(l.id)));
+          } else {
+            setLibraries(libs); // Fallback to all if somehow none selected
+          }
+        };
+
         // 1. Fast Path: Try to boot instantly using the last known server address
         let currentUri = storedActiveServer?.uri || await getData(DB_KINDS.SERVER, KINDS.server)
         const currentToken = storedActiveServer?.token || token
@@ -261,7 +270,7 @@ function ContentBrowserPage() {
             const fastPathServer = { uri: currentUri, token: currentToken }
             setServerInfo(fastPathServer)
             useServerStore.setState({ activeServer: fastPathServer })
-            getLibraries(currentUri, currentToken).then(setLibraries).catch(e => console.warn('Fast path getLibraries failed:', e))
+            getLibraries(currentUri, currentToken).then(handleSetLibraries).catch(e => console.warn('Fast path getLibraries failed:', e))
 
             // If it's a fast local connection, we're done. No need to hit Plex.tv.
             if (!currentUri.includes('relay')) {
@@ -283,13 +292,13 @@ function ContentBrowserPage() {
           const nextServerInfo = { uri: resolvedServer.uri, token: resolvedServer.token }
           setServerInfo(nextServerInfo)
           useServerStore.setState({ activeServer: nextServerInfo })
-          getLibraries(resolvedServer.uri, resolvedServer.token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
+          getLibraries(resolvedServer.uri, resolvedServer.token).then(handleSetLibraries).catch(e => console.warn('Background getLibraries failed:', e))
         } else if (!isCurrentHealthy && resolvedServer?.uri) {
           console.log('[init] Reusing stored server for active profile:', resolvedServer.uri)
           const nextServerInfo = { uri: resolvedServer.uri, token: resolvedServer.token }
           setServerInfo(nextServerInfo)
           useServerStore.setState({ activeServer: nextServerInfo })
-          getLibraries(resolvedServer.uri, resolvedServer.token).then(setLibraries).catch(e => console.warn('Background getLibraries failed:', e))
+          getLibraries(resolvedServer.uri, resolvedServer.token).then(handleSetLibraries).catch(e => console.warn('Background getLibraries failed:', e))
         }
       } catch (error) {
         console.error('[initServerAndNav] Error:', error)
@@ -984,50 +993,11 @@ function ContentBrowserPage() {
                     </div>
                   </FocusableItem>
 
-                  <FocusableItem
-                    id="setting-toggle-notifications"
-                    rowIndex={11}
-                    colIndex={1}
-                    onClick={() => {
-                      const newValue = !showNotifications
-                      setShowNotifications(newValue)
-                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                        showUnwatchedIndicator,
-                        showNotifications: newValue,
-                        subtitleWeight,
-                        subtitleColor,
-                        subtitleSize,
-                        showSubtitleHUDControls
-                      })
-                    }}
-                    style={{ flexShrink: 0 }}
-                  >
-                    <div className="setting-card">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: showNotifications ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>
-                        {showNotifications ? (
-                          <>
-                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                          </>
-                        ) : (
-                          <>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                            <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
-                            <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
-                            <path d="M18 8a6 6 0 0 0-9.33-5" />
-                            <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" />
-                          </>
-                        )}
-                      </svg>
-                      <div className="setting-card-title">Notifications</div>
-                    </div>
-                  </FocusableItem>
-
                   {/* Subtitle Weight Setting */}
                   <FocusableItem
                     id="setting-subtitle-weight"
                     rowIndex={11}
-                    colIndex={2}
+                    colIndex={1}
                     onClick={() => {
                       const weights = [400, 700, 900]
                       const currentIndex = weights.indexOf(subtitleWeight || 400)
@@ -1055,7 +1025,7 @@ function ContentBrowserPage() {
                   <FocusableItem
                     id="setting-subtitle-color"
                     rowIndex={11}
-                    colIndex={3}
+                    colIndex={2}
                     onClick={() => {
                       const colors = ['#FFFFFF', '#737373', '#4A4A4A', '#222222']
                       const currentIndex = colors.indexOf(subtitleColor || '#FFFFFF')
@@ -1083,7 +1053,7 @@ function ContentBrowserPage() {
                   <FocusableItem
                     id="setting-subtitle-size"
                     rowIndex={11}
-                    colIndex={4}
+                    colIndex={3}
                     onClick={() => {
                       const sizes = ['1.5rem', '2.5rem', '3.5rem']
                       const currentIndex = sizes.indexOf(subtitleSize || '2.5rem')
@@ -1111,7 +1081,7 @@ function ContentBrowserPage() {
                   <FocusableItem
                     id="setting-subtitle-hud"
                     rowIndex={11}
-                    colIndex={5}
+                    colIndex={4}
                     onClick={() => {
                       const newValue = !showSubtitleHUDControls
                       setShowSubtitleHUDControls(newValue)
@@ -1129,6 +1099,27 @@ function ContentBrowserPage() {
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold', color: showSubtitleHUDControls ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>HUD</div>
                       <div className="setting-card-title">Player Toggles: {showSubtitleHUDControls ? 'On' : 'Off'}</div>
+                    </div>
+                  </FocusableItem>
+
+                  {/* Manage Libraries Setting */}
+                  <FocusableItem
+                    id="setting-manage-libraries"
+                    rowIndex={11}
+                    colIndex={5}
+                    onClick={() => {
+                      navigate('/library-select')
+                    }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff' }}>
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                      </svg>
+                      <div className="setting-card-title">Manage Libraries</div>
                     </div>
                   </FocusableItem>
                 </div>
@@ -1336,12 +1327,11 @@ function ContentBrowserPage() {
 }
 
 const APP_BASE_COLOR = '#ffffff'
-const APP_BASE_BACKGROUND = '#2f2f2f'
+
 
 const styles = {
   container: {
     minHeight: '100vh',
-    background: APP_BASE_BACKGROUND,
     color: '#e8eaed',
     padding: '40px 30px',
     display: 'flex',
@@ -1409,9 +1399,9 @@ const styles = {
   loadingContainer: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
     height: '100vh',
-    background: APP_BASE_BACKGROUND,
+    width: '100%',
+    zIndex: 900
   },
   emptyContainer: {
     display: 'flex',

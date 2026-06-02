@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { initialiseDatabase, getMainToken, saveMainToken, clearAllStoredInfo } from '../services/luna/tokenStorage'
-import { saveProfileSession, getLastProfile, updateRememberPinInSession } from '../services/luna/settingsStorage'
+import { saveProfileSession, getLastProfile, updateRememberPinInSession, getSelectedLibraries, saveSelectedLibraries } from '../services/luna/settingsStorage'
 import { hasCompleteSession } from '../utils/appSettings'
 import { getData, setData, DB_KINDS, initDeviceId } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
@@ -10,11 +10,14 @@ import { verifyGlobalToken } from '../services/plex/tokenVerificationService'
 export const useAppStore = create((set, get) => ({
   isAuthenticated: false,
   hasServer: false,
+  hasLibraries: false,
   hasSession: false,
   isLoading: true,
   mainToken: null,
   token: null,
   serverUri: null,
+  setupServerToken: null,
+  selectedLibraryIds: [],
   userProfile: null,
 
   initializeAuth: async () => {
@@ -36,6 +39,7 @@ export const useAppStore = create((set, get) => ({
             token: null,
             isAuthenticated: false,
             serverUri: null,
+            setupServerToken: null,
             hasServer: false,
             hasSession: false,
             userProfile: null,
@@ -46,18 +50,23 @@ export const useAppStore = create((set, get) => ({
         }
       }
 
-      const serverUri = await getData(DB_KINDS.SERVER, KINDS.server)
+      const serverData = await getData(DB_KINDS.SERVER, KINDS.server)
+      const serverUri = typeof serverData === 'string' ? serverData : serverData?.uri
+      const setupServerToken = typeof serverData === 'object' ? serverData?.token : null
+      
+      const selectedLibraries = await getSelectedLibraries()
       const sessionComplete = await hasCompleteSession()
       const userProfile = await getLastProfile()
 
       const activeToken = (sessionComplete && userProfile?.userToken) ? userProfile.userToken : mainToken
       const activeServer = (sessionComplete && userProfile?.serverUri && userProfile?.serverToken)
-        ? { uri: userProfile.serverUri, token: userProfile.serverToken }
+        ? { uri: userProfile.serverUri, token: userProfile.serverToken, owned: userProfile.serverOwned ?? true }
         : null
 
       console.log('[AUTH STORE] Initialized:', {
         isAuthenticated: !!mainToken,
         hasServer: !!serverUri,
+        hasLibraries: selectedLibraries.length > 0,
         hasSession: sessionComplete,
         userProfile,
         activeToken: activeToken ? `${activeToken.substring(0, 5)}...` : null
@@ -68,7 +77,10 @@ export const useAppStore = create((set, get) => ({
         token: activeToken,
         isAuthenticated: !!mainToken,
         serverUri,
+        setupServerToken,
         hasServer: !!serverUri,
+        selectedLibraryIds: selectedLibraries,
+        hasLibraries: selectedLibraries.length > 0,
         hasSession: sessionComplete,
         userProfile,
         isLoading: false
@@ -81,6 +93,7 @@ export const useAppStore = create((set, get) => ({
         token: null,
         isAuthenticated: false,
         serverUri: null,
+        setupServerToken: null,
         hasServer: false,
         hasSession: false,
         userProfile: null,
@@ -116,17 +129,37 @@ export const useAppStore = create((set, get) => ({
     }
   },
 
-  setServerUri: async (uri) => {
+  setServerUri: async (uri, setupServerToken = null) => {
     console.log('[AUTH STORE] setServerUri starting for:', uri)
     try {
-      await setData(DB_KINDS.SERVER, KINDS.server, uri)
+      const serverData = setupServerToken ? { uri, token: setupServerToken } : uri
+      await setData(DB_KINDS.SERVER, KINDS.server, serverData)
       set({
         serverUri: uri,
-        hasServer: !!uri
+        setupServerToken,
+        hasServer: !!uri,
+        hasLibraries: false, // Reset libraries when server changes
+        selectedLibraryIds: []
       })
+      await saveSelectedLibraries([])
       console.log('[AUTH STORE] setServerUri completed')
     } catch (err) {
       console.error('[AUTH STORE] Failed to set server URI:', err)
+      throw err
+    }
+  },
+
+  setSelectedLibraries: async (libraryIds) => {
+    console.log('[AUTH STORE] setSelectedLibraries starting')
+    try {
+      await saveSelectedLibraries(libraryIds)
+      set({
+        selectedLibraryIds: libraryIds,
+        hasLibraries: libraryIds.length > 0
+      })
+      console.log('[AUTH STORE] setSelectedLibraries completed')
+    } catch (err) {
+      console.error('[AUTH STORE] Failed to set libraries:', err)
       throw err
     }
   },
@@ -143,7 +176,9 @@ export const useAppStore = create((set, get) => ({
         userProfile,
         hasSession: sessionComplete
       })
-      useServerStore.setState({ activeServer: serverConnection })
+      if (serverConnection) {
+        useServerStore.setState({ activeServer: { uri: serverConnection.uri, token: serverConnection.token, owned: serverConnection.owned ?? true } })
+      }
       console.log('[AUTH STORE] setProfileSession completed')
     } catch (err) {
       console.error('[AUTH STORE] Failed to set profile session:', err)
@@ -167,6 +202,7 @@ export const useAppStore = create((set, get) => ({
       console.log('[AUTH STORE] Global token valid, but server access lost. Clearing active server.')
       set({
         serverUri: null,
+        setupServerToken: null,
         hasServer: false,
         token: mainToken
       })
@@ -185,6 +221,7 @@ export const useAppStore = create((set, get) => ({
         token: null,
         isAuthenticated: false,
         serverUri: null,
+        setupServerToken: null,
         hasServer: false,
         hasSession: false,
         userProfile: null

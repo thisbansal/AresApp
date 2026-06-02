@@ -71,14 +71,16 @@ export function KeyboardHandler() {
         e.preventDefault();
         e.stopPropagation();
 
-        // 1. If on login, server-select, user-select, or homepage/browse, back key triggers the global exit dialog box
         const isLoginRoute = hash.includes('/login') || path.includes('/login');
         const isServerSelectRoute = hash.includes('/server-select') || path.includes('/server-select');
+        const isLibrarySelectRoute = hash.includes('/library-select') || path.includes('/library-select');
         const isUserSelectRoute = hash.includes('/user-select') || path.includes('/user-select');
         const isHomeRoute = hash.includes('/browse') || path.includes('/browse') || hash.includes('/home') || path.includes('/home');
 
-        if (isLoginRoute || isServerSelectRoute || isUserSelectRoute || isHomeRoute) {
-          console.log('[AUTH FLOW] Back button triggered on entry/exit route. Showing global ExitDialog.');
+        const isColdStart = !window.history.state || window.history.state.idx === 0;
+
+        if (isLoginRoute || isServerSelectRoute || isHomeRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
+          console.log('[AUTH FLOW] Back button triggered on entry/exit route or cold start. Showing global ExitDialog.');
           setShowExitDialog(true);
           // Focus the cancel button after a brief delay to let modal render
           setTimeout(() => {
@@ -89,7 +91,7 @@ export function KeyboardHandler() {
           // Let video player internal back capture handle it
           return;
         } else {
-          // 2. If in-between (e.g. user-select), naturally redirect to the previous route (traverse back in react router history)
+          // 2. If in-between (e.g. library-select, user-select), naturally redirect to the previous route (traverse back in react router history)
           console.log('[AUTH FLOW] Back button triggered in setup flow. Traversing back in router history.');
           navigateReactRouter(-1);
         }

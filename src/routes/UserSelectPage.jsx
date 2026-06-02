@@ -127,7 +127,7 @@ function UserSelectPage() {
 
       const preferredUri = useAppStore.getState().serverUri
       const resolvedServer = await resolveAccessibleServer(userToken, preferredUri)
-      const serverConnection = resolvedServer ? { uri: resolvedServer.uri, token: resolvedServer.token } : null
+      const serverConnection = resolvedServer ? { uri: resolvedServer.uri, token: resolvedServer.token, owned: resolvedServer.server?.owned } : null
 
       sessionStorage.setItem('activeSession', 'true')
       if (resolvedServer?.uri && resolvedServer.uri !== preferredUri) {
@@ -494,7 +494,6 @@ const styles = {
     justifyContent: 'center',
     minHeight: '100vh',
     padding: '0 80px',
-    background: 'radial-gradient(circle at center, #1d2024 0%, #0d0f11 100%)',
     overflow: 'hidden'
   },
   content: {

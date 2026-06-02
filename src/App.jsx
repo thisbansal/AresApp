@@ -15,6 +15,7 @@ import LoginPage from './routes/LoginPage'
 import UserSelectPage from './routes/UserSelectPage'
 import ContentBrowserPage from './routes/ContentBrowserPage'
 import ServerSelectPage from './routes/ServerSelectPage'
+import LibrarySelectPage from './routes/LibrarySelectPage'
 import MediaDetailsPage from './routes/MediaDetailsPage'
 import PlayerPage from './routes/PlayerPage'
 
@@ -92,6 +93,15 @@ function App() {
             element={
               <AuthRoute requireAuth={true} allowIncompleteSession={true}>
                 <ServerSelectPage />
+              </AuthRoute>
+            }
+          />
+
+          <Route
+            path="/library-select"
+            element={
+              <AuthRoute requireAuth={true} allowIncompleteSession={true}>
+                <LibrarySelectPage />
               </AuthRoute>
             }
           />

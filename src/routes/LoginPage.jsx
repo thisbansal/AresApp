@@ -197,7 +197,6 @@ const styles = {
     justifyContent: 'center',
     minHeight: '100vh',
     padding: '0 80px',
-    background: 'radial-gradient(circle at center, #1d2024 0%, #0d0f11 100%)',
     overflow: 'hidden'
   },
   content: {

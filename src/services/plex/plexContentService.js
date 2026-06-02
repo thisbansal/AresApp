@@ -1,5 +1,6 @@
 import { plexBridge } from './plexBridge'
 import { useAppStore } from '../../stores/AppStore'
+import { useServerStore } from '../../stores/serverStore'
 
 /**
  * Build optimized image URL with specific size and format
@@ -7,11 +8,25 @@ import { useAppStore } from '../../stores/AppStore'
 const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
   if (!path) return null
   const separator = path.includes('?') ? '&' : '?'
-  // Use the admin/main token for image transcode authorization if available, fallback to the current session token
-  const imgToken = useAppStore.getState().mainToken || token
+  
+  const imgToken = token
   const innerUrl = `${serverUri}${path}${separator}X-Plex-Token=${imgToken}`
+
+  const activeServer = useServerStore.getState().activeServer
+  const isShared = activeServer && activeServer.owned === false
+  const mainToken = useAppStore.getState().mainToken
+
+  if (isShared && mainToken) {
+    // For shared servers, use the global plex.tv proxy transcoder to avoid 401s
+    return `https://images.plex.tv/photo?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${mainToken}`
+  }
+
+  // Use the admin/main token for image transcode authorization if available, fallback to the current session token
+  const transcodeToken = useAppStore.getState().mainToken || token
+  const transcodeInnerUrl = `${serverUri}${path}${separator}X-Plex-Token=${transcodeToken}`
+
   // WebOS TVs often struggle with WebP or complex formats, forcing jpeg ensures compatibility
-  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${imgToken}`
+  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(transcodeInnerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${transcodeToken}`
 }
 
 const buildServerContext = (serverUri, token) => ({ uri: serverUri, token })

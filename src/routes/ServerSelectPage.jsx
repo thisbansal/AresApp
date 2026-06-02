@@ -19,7 +19,7 @@ function ServerSelectPage() {
     try {
       const token = useAppStore.getState().token
       console.log('[AUTH FLOW] ServerSelectPage: Main account token resolved successfully. Calling Plex API...')
-      const serverList = await getServers(token, { ownedOnly: true })
+      const serverList = await getServers(token, { ownedOnly: false })
 
       console.log(`[AUTH FLOW] ServerSelectPage: Discovered ${serverList.length} Plex Media Server(s):`, serverList.map(s => s.name))
 
@@ -48,7 +48,7 @@ function ServerSelectPage() {
 
       if (bestUri) {
         console.log(`[AUTH FLOW] ServerSelectPage: Connection resolved! Saving working connection URI: "${bestUri}"`)
-        await useAppStore.getState().setServerUri(bestUri)
+        await useAppStore.getState().setServerUri(bestUri, server.accessToken)
         console.log('Saved PMS server:', bestUri)
 
         // Also save the full server object for later use (optional)
@@ -57,8 +57,8 @@ function ServerSelectPage() {
           activeConnection: bestUri
         }
 
-        console.log('[AUTH FLOW] ServerSelectPage: Done! Navigating to profile select (/user-select)...')
-        navigate('/user-select')
+        console.log('[AUTH FLOW] ServerSelectPage: Done! Navigating to library select (/library-select)...')
+        navigate('/library-select')
         return
       }
 
@@ -183,6 +183,7 @@ function ServerSelectPage() {
                     <line x1="12" y1="17" x2="12" y2="21"></line>
                   </svg>
                 </div>
+                {!server.owned && <div style={styles.sharedBadge}>Shared</div>}
                 <p style={styles.serverName}>{server.name}</p>
               </div>
             </FocusableItem>
@@ -202,7 +203,6 @@ const styles = {
     justifyContent: 'center',
     height: '100vh',
     padding: '0 80px',
-    background: 'radial-gradient(circle at center, #1d2024 0%, #0d0f11 100%)',
     overflow: 'hidden'
   },
   content: {
@@ -261,6 +261,18 @@ const styles = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis'
+  },
+  sharedBadge: {
+    display: 'inline-block',
+    padding: '4px 12px',
+    backgroundColor: 'rgba(234, 67, 53, 0.2)',
+    color: '#ea4335',
+    border: '1px solid rgba(234, 67, 53, 0.4)',
+    borderRadius: '12px',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    marginBottom: '12px'
   },
   connectionBadge: {
     display: 'inline-flex',
