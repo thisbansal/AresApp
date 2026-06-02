@@ -1,5 +1,6 @@
 import { getActiveServerInfo } from './plexConnectionService'
 import { useServerStore } from '../../stores/serverStore'
+import { useAppStore } from '../../stores/AppStore'
 import { useNotificationStore } from '../notifications/notificationStore'
 import { PLEX_CONFIG } from '../../config/app'
 import { getPlatformInfo } from '../../utils/platformInfo'
@@ -32,6 +33,9 @@ export const plexBridge = {
         store.log('INFO', 'Server is healthy.')
         return true
       } else {
+        if (response.status === 401) {
+          useAppStore.getState().handleServerAuthError()
+        }
         throw new Error(`HTTP ${response.status}`)
       }
     } catch (err) {
@@ -102,6 +106,9 @@ export const plexBridge = {
       clearTimeout(timeoutId)
 
       if (!response.ok) {
+        if (response.status === 401) {
+          useAppStore.getState().handleServerAuthError()
+        }
         store.log('ERROR', `Server returned status ${response.status} on ${endpoint}`)
         throw new Error(`HTTP ${response.status}`)
       }

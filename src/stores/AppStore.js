@@ -5,6 +5,7 @@ import { hasCompleteSession } from '../utils/appSettings'
 import { getData, setData, DB_KINDS, initDeviceId } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { useServerStore } from './serverStore'
+import { verifyGlobalToken } from '../services/plex/tokenVerificationService'
 
 export const useAppStore = create((set, get) => ({
   isAuthenticated: false,
@@ -23,6 +24,28 @@ export const useAppStore = create((set, get) => ({
       await initialiseDatabase()
       
       const mainToken = await getMainToken()
+      
+      if (mainToken) {
+        const isGlobalTokenValid = await verifyGlobalToken(mainToken)
+        if (!isGlobalTokenValid) {
+          console.warn('[AUTH STORE] Global token is invalid. Signing out.')
+          await clearAllStoredInfo()
+          sessionStorage.removeItem('activeSession')
+          set({
+            mainToken: null,
+            token: null,
+            isAuthenticated: false,
+            serverUri: null,
+            hasServer: false,
+            hasSession: false,
+            userProfile: null,
+            isLoading: false
+          })
+          useServerStore.setState({ activeServer: null })
+          return
+        }
+      }
+
       const serverUri = await getData(DB_KINDS.SERVER, KINDS.server)
       const sessionComplete = await hasCompleteSession()
       const userProfile = await getLastProfile()
@@ -125,6 +148,29 @@ export const useAppStore = create((set, get) => ({
     } catch (err) {
       console.error('[AUTH STORE] Failed to set profile session:', err)
       throw err
+    }
+  },
+
+  handleServerAuthError: async () => {
+    console.log('[AUTH STORE] Handling server 401 error...')
+    const { mainToken } = get()
+    if (!mainToken) {
+      await get().signOut()
+      return
+    }
+
+    const isGlobalTokenValid = await verifyGlobalToken(mainToken)
+    if (!isGlobalTokenValid) {
+      console.warn('[AUTH STORE] Global token invalid during server error. Signing out.')
+      await get().signOut()
+    } else {
+      console.log('[AUTH STORE] Global token valid, but server access lost. Clearing active server.')
+      set({
+        serverUri: null,
+        hasServer: false,
+        token: mainToken
+      })
+      useServerStore.setState({ activeServer: null })
     }
   },
 
