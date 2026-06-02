@@ -1,4 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react'
+import { useBrowserStore } from '../../stores/browserStore'
 
 /**
  * SubtitleOverlay Component
@@ -9,6 +10,10 @@ import React, { forwardRef, useImperativeHandle, useRef } from 'react'
  */
 const SubtitleOverlay = forwardRef(({ isVisible }, ref) => {
   const overlayRef = useRef(null)
+
+  const subtitleColor = useBrowserStore(state => state.subtitleColor) || '#FFFFFF'
+  const subtitleSize = useBrowserStore(state => state.subtitleSize) || '2.5rem'
+  const subtitleWeight = useBrowserStore(state => state.subtitleWeight) || 400
 
   // Expose the setText API directly to the parent via the ref
   useImperativeHandle(ref, () => ({
@@ -34,6 +39,29 @@ const SubtitleOverlay = forwardRef(({ isVisible }, ref) => {
     }
   }, [isVisible])
 
+  const isDarkText = subtitleColor === '#4A4A4A' || subtitleColor === '#222222'
+  
+  const strokeColor = isDarkText ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.8)'
+  
+  // Simulate a 1px stroke using 8-directional text-shadows so it sits completely behind the text
+  // This eliminates the jagged overlap effect caused by WebkitTextStroke on intersecting letters
+  const strokeShadow = `
+    -1px -1px 0 ${strokeColor},
+     1px -1px 0 ${strokeColor},
+    -1px  1px 0 ${strokeColor},
+     1px  1px 0 ${strokeColor},
+     0px -1px 0 ${strokeColor},
+     0px  1px 0 ${strokeColor},
+    -1px  0px 0 ${strokeColor},
+     1px  0px 0 ${strokeColor}
+  `
+
+  const baseShadow = isDarkText 
+    ? '0px 2px 4px rgba(255,255,255,0.5), 0px 0px 8px rgba(255,255,255,0.3)'
+    : '0px 2px 4px rgba(0,0,0,0.8), 0px 0px 8px rgba(0,0,0,0.8)'
+
+  const combinedShadow = `${strokeShadow}, ${baseShadow}`
+
   return (
     <div
       style={{
@@ -51,14 +79,14 @@ const SubtitleOverlay = forwardRef(({ isVisible }, ref) => {
         className="subtitle-overlay"
         style={{
           display: 'inline-block',
-          color: '#ffffff',
-          fontSize: '2.5rem',
+          color: subtitleColor,
+          fontSize: subtitleSize,
           fontFamily: "'Outfit', 'Inter', sans-serif",
-          fontWeight: 400,
+          fontWeight: subtitleWeight,
           lineHeight: 1.4,
           padding: '4px 16px',
           borderRadius: '6px',
-          textShadow: '0px 2px 4px rgba(0,0,0,0.8)',
+          textShadow: combinedShadow,
           whiteSpace: 'pre-line',
           opacity: 0,
           transition: 'opacity 0.1s ease-in-out'

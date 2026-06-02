@@ -49,6 +49,14 @@ function ContentBrowserPage() {
   // Settings State from Store
   const showNotifications = useBrowserStore((state) => state.showNotifications)
   const setShowNotifications = useBrowserStore((state) => state.setShowNotifications)
+  const subtitleWeight = useBrowserStore((state) => state.subtitleWeight)
+  const setSubtitleWeight = useBrowserStore((state) => state.setSubtitleWeight)
+  const subtitleColor = useBrowserStore((state) => state.subtitleColor)
+  const setSubtitleColor = useBrowserStore((state) => state.setSubtitleColor)
+  const subtitleSize = useBrowserStore((state) => state.subtitleSize)
+  const setSubtitleSize = useBrowserStore((state) => state.setSubtitleSize)
+  const showSubtitleHUDControls = useBrowserStore((state) => state.showSubtitleHUDControls)
+  const setShowSubtitleHUDControls = useBrowserStore((state) => state.setShowSubtitleHUDControls)
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
 
@@ -228,6 +236,10 @@ function ContentBrowserPage() {
         if (prefs) {
           if (prefs.showUnwatchedIndicator !== undefined) setShowUnwatchedIndicator(prefs.showUnwatchedIndicator)
           if (prefs.showNotifications !== undefined) setShowNotifications(prefs.showNotifications)
+          if (prefs.subtitleWeight !== undefined) setSubtitleWeight(prefs.subtitleWeight)
+          if (prefs.subtitleColor !== undefined) setSubtitleColor(prefs.subtitleColor)
+          if (prefs.subtitleSize !== undefined) setSubtitleSize(prefs.subtitleSize)
+          if (prefs.showSubtitleHUDControls !== undefined) setShowSubtitleHUDControls(prefs.showSubtitleHUDControls)
         }
 
         // 1. Fast Path: Try to boot instantly using the last known server address
@@ -633,8 +645,17 @@ function ContentBrowserPage() {
           flex-direction: column;
           gap: 40px;
           padding: 20px 0;
+          margin: 0;
           width: 100%;
-          margin: 0vh 12vh;
+        }
+        .settings-rows-container h2 {
+          margin-left: calc(12vh - 30px) !important;
+        }
+        .settings-rows-container .row-items {
+          margin: -10px -30px 0 -30px !important;
+          padding: 30px 12vh !important;
+          scroll-padding-left: 12vh !important;
+          scroll-padding-right: 12vh !important;
         }
         .setting-card {
           width: 260px;
@@ -907,15 +928,15 @@ function ContentBrowserPage() {
                     onClick={handleSwitchProfileClick}
                     style={{ flexShrink: 0 }}
                   >
-                    <div className="setting-card major">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <div className="setting-card">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                         <circle cx="9" cy="7" r="4" />
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                       </svg>
-                      <div className="setting-card-title" style={{ color: '#0a84ff' }}>Switch Profile</div>
-                      <div className="setting-card-subtext" style={{ color: '#0a84ff', opacity: 0.8, marginTop: '10px' }}>
+                      <div className="setting-card-title">Switch Profile</div>
+                      <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                         Go to profile selection
                       </div>
                     </div>
@@ -936,7 +957,11 @@ function ContentBrowserPage() {
                       setShowUnwatchedIndicator(newValue)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator: newValue,
-                        showNotifications
+                        showNotifications,
+                        subtitleWeight,
+                        subtitleColor,
+                        subtitleSize,
+                        showSubtitleHUDControls
                       })
                     }}
                     style={{ flexShrink: 0 }}
@@ -968,7 +993,11 @@ function ContentBrowserPage() {
                       setShowNotifications(newValue)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator,
-                        showNotifications: newValue
+                        showNotifications: newValue,
+                        subtitleWeight,
+                        subtitleColor,
+                        subtitleSize,
+                        showSubtitleHUDControls
                       })
                     }}
                     style={{ flexShrink: 0 }}
@@ -993,6 +1022,115 @@ function ContentBrowserPage() {
                       <div className="setting-card-title">Notifications</div>
                     </div>
                   </FocusableItem>
+
+                  {/* Subtitle Weight Setting */}
+                  <FocusableItem
+                    id="setting-subtitle-weight"
+                    rowIndex={11}
+                    colIndex={2}
+                    onClick={() => {
+                      const weights = [400, 700, 900]
+                      const currentIndex = weights.indexOf(subtitleWeight || 400)
+                      const nextIndex = (currentIndex + 1) % weights.length
+                      const newWeight = weights[nextIndex]
+                      setSubtitleWeight(newWeight)
+                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                        showUnwatchedIndicator,
+                        showNotifications,
+                        subtitleWeight: newWeight,
+                        subtitleColor,
+                        subtitleSize,
+                        showSubtitleHUDControls
+                      })
+                    }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>W</div>
+                      <div className="setting-card-title">Subtitle Weight: {subtitleWeight === 400 ? 'Normal' : subtitleWeight === 700 ? 'Bold' : 'Heavy'}</div>
+                    </div>
+                  </FocusableItem>
+
+                  {/* Subtitle Color Setting */}
+                  <FocusableItem
+                    id="setting-subtitle-color"
+                    rowIndex={11}
+                    colIndex={3}
+                    onClick={() => {
+                      const colors = ['#FFFFFF', '#737373', '#4A4A4A', '#222222']
+                      const currentIndex = colors.indexOf(subtitleColor || '#FFFFFF')
+                      const nextIndex = (currentIndex + 1) % colors.length
+                      const newColor = colors[nextIndex]
+                      setSubtitleColor(newColor)
+                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                        showUnwatchedIndicator,
+                        showNotifications,
+                        subtitleWeight,
+                        subtitleColor: newColor,
+                        subtitleSize,
+                        showSubtitleHUDControls
+                      })
+                    }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: subtitleColor || '#FFFFFF', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                      <div className="setting-card-title">Color: {subtitleColor === '#FFFFFF' ? 'White' : subtitleColor === '#737373' ? 'Grey' : subtitleColor === '#4A4A4A' ? 'Dark Grey' : 'Extra Dark'}</div>
+                    </div>
+                  </FocusableItem>
+
+                  {/* Subtitle Size Setting */}
+                  <FocusableItem
+                    id="setting-subtitle-size"
+                    rowIndex={11}
+                    colIndex={4}
+                    onClick={() => {
+                      const sizes = ['1.5rem', '2.5rem', '3.5rem']
+                      const currentIndex = sizes.indexOf(subtitleSize || '2.5rem')
+                      const nextIndex = (currentIndex + 1) % sizes.length
+                      const newSize = sizes[nextIndex]
+                      setSubtitleSize(newSize)
+                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                        showUnwatchedIndicator,
+                        showNotifications,
+                        subtitleWeight,
+                        subtitleColor,
+                        subtitleSize: newSize,
+                        showSubtitleHUDControls
+                      })
+                    }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>Aa</div>
+                      <div className="setting-card-title">Size: {subtitleSize === '1.5rem' ? 'Small' : subtitleSize === '2.5rem' ? 'Medium' : 'Large'}</div>
+                    </div>
+                  </FocusableItem>
+
+                  {/* Player HUD Controls Setting */}
+                  <FocusableItem
+                    id="setting-subtitle-hud"
+                    rowIndex={11}
+                    colIndex={5}
+                    onClick={() => {
+                      const newValue = !showSubtitleHUDControls
+                      setShowSubtitleHUDControls(newValue)
+                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                        showUnwatchedIndicator,
+                        showNotifications,
+                        subtitleWeight,
+                        subtitleColor,
+                        subtitleSize,
+                        showSubtitleHUDControls: newValue
+                      })
+                    }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold', color: showSubtitleHUDControls ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>HUD</div>
+                      <div className="setting-card-title">Player Toggles: {showSubtitleHUDControls ? 'On' : 'Off'}</div>
+                    </div>
+                  </FocusableItem>
                 </div>
               </div>
 
@@ -1008,14 +1146,14 @@ function ContentBrowserPage() {
                     onClick={() => setShowSignoutConfirm(true)}
                     style={{ flexShrink: 0 }}
                   >
-                    <div className="setting-card major">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <div className="setting-card">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                         <polyline points="16 17 21 12 16 7" />
                         <line x1="21" y1="12" x2="9" y2="12" />
                       </svg>
-                      <div className="setting-card-title" style={{ color: '#0a84ff' }}>Sign Out</div>
-                      <div className="setting-card-subtext" style={{ color: '#0a84ff', opacity: 0.8, marginTop: '10px' }}>
+                      <div className="setting-card-title">Sign Out</div>
+                      <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                         Back to login screen
                       </div>
                     </div>

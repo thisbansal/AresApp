@@ -21,4 +21,16 @@ export const useBrowserStore = create((set) => ({
 
   showUnwatchedIndicator: true,
   setShowUnwatchedIndicator: (val) => set({ showUnwatchedIndicator: val }),
+
+  subtitleWeight: 400,
+  setSubtitleWeight: (val) => set({ subtitleWeight: val }),
+
+  subtitleColor: '#FFFFFF',
+  setSubtitleColor: (val) => set({ subtitleColor: val }),
+
+  subtitleSize: '2.5rem',
+  setSubtitleSize: (val) => set({ subtitleSize: val }),
+
+  showSubtitleHUDControls: false,
+  setShowSubtitleHUDControls: (val) => set({ showSubtitleHUDControls: val }),
 }))

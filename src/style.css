@@ -171,3 +171,16 @@ body::-webkit-scrollbar {
   white-space: pre-wrap;
   width: 90%;
 }
+
+/* Force native text-tracks to be transparent to prevent double backgrounds */
+::cue {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+video::-webkit-media-controls-text-track-display {
+  background: transparent !important;
+}
+.shaka-text-container, .shaka-text-container span {
+  background-color: transparent !important;
+  background: transparent !important;
+}

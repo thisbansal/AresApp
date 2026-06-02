@@ -47,22 +47,24 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
         const rowContainer = ref.current.closest('.row-items');
         if (rowContainer) {
           const containerRect = rowContainer.getBoundingClientRect();
+          const SAFE_MARGIN = 60; // Account for the scale(1.1) focus zoom so edge items don't clip while transitioning
+
           if (window.isRepeatingKey) {
             // Direct synchronous scrollLeft adjustments to prevent stale coordinate calculations during fast key repeat
-            if (rect.left < containerRect.left) {
-              const scrollAmount = rect.left - containerRect.left - 100;
+            if (rect.left < containerRect.left + SAFE_MARGIN) {
+              const scrollAmount = rect.left - (containerRect.left + SAFE_MARGIN) - 100;
               rowContainer.scrollLeft += scrollAmount;
-            } else if (rect.right > containerRect.right) {
-              const scrollAmount = rect.right - containerRect.right + 120;
+            } else if (rect.right > containerRect.right - SAFE_MARGIN) {
+              const scrollAmount = rect.right - (containerRect.right - SAFE_MARGIN) + 120;
               rowContainer.scrollLeft += scrollAmount;
             }
           } else {
             // Smooth asynchronous scrolling for hover / single clicks
-            if (rect.left < containerRect.left) {
-              const scrollAmount = rect.left - containerRect.left - 100;
+            if (rect.left < containerRect.left + SAFE_MARGIN) {
+              const scrollAmount = rect.left - (containerRect.left + SAFE_MARGIN) - 100;
               rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-            } else if (rect.right > containerRect.right) {
-              const scrollAmount = rect.right - containerRect.right + 120;
+            } else if (rect.right > containerRect.right - SAFE_MARGIN) {
+              const scrollAmount = rect.right - (containerRect.right - SAFE_MARGIN) + 120;
               rowContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
             }
           }

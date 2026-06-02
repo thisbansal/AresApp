@@ -150,7 +150,11 @@ export class VttStreamSubtitleHandler {
 
     const start = this.timeToSeconds(timeMatch[1]);
     const end = this.timeToSeconds(timeMatch[2]);
-    const text = lines.slice(timeLineIdx + 1).join('\n').replace(/<[^>]+>/g, ''); // strip tags
+    const text = lines.slice(timeLineIdx + 1)
+      .join('\n')
+      .replace(/<[^>]+>/g, '') // strip HTML tags
+      .replace(/\{[^}]+\}/g, '') // strip ASS/SSA override tags like {\an8}
+      .trim();
 
     return { start, end, text };
   }

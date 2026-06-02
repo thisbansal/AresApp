@@ -19,6 +19,7 @@ import SubtitleOverlay from '../components/media/SubtitleOverlay'
 import { mediaCodecService } from '../services/MediaCodecService'
 import shaka from 'shaka-player'
 import '../style.css'
+import { useBrowserStore } from '../stores/browserStore'
 
 export default function PlayerPage() {
   const { serverId, ratingKey } = useParams()
@@ -44,6 +45,16 @@ export default function PlayerPage() {
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
   const [dragTime, setDragTime] = useState(0)
   const [isSubtitleVisible, setIsSubtitleVisible] = useState(true)
+
+  const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
+  const showNotifications = useBrowserStore((state) => state.showNotifications)
+  const subtitleColor = useBrowserStore((state) => state.subtitleColor)
+  const setSubtitleColor = useBrowserStore((state) => state.setSubtitleColor)
+  const subtitleSize = useBrowserStore((state) => state.subtitleSize)
+  const setSubtitleSize = useBrowserStore((state) => state.setSubtitleSize)
+  const subtitleWeight = useBrowserStore((state) => state.subtitleWeight)
+  const setSubtitleWeight = useBrowserStore((state) => state.setSubtitleWeight)
+  const showSubtitleHUDControls = useBrowserStore((state) => state.showSubtitleHUDControls)
 
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
@@ -156,9 +167,9 @@ export default function PlayerPage() {
         // Auto-select English text subtitle for background streaming if none is selected
         const subtitleStreams = streams.filter(s => s.streamType === 3)
         const isAnySubtitleSelected = subtitleStreams.some(s => s.selected)
-        
+
         if (!isAnySubtitleSelected && subtitleStreams.length > 0) {
-          const bestEnglishTextSub = subtitleStreams.find(s => 
+          const bestEnglishTextSub = subtitleStreams.find(s =>
             (s.languageCode === 'eng' || s.language === 'English' || s.languageCode === 'en') &&
             (s.codec === 'srt' || s.codec === 'vtt' || s.codec === 'ass' || s.codec === 'ssa')
           )
@@ -448,14 +459,14 @@ export default function PlayerPage() {
     const activeSubtitle = availableStreams.find(s => s.streamType === 3 && s.selected)
     const videoEl = videoRef.current
 
-    // Wait for the streamUrl to be fully resolved before starting subtitles, 
+    // Wait for the streamUrl to be fully resolved before starting subtitles,
     // otherwise Plex locks the transcode session at offset 0!
     if (!activeSubtitle || !serverInfo || !videoEl || !streamUrl) return
 
     const isDash = streamUrl && streamUrl.includes('protocol=dash');
     const isHls = streamUrl && streamUrl.includes('protocol=hls');
     const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
-    
+
     // Detect if this effect is running because the video URL changed (e.g. initial mount or unbuffered seek).
     // If it did, Shaka hasn't reset videoEl.currentTime yet, meaning videoEl.currentTime holds the STALE time
     // of the previous stream. In this case, we MUST only use startSeconds as the offset.
@@ -463,10 +474,10 @@ export default function PlayerPage() {
     lastStreamUrlRef.current = streamUrl;
 
     // Calculate the TRUE absolute movie time to pass to the Plex Subtitle Transcoder
-    const initialAbsoluteStartTime = isNewStream 
-      ? startSeconds 
-      : (isDash || isHls) 
-        ? videoEl.currentTime + startSeconds 
+    const initialAbsoluteStartTime = isNewStream
+      ? startSeconds
+      : (isDash || isHls)
+        ? videoEl.currentTime + startSeconds
         : Math.max(videoEl.currentTime, startSeconds);
 
     // If it's a DASH stream, we MUST wait for Shaka to fully load before attaching the native handler
@@ -489,7 +500,7 @@ export default function PlayerPage() {
       subtitleManager.start()
     } else {
       // Create a completely isolated session UUID for the Sidecar Transcoder.
-      // This prevents Plex from throwing '400 Bad Request' (Session already exists) 
+      // This prevents Plex from throwing '400 Bad Request' (Session already exists)
       // if the user rapidly toggles the subtitles off and on.
       activeSidecarSessionId = `${playbackSessionId}-sub-${Date.now()}`;
 
@@ -499,14 +510,14 @@ export default function PlayerPage() {
         activeSidecarSessionId,
         initialAbsoluteStartTime * 1000
       )
-      
+
       if (!sidecarUrl) return
 
       // First, ping the /decision endpoint to initialize the background transcode session
       plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, activeSidecarSessionId, initialAbsoluteStartTime * 1000)
         .then(success => {
           if (!success) throw new Error('Failed to initialize sidecar transcode session')
-          
+
           console.log(`[Native Subtitles] Session initialized! Starting custom streaming parser for URL: ${sidecarUrl}`)
           subtitleManager.start(sidecarUrl)
         })
@@ -556,7 +567,7 @@ export default function PlayerPage() {
       const streamChanged = await executeSeek(finalTime)
 
       const videoEl = videoRef.current || document.querySelector('video')
-      // Only explicitly play if we didn't initiate a stream switch. 
+      // Only explicitly play if we didn't initiate a stream switch.
       // If the stream switched, the new VideoLayer will remount and autoplay.
       if (videoEl && !streamChanged) {
         videoEl.play().catch(err => console.error('Play after drag failed:', err))
@@ -806,8 +817,8 @@ export default function PlayerPage() {
 
     // Only toggle playback if the user clicked exactly on the background container, the video, or the bottom gradient mask.
     // If they clicked on buttons, timeline, menus, or text, do not toggle playback.
-    const isBackgroundClick = 
-      e.target === e.currentTarget || 
+    const isBackgroundClick =
+      e.target === e.currentTarget ||
       e.target.tagName === 'VIDEO' ||
       e.target.id === 'bottom-gradient-mask'
 
@@ -908,17 +919,99 @@ export default function PlayerPage() {
           >
             {/* Classic Subtitle Icon */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect>
-                <line x1="7" y1="10" x2="11" y2="10"></line>
-                <line x1="13" y1="10" x2="17" y2="10"></line>
-                <line x1="7" y1="14" x2="17" y2="14"></line>
-              </svg>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>CC</span>
+              </div>
               {isSubtitleCaching && (
                 <div className="subtitle-caching-spinner"></div>
               )}
             </div>
           </FocusableItem>}
+
+          {showSubtitleHUDControls && (
+            <>
+              {/* HUD Subtitle Color Toggle */}
+              <FocusableItem
+                id="player-hud-sub-color"
+                rowIndex={0} colIndex={3}
+                style={{...styles.streamBtn, marginLeft: '8px'}}
+                className="hud-stream-btn"
+                onClick={() => {
+                  const colors = ['#FFFFFF', '#737373', '#4A4A4A', '#222222']
+                  const currentIndex = colors.indexOf(subtitleColor)
+                  const nextIndex = (currentIndex + 1) % colors.length
+                  const newColor = colors[nextIndex]
+                  setSubtitleColor(newColor)
+                  setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                    showUnwatchedIndicator,
+                    showNotifications,
+                    subtitleColor: newColor,
+                    subtitleSize,
+                    subtitleWeight,
+                    showSubtitleHUDControls
+                  })
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: subtitleColor === '#FFFFFF' ? '#ffffff' : subtitleColor === '#737373' ? '#aaaaaa' : subtitleColor === '#4A4A4A' ? '#888888' : '#555555', border: '1px solid #fff' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: subtitleColor === '#FFFFFF' ? '#000' : '#fff' }}>C</span>
+                </div>
+              </FocusableItem>
+
+              {/* HUD Subtitle Size Toggle */}
+              <FocusableItem
+                id="player-hud-sub-size"
+                rowIndex={0} colIndex={4}
+                style={styles.streamBtn}
+                className="hud-stream-btn"
+                onClick={() => {
+                  const sizes = ['1.5rem', '2.5rem', '3.5rem']
+                  const currentIndex = sizes.indexOf(subtitleSize)
+                  const nextIndex = (currentIndex + 1) % sizes.length
+                  const newSize = sizes[nextIndex]
+                  setSubtitleSize(newSize)
+                  setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                    showUnwatchedIndicator,
+                    showNotifications,
+                    subtitleColor,
+                    subtitleSize: newSize,
+                    subtitleWeight,
+                    showSubtitleHUDControls
+                  })
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>{subtitleSize === '1.5rem' ? 'S' : subtitleSize === '2.5rem' ? 'M' : 'L'}</span>
+                </div>
+              </FocusableItem>
+
+              {/* HUD Subtitle Weight Toggle */}
+              <FocusableItem
+                id="player-hud-sub-weight"
+                rowIndex={0} colIndex={5}
+                style={styles.streamBtn}
+                className="hud-stream-btn"
+                onClick={() => {
+                  const weights = [400, 700, 900]
+                  const currentIndex = weights.indexOf(subtitleWeight || 400)
+                  const nextIndex = (currentIndex + 1) % weights.length
+                  const newWeight = weights[nextIndex]
+                  setSubtitleWeight(newWeight)
+                  setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                    showUnwatchedIndicator,
+                    showNotifications,
+                    subtitleColor,
+                    subtitleSize,
+                    subtitleWeight: newWeight,
+                    showSubtitleHUDControls
+                  })
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>W</span>
+                </div>
+              </FocusableItem>
+            </>
+          )}
 
           {/* Active Menu Popover */}
           {activeMenu !== 'none' && (
@@ -1207,7 +1300,7 @@ export default function PlayerPage() {
         }
       `}</style>
 
-      {/* 
+      {/*
         Custom Subtitle Overlay (Managed fully by React, updated imperatively by pure logic handlers)
       */}
       <SubtitleOverlay ref={subtitleOverlayRef} isVisible={isSubtitleVisible} />
