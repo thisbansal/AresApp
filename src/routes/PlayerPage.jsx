@@ -666,9 +666,11 @@ export default function PlayerPage() {
 
     // Pre-calculate capabilities to ensure the TV actually supports the requested stream before trusting native switching
     const updatedStreams = availableStreams.map(s => {
+      // Allows users to disable subtitles if they click on selected subtitle
       if (s.streamType === 3) {
         return { ...s, selected: s.id === streamId ? !s.selected : false }
       }
+      // Allows them to toggle between other available streams
       if (s.streamType === streamType) return { ...s, selected: s.id === streamId }
       return s
     })
