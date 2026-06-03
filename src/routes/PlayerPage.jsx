@@ -666,6 +666,9 @@ export default function PlayerPage() {
 
     // Pre-calculate capabilities to ensure the TV actually supports the requested stream before trusting native switching
     const updatedStreams = availableStreams.map(s => {
+      if (s.streamType === 3) {
+        return { ...s, selected: s.id === streamId ? !s.selected : false }
+      }
       if (s.streamType === streamType) return { ...s, selected: s.id === streamId }
       return s
     })
@@ -1070,7 +1073,7 @@ export default function PlayerPage() {
                   className="hud-stream-menu-item"
                   onClick={() => {
                     handleStreamSelect(stream.streamType, stream.id)
-                    if (stream.streamType === 3) setIsSubtitleVisible(true)
+                    if (stream.streamType === 3) setIsSubtitleVisible(prev => !prev)
                   }}
                 >
                   <div style={{...styles.streamMenuRadio, backgroundColor: stream.selected ? '#fff' : 'transparent'}} />
