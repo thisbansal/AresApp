@@ -74,7 +74,7 @@ class PlexStreamBuilder {
       'directStreamAudio': '1',
       'autoAdjustQuality': '0',
       'location': 'lan',
-      'mediaBufferSize': '102400', // Allow the Plex server to buffer up to 100MB ahead for smooth streaming
+      'mediaBufferSize': '1024000', // Allow the Plex server to buffer up to 100MB ahead for smooth streaming
       'subtitles': forceSubtitleBurnIn ? 'burn' : 'auto',
       'advancedSubtitles': forceSubtitleBurnIn ? 'burn' : 'text', // Enum: 'burn', 'text', 'unknown'
       'subtitleSize': '100',

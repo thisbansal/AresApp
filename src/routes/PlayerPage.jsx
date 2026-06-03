@@ -62,6 +62,7 @@ export default function PlayerPage() {
   const seekTimeoutRef = useRef(null)
   const lastStreamUrlRef = useRef(null)
   const lastDragEndTimeRef = useRef(0)
+  const [streamCapabilities, setStreamCapabilities] = useState({ video: [], audio: [], subtitles: [] })
 
   // Generate persistent UI session IDs for timeline tracking and transcode termination
   const { playbackSessionId, clientSessionId } = useMemo(() => ({
@@ -194,6 +195,8 @@ export default function PlayerPage() {
         }
 
         const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
+        setStreamCapabilities(capabilities)
+
         const optimalUrl = await plexStreamBuilder.getOptimalStreamUrl(
           serverInfo,
           part,
@@ -681,6 +684,7 @@ export default function PlayerPage() {
       subtitles: updatedStreams.filter(s => s.streamType === 3),
     }
     const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
+    setStreamCapabilities(capabilities)
 
     // Optional manual parameter to force burn in (arguments[7])
     const newStreamUrl = await plexStreamBuilder.getOptimalStreamUrl(
@@ -812,6 +816,7 @@ export default function PlayerPage() {
   }
 
   const isDash = streamUrl && streamUrl.includes('protocol=dash')
+  const isHls = streamUrl && streamUrl.includes('protocol=hls')
   const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0
   const displayTime = isDragging ? dragTime : (isDash ? currentTime + startSeconds : currentTime)
   const progressPercent = duration ? (displayTime / duration) * 100 : 0
@@ -836,6 +841,11 @@ export default function PlayerPage() {
         useNotificationStore.getState().addNotification('Pause', { level: 'success' })
       }
     }
+  }
+
+  const getStreamSupport = (streamType, streamId) => {
+    const key = streamType === 1 ? 'video' : streamType === 2 ? 'audio' : 'subtitles'
+    return streamCapabilities[key]?.find(c => c.id === streamId)
   }
 
   return (
@@ -894,7 +904,7 @@ export default function PlayerPage() {
             onClick={() => setActiveMenu(activeMenu === 'video' ? 'none' : 'video')}
           >
             {/* Video TV icon */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
               <polyline points="17 2 12 7 7 2"></polyline>
             </svg>
@@ -908,7 +918,7 @@ export default function PlayerPage() {
             onClick={() => setActiveMenu(activeMenu === 'audio' ? 'none' : 'audio')}
           >
             {/* Minimal equalizer icon */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="6" y1="9" x2="6" y2="15"></line>
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="18" y1="11" x2="18" y2="13"></line>
@@ -925,7 +935,7 @@ export default function PlayerPage() {
             {/* Classic Subtitle Icon */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>CC</span>
+                <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>CC</span>
               </div>
               {isSubtitleCaching && (
                 <div className="subtitle-caching-spinner"></div>
@@ -957,8 +967,8 @@ export default function PlayerPage() {
                   })
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: subtitleColor === '#FFFFFF' ? '#ffffff' : subtitleColor === '#737373' ? '#aaaaaa' : subtitleColor === '#4A4A4A' ? '#888888' : '#555555', border: '1px solid #fff' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: subtitleColor === '#FFFFFF' ? '#000' : '#fff' }}>C</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', backgroundColor: subtitleColor === '#FFFFFF' ? '#ffffff' : subtitleColor === '#737373' ? '#aaaaaa' : subtitleColor === '#4A4A4A' ? '#888888' : '#555555', border: '1px solid #fff' }}>
+                  <span style={{ fontSize: '28px', fontWeight: 'bold', color: subtitleColor === '#FFFFFF' ? '#000' : '#fff' }}>C</span>
                 </div>
               </FocusableItem>
 
@@ -985,7 +995,7 @@ export default function PlayerPage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>{subtitleSize === '1.5rem' ? 'S' : subtitleSize === '2.5rem' ? 'M' : 'L'}</span>
+                  <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>{subtitleSize === '1.5rem' ? 'S' : subtitleSize === '2.5rem' ? 'M' : 'L'}</span>
                 </div>
               </FocusableItem>
 
@@ -1012,7 +1022,7 @@ export default function PlayerPage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>W</span>
+                  <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>W</span>
                 </div>
               </FocusableItem>
             </>
@@ -1023,7 +1033,7 @@ export default function PlayerPage() {
             <div style={styles.streamMenuPopover} className="stream-menu-popover">
               {activeMenu === 'subtitle' && (
                 <>
-                  <FocusableItem
+                  {false && <FocusableItem
                     id={`stream-sub-force-burn`}
                     rowIndex={-1} colIndex={0}
                     style={{...styles.streamMenuItem, borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
@@ -1045,7 +1055,7 @@ export default function PlayerPage() {
                   >
                     <div style={{...styles.streamMenuRadio, borderRadius: '4px', backgroundColor: forceSubtitleBurnIn ? '#e50914' : 'transparent'}} />
                     <span style={{color: forceSubtitleBurnIn ? '#fff' : '#a8a8af', fontWeight: forceSubtitleBurnIn ? '600' : '500'}}>Force Burn-in (Transcode)</span>
-                  </FocusableItem>
+                  </FocusableItem>}
                   <FocusableItem
                     id={`stream-sub-visibility`}
                     rowIndex={-1} colIndex={1}
@@ -1079,7 +1089,12 @@ export default function PlayerPage() {
                   }}
                 >
                   <div style={{...styles.streamMenuRadio, backgroundColor: stream.selected ? '#fff' : 'transparent'}} />
-                  <span>{stream.extendedDisplayTitle || stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span>
+                  {/* <span>{stream.extendedDisplayTitle || stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span> */}
+                  {/* <span>{stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span> */}
+                  <span style={{ flex: 1 }}>
+                    {stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}
+                    {getStreamSupport(stream.streamType, stream.id)?.supported && ` (Native)`}
+                  </span>
                 </FocusableItem>
               ))}
             </div>
@@ -1144,7 +1159,7 @@ export default function PlayerPage() {
             className="hud-restart-btn"
           >
             {/* Double rewind arrow SVG */}
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="11 19 2 12 11 5 11 19"></polygon>
               <polygon points="22 19 13 12 22 5 22 19"></polygon>
             </svg>
@@ -1176,12 +1191,12 @@ export default function PlayerPage() {
                 <div className="bar12"></div>
               </div>
             ) : isPlaying ? (
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="6" y="4" width="4" height="16"></rect>
                 <rect x="14" y="4" width="4" height="16"></rect>
               </svg>
             ) : (
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translateX(2px)' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translateX(2px)' }}>
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
             )}
@@ -1558,8 +1573,8 @@ const styles = {
     position: 'relative'
   },
   streamBtn: {
-    width: '44px',
-    height: '44px',
+    width: '75px',
+    height: '75px',
     borderRadius: '50%',
     backgroundColor: 'rgb(30, 30, 30)',
     border: '1.5px solid rgb(255, 255, 255)',
@@ -1567,19 +1582,20 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
+    fontSize: '22px'
   },
   streamMenuPopover: {
     position: 'absolute',
-    bottom: '60px',
+    bottom: '130px',
     left: 0,
     backgroundColor: 'rgb(20, 20, 20)',
-    borderRadius: '12px',
+    borderRadius: '18px',
     padding: '8px',
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
-    minWidth: '240px',
-    maxHeight: '300px',
+    minWidth: '280px',
+    maxHeight: '340px',
     overflowY: 'auto',
     boxShadow: '0 -4px 20px rgb(0,0,0s)',
     zIndex: 10002,
@@ -1589,7 +1605,7 @@ const styles = {
     padding: '10px 16px',
     borderRadius: '8px',
     color: '#fff',
-    fontSize: '18px',
+    fontSize: '32px',
     fontFamily: "'Outfit', 'Inter', sans-serif",
     cursor: 'pointer',
     display: 'flex',

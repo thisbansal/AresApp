@@ -13,16 +13,16 @@ class MediaCodecService {
     getMimeTypeForCodec(codec, type) {
         if (!codec) return '';
         codec = codec.toLowerCase();
-        
+
         if (type === 'video') {
             switch (codec) {
                 case 'hevc':
                 case 'h265':
                     // Generic HEVC profile for testing
-                    return 'video/mp4; codecs="hev1.1.6.L93.B0"'; 
+                    return 'video/mp4; codecs="hev1.1.6.L93.B0"';
                 case 'h264':
                     // Generic H.264 profile for testing
-                    return 'video/mp4; codecs="avc1.42E01E"'; 
+                    return 'video/mp4; codecs="avc1.42E01E"';
                 case 'vp9':
                     return 'video/webm; codecs="vp9"';
                 case 'av1':
@@ -75,7 +75,7 @@ class MediaCodecService {
                 const mimeType = this.getMimeTypeForCodec(v.codec, 'video');
                 const canPlay = this.videoElement.canPlayType(mimeType);
                 const supported = canPlay === 'probably' || canPlay === 'maybe';
-                
+
                 results.video.push({
                     id: v.id,
                     codec: v.codec,
@@ -123,13 +123,13 @@ class MediaCodecService {
                 // Determine if subtitle is text-based (natively renderable via track/HLS) or image-based (requires burn-in)
                 const codec = (s.codec || '').toLowerCase();
                 const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa', 'mov_text', 'tx3g'].includes(codec);
-                
+
                 // Plex ONLY provides a 'key' property if the subtitle is an external sidecar file.
                 // If there is no key, it is embedded inside the MKV container, which means we CANNOT
                 // fetch it cleanly via /library/streams/. Therefore, it must be transcoded!
                 const isExternal = !!s.key;
                 const isSupported = isTextBased && isExternal;
-                
+
                 results.subtitles.push({
                     id: s.id,
                     codec: s.codec,
@@ -150,9 +150,10 @@ class MediaCodecService {
         }
 
         console.groupEnd();
-        
+
         return results;
     }
+
 }
 
 export const mediaCodecService = new MediaCodecService();
