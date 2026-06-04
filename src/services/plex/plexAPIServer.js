@@ -22,22 +22,6 @@ const normalizeConnectionUri = (conn) => {
   return conn.uri
 }
 
-export const getPlexDirectIdentifier = (server) => {
-  if (!server) return null
-  for (const conn of server.connections || []) {
-    if (conn.uri && conn.uri.includes('plex.direct')) {
-      try {
-        const url = new URL(conn.uri)
-        const parts = url.hostname.split('.')
-        if (parts.length >= 4) {
-          return parts[1]
-        }
-      } catch (e) {}
-    }
-  }
-  return server.clientIdentifier
-}
-
 export const getServers = async (authToken, options = {}) => {
   const { ownedOnly = false } = options
   const res = await fetch(
@@ -85,9 +69,8 @@ export const getServers = async (authToken, options = {}) => {
       const otherServers = allServers.filter(s => s.clientIdentifier !== ownedServer.clientIdentifier)
       for (const otherServer of otherServers) {
         try {
-          const directId = getPlexDirectIdentifier(otherServer)
-          const securityUrl = `${pmsUri}/security/resources?source=server://${directId}&refresh=1`
-          console.log(`[getServers] Querying security resources for "${otherServer.name}" (ID: ${directId}) via "${ownedServer.name}" at: ${securityUrl}`)
+          const securityUrl = `${pmsUri}/security/resources?source=server://${otherServer.clientIdentifier}&refresh=1`
+          console.log(`[getServers] Querying security resources for "${otherServer.name}" (ID: ${otherServer.clientIdentifier}) via "${ownedServer.name}" at: ${securityUrl}`)
           const securityRes = await fetch(securityUrl, {
             method: 'GET',
             headers: {
@@ -99,8 +82,8 @@ export const getServers = async (authToken, options = {}) => {
           if (securityRes.ok) {
             const securityData = await securityRes.json()
             const serverDetails = Array.isArray(securityData)
-              ? securityData.find(s => s.clientIdentifier === directId)
-              : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || []).find(s => s.clientIdentifier === directId) || securityData?.MediaContainer || securityData
+              ? securityData.find(s => s.clientIdentifier === otherServer.clientIdentifier)
+              : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || []).find(s => s.clientIdentifier === otherServer.clientIdentifier) || securityData?.MediaContainer || securityData
 
             if (serverDetails) {
               const token = serverDetails.accessToken || serverDetails.AuthToken || securityData.MediaContainer?.AuthToken || otherServer.accessToken
