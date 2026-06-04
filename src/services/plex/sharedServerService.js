@@ -83,7 +83,7 @@ export const discoverSharedServer = async (mainToken, serverClientId, ownServerI
   let rawConnections = []
 
   // Check if user has their own PMS (any server with owned: true)
-  const hasOwnPMS = allServers.some(s => s.owned === true || s.owned === 'true')
+  const hasOwnPMS = allServers.some(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
 
   if (!hasOwnPMS) {
     // Person 1: No own PMS - plex.tv already injected the transient token and connections
@@ -97,7 +97,7 @@ export const discoverSharedServer = async (mainToken, serverClientId, ownServerI
 
     if (!pmsUri || !pmsToken) {
       console.log(`[SHARED SERVER] ownServerInfo details missing. Attempting to resolve own PMS from resources...`)
-      const ownServerResource = allServers.find(s => s.owned)
+      const ownServerResource = allServers.find(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
       if (ownServerResource) {
         pmsToken = ownServerResource.accessToken
         pmsUri = await getBestServerConnection(ownServerResource, pmsToken)
