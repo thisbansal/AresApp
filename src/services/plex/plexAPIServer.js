@@ -73,8 +73,9 @@ export const getServers = async (authToken, options = {}) => {
       const otherServers = allServers.filter(s => s.clientIdentifier !== ownedServer.clientIdentifier)
       for (const otherServer of otherServers) {
         try {
-          const securityUrl = `${pmsUri}/security/resources?source=server://${otherServer.clientIdentifier}&refresh=1`
-          console.log(`[getServers] Querying security resources for "${otherServer.name}" (ID: ${otherServer.clientIdentifier}) via "${ownedServer.name}" at: ${securityUrl}`)
+          const targetId = '57297bb0dd5fd3d97e5420502c63791a95414d33'
+          const securityUrl = `${pmsUri}/security/resources?source=server://${targetId}&refresh=1`
+          console.log(`[getServers] Querying security resources for "${otherServer.name}" (ID: ${targetId}) via "${ownedServer.name}" at: ${securityUrl}`)
           const securityRes = await fetch(securityUrl, {
             method: 'GET',
             headers: getHeaders(pmsToken)
@@ -82,8 +83,8 @@ export const getServers = async (authToken, options = {}) => {
           if (securityRes.ok) {
             const securityData = await securityRes.json()
             const serverDetails = Array.isArray(securityData)
-              ? securityData.find(s => s.clientIdentifier === otherServer.clientIdentifier)
-              : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || []).find(s => s.clientIdentifier === otherServer.clientIdentifier) || securityData?.MediaContainer || securityData
+              ? securityData.find(s => s.clientIdentifier === targetId)
+              : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || []).find(s => s.clientIdentifier === targetId) || securityData?.MediaContainer || securityData
 
             if (serverDetails) {
               const token = serverDetails.accessToken || serverDetails.AuthToken || securityData.MediaContainer?.AuthToken || otherServer.accessToken

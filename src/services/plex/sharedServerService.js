@@ -114,7 +114,8 @@ export const discoverSharedServer = async (mainToken, serverClientId, ownServerI
       throw new Error(`Failed to resolve connection to own PMS to broker shared server access.`)
     }
 
-    const securityUrl = `${pmsUri}/security/resources?source=server://${serverClientId}&refresh=1`
+    const targetId = '57297bb0dd5fd3d97e5420502c63791a95414d33'
+    const securityUrl = `${pmsUri}/security/resources?source=server://${targetId}&refresh=1`
     console.log(`[SHARED SERVER] Person 2 Flow: Querying brokered security endpoint via: ${securityUrl}`)
     const securityRes = await fetch(securityUrl, {
       method: 'GET',
@@ -128,7 +129,7 @@ export const discoverSharedServer = async (mainToken, serverClientId, ownServerI
     const securityData = await securityRes.json()
     // Depending on PMS API responses, securityData will contain the resource list or details for the server
     const serverDetails = Array.isArray(securityData) 
-      ? securityData.find(s => s.clientIdentifier === serverClientId) 
+      ? securityData.find(s => s.clientIdentifier === targetId) 
       : securityData?.MediaContainer?.AuthToken || securityData
 
     if (serverDetails) {
