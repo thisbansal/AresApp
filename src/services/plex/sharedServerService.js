@@ -82,69 +82,9 @@ export const discoverSharedServer = async (mainToken, serverClientId, ownServerI
   let transientToken = null
   let rawConnections = []
 
-  // Check if user has their own PMS (any server with owned: true)
-  console.log('[SHARED SERVER] Discovered servers in raw resources:', allServers.map(s => ({ name: s.name, owned: s.owned, type: typeof s.owned })))
-  const hasOwnPMS = allServers.some(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
-  console.log('[SHARED SERVER] Evaluation of hasOwnPMS:', hasOwnPMS)
-
-  if (!hasOwnPMS) {
-    // Person 1: No own PMS - plex.tv already injected the transient token and connections
-    console.log(`[SHARED SERVER] Person 1 Flow: No own PMS. Using details from resources directly.`)
-    transientToken = sharedServerResource.accessToken
-    rawConnections = sharedServerResource.connections
-  } else {
-    // Person 2: Has own PMS - Query own PMS for transient token
-    let pmsUri = ownServerInfo?.uri
-    let pmsToken = ownServerInfo?.token
-
-    if (!pmsUri || !pmsToken) {
-      console.log(`[SHARED SERVER] ownServerInfo details missing. Attempting to resolve own PMS from resources...`)
-      const ownServerResource = allServers.find(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
-      if (ownServerResource) {
-        console.log(`[SHARED SERVER] Resolving connections for own PMS: "${ownServerResource.name}"`)
-        pmsToken = ownServerResource.accessToken
-        pmsUri = await getBestServerConnection(ownServerResource, pmsToken)
-        console.log(`[SHARED SERVER] Resolved own PMS URI: "${pmsUri}"`)
-      } else {
-        console.warn(`[SHARED SERVER] hasOwnPMS was true but failed to locate own server resource.`)
-      }
-    }
-
-    if (!pmsUri || !pmsToken) {
-      throw new Error(`Failed to resolve connection to own PMS to broker shared server access.`)
-    }
-
-    const targetId = '57297bb0dd5fd3d97e5420502c63791a95414d33'
-    const securityUrl = `${pmsUri}/security/resources?source=${targetId}&refresh=1`
-    console.log(`[SHARED SERVER] Person 2 Flow: Querying brokered security endpoint via: ${securityUrl}`)
-    const securityRes = await fetch(securityUrl, {
-      method: 'GET',
-      headers: getHeaders(pmsToken)
-    })
-
-    if (!securityRes.ok) {
-      throw new Error(`Failed to broker shared server access through own PMS: ${securityRes.status}`)
-    }
-
-    const securityData = await securityRes.json()
-    // Depending on PMS API responses, securityData will contain the resource list or details for the server
-    const serverDetails = Array.isArray(securityData) 
-      ? securityData.find(s => s.clientIdentifier === targetId) 
-      : securityData?.MediaContainer?.AuthToken || securityData
-
-    if (serverDetails) {
-      transientToken = serverDetails.accessToken || serverDetails.AuthToken || securityData.MediaContainer?.AuthToken
-      rawConnections = serverDetails.connections || []
-    }
-
-    // Fallback if security endpoint response structure differs
-    if (!transientToken) {
-      // Sometimes it is returned in the MediaContainer structure
-      const mc = securityData?.MediaContainer || {}
-      transientToken = mc.accessToken || mc.AuthToken || sharedServerResource.accessToken
-      rawConnections = mc.connections || sharedServerResource.connections
-    }
-  }
+  // Use the access token and connections directly from the resources response
+  transientToken = sharedServerResource.accessToken
+  rawConnections = sharedServerResource.connections || []
 
   if (!transientToken) {
     throw new Error(`Failed to resolve transient accessToken for shared server: ${serverClientId}`)

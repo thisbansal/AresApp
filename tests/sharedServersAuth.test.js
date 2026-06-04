@@ -94,7 +94,7 @@ describe('Shared Servers Authentication and Store Integration', () => {
       expect(result.uri).toBe('http://shared-server:32400')
     })
 
-    it('should run Person 2 Flow (brokered security request through owned PMS) when an owned server exists in resources', async () => {
+    it('should resolve shared server token directly from resources even if an owned server exists in resources', async () => {
       getData.mockResolvedValueOnce({}) // Empty cache
 
       const mockResources = [
@@ -120,26 +120,12 @@ describe('Shared Servers Authentication and Store Integration', () => {
         json: async () => mockResources
       })
 
-      // 2. Resolve best connection for own PMS
-      getBestServerConnection.mockResolvedValueOnce('http://owned-server:32400')
-
-      // 3. Mock security brokering fetch response
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          MediaContainer: {
-            accessToken: 'brokered-shared-token',
-            connections: [{ uri: 'http://shared-server:32400', local: true }]
-          }
-        })
-      })
-
-      // 4. Mock test connection check on shared server
+      // 2. Mock test connection check on shared server
       testConnectionToServer.mockResolvedValueOnce(true)
 
       const result = await getSharedServerToken('global-main-token', 'shared-client-1', null)
 
-      expect(result.token).toBe('brokered-shared-token')
+      expect(result.token).toBe('direct-shared-token')
       expect(result.uri).toBe('http://shared-server:32400')
     })
   })

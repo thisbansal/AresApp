@@ -35,91 +35,11 @@ export const getServers = async (authToken, options = {}) => {
   if (!res.ok) throw new Error(`Failed to fetch servers: ${res.status}`)
 
   const rawResources = await res.json()
-  console.log(`[getServers] Raw resources from plex.tv/api/v2/resources:`, JSON.stringify(rawResources, null, 2))
-  console.log(`[getServers] Raw resources type: ${typeof rawResources}, isArray: ${Array.isArray(rawResources)}`)
-  if (Array.isArray(rawResources) && rawResources.length > 0) {
-    console.log(`[getServers] First resource keys:`, Object.keys(rawResources[0]))
-    console.log(`[getServers] First resource provides: "${rawResources[0].provides}", clientIdentifier: "${rawResources[0].clientIdentifier}", name: "${rawResources[0].name}"`)
-  }
-
   const allServers = rawResources.filter(s => s.provides === 'server')
-  console.log(`[getServers] Filtered servers:`, allServers.map(s => ({ name: s.name, clientIdentifier: s.clientIdentifier, owned: s.owned })))
-
-  // Find own PMS to broker shared server requests if available
-  const ownedServers = allServers.filter(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
-  let discoveredSharedServers = []
-
-  for (const ownedServer of ownedServers) {
-    const pmsToken = ownedServer.accessToken
-    if (!pmsToken) {
-      console.log(`[getServers] Skipping owned server "${ownedServer.name}" due to missing accessToken.`)
-      continue
-    }
-    // Normalize and sort connections to use standard 192.x.x.x:port addresses for local calls
-    const sortedConnections = (ownedServer.connections || [])
-      .map(conn => ({ uri: normalizeConnectionUri(conn), local: !!conn.local, relay: !!conn.relay }))
-      .sort((a, b) => {
-        if (a.local && !b.local) return -1
-        if (!a.local && b.local) return 1
-        if (!a.relay && b.relay) return -1
-        if (a.relay && !b.relay) return 1
-        return 0
-      })
-
-    const pmsUri = await getBestServerConnection({ connections: sortedConnections }, pmsToken)
-    console.log(`[getServers] Resolved owned PMS URI for brokering ("${ownedServer.name}"): ${pmsUri}`)
-
-    if (pmsUri) {
-      const otherServers = allServers.filter(s => s.clientIdentifier !== ownedServer.clientIdentifier)
-      for (const otherServer of otherServers) {
-        try {
-          const targetId = '57297bb0dd5fd3d97e5420502c63791a95414d33'
-          const securityUrl = `${pmsUri}/security/resources?source=${targetId}&refresh=1`
-          console.log(`[getServers] Querying security resources for "${otherServer.name}" (ID: ${targetId}) via "${ownedServer.name}" at: ${securityUrl}`)
-          const securityRes = await fetch(securityUrl, {
-            method: 'GET',
-            headers: getHeaders(pmsToken)
-          })
-          if (securityRes.ok) {
-            const securityData = await securityRes.json()
-            const serverDetails = Array.isArray(securityData)
-              ? securityData.find(s => s.clientIdentifier === targetId)
-              : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || []).find(s => s.clientIdentifier === targetId) || securityData?.MediaContainer || securityData
-
-            if (serverDetails) {
-              const token = serverDetails.accessToken || serverDetails.AuthToken || securityData.MediaContainer?.AuthToken || otherServer.accessToken
-              const conns = serverDetails.connections || otherServer.connections || []
-
-              const updatedServer = {
-                ...otherServer,
-                accessToken: token,
-                connections: conns
-              }
-              if (!discoveredSharedServers.some(ds => ds.clientIdentifier === updatedServer.clientIdentifier)) {
-                discoveredSharedServers.push(updatedServer)
-              }
-            }
-          } else {
-            console.warn(`[getServers] Security resources query failed for "${otherServer.name}" on "${ownedServer.name}": HTTP ${securityRes.status}`)
-          }
-        } catch (err) {
-          console.warn(`[getServers] Error querying security resources for "${otherServer.name}" on "${ownedServer.name}":`, err.message)
-        }
-      }
-    }
-  }
-
-  // Combine servers from plex.tv and those discovered via owned PMS security brokering
-  const combinedServers = [...allServers]
-  for (const shared of discoveredSharedServers) {
-    if (!combinedServers.some(s => s.clientIdentifier === shared.clientIdentifier)) {
-      combinedServers.push(shared)
-    }
-  }
 
   const mappedServers = []
 
-  for (const server of combinedServers) {
+  for (const server of allServers) {
     const isShared = !(server.owned === true || server.owned === 'true' || server.owned === 1 || server.owned === '1')
     if (ownedOnly && isShared) continue
 
