@@ -69,9 +69,34 @@ describe('Shared Servers Authentication and Store Integration', () => {
       expect(testConnectionToServer).toHaveBeenCalledWith('http://shared-server-ip', 'cached-token-123', 1500)
     })
 
-    it('should run Person 1 Flow (direct resources token lookup) when owned server connection details are missing', async () => {
+    it('should run Person 1 Flow (direct resources token lookup) when NO owned server exists in resources', async () => {
       getData.mockResolvedValueOnce({}) // Empty cache
       
+      const mockResources = [
+        {
+          provides: 'server',
+          clientIdentifier: 'shared-client-1',
+          accessToken: 'direct-shared-token',
+          owned: false,
+          connections: [{ uri: 'http://shared-server:32400', local: true }]
+        }
+      ]
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResources
+      })
+      testConnectionToServer.mockResolvedValueOnce(true)
+
+      const result = await getSharedServerToken('global-main-token', 'shared-client-1', null)
+
+      expect(result.token).toBe('direct-shared-token')
+      expect(result.uri).toBe('http://shared-server:32400')
+    })
+
+    it('should run Person 2 Flow (brokered security request through owned PMS) when an owned server exists in resources', async () => {
+      getData.mockResolvedValueOnce({}) // Empty cache
+
       const mockResources = [
         {
           provides: 'server',
@@ -89,16 +114,32 @@ describe('Shared Servers Authentication and Store Integration', () => {
         }
       ]
 
+      // 1. Fetch resources
       global.fetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResources
       })
+
+      // 2. Resolve best connection for own PMS
+      getBestServerConnection.mockResolvedValueOnce('http://owned-server:32400')
+
+      // 3. Mock security brokering fetch response
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          MediaContainer: {
+            accessToken: 'brokered-shared-token',
+            connections: [{ uri: 'http://shared-server:32400', local: true }]
+          }
+        })
+      })
+
+      // 4. Mock test connection check on shared server
       testConnectionToServer.mockResolvedValueOnce(true)
 
-      // ownServerInfo is null, so it must fall back to Person 1 Flow using resources accessToken directly
       const result = await getSharedServerToken('global-main-token', 'shared-client-1', null)
 
-      expect(result.token).toBe('direct-shared-token')
+      expect(result.token).toBe('brokered-shared-token')
       expect(result.uri).toBe('http://shared-server:32400')
     })
   })

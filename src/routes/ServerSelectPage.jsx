@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
 import { useAppStore } from '../stores/AppStore'
+import { discoverSharedServer, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
 
 function ServerSelectPage() {
   const navigate = useNavigate()
@@ -47,33 +48,56 @@ function ServerSelectPage() {
     console.log(`[AUTH FLOW] ServerSelectPage: Selecting server: "${server.name}"`)
     try {
       setLoading(true)
+      const token = useAppStore.getState().token
 
-      console.log(`[AUTH FLOW] ServerSelectPage: Probing server connections for "${server.name}" to select the fastest path...`)
-      const bestUri = await getBestServerConnection(server, server.accessToken)
+      if (server.owned) {
+        console.log(`[AUTH FLOW] ServerSelectPage: Probing server connections for "${server.name}" to select the fastest path...`)
+        const bestUri = await getBestServerConnection(server, server.accessToken)
 
-      if (bestUri) {
-        console.log(`[AUTH FLOW] ServerSelectPage: Connection resolved! Saving working connection URI: "${bestUri}"`)
-        
-        if (server.owned) {
+        if (bestUri) {
+          console.log(`[AUTH FLOW] ServerSelectPage: Connection resolved! Saving working connection URI: "${bestUri}"`)
           await useAppStore.getState().setServerUri(bestUri, server.accessToken)
-        } else {
-          useAppStore.setState({ hasServer: true })
-        }
 
-        console.log('[AUTH FLOW] ServerSelectPage: Done! Navigating to library select (/library-select)...')
-        navigate('/library-select', {
-          state: {
-            isShared: !server.owned,
-            serverClientId: server.clientIdentifier,
-            serverName: server.name,
-            uri: bestUri,
-            token: server.accessToken
-          }
-        })
-        return
+          console.log('[AUTH FLOW] ServerSelectPage: Done! Navigating to library select (/library-select)...')
+          navigate('/library-select', {
+            state: {
+              isShared: false,
+              serverClientId: server.clientIdentifier,
+              serverName: server.name,
+              uri: bestUri,
+              token: server.accessToken
+            }
+          })
+          return
+        }
+      } else {
+        // Shared Server onboarding - run full discoverSharedServer flow (Steps 4 & 5)
+        console.log(`[AUTH FLOW] ServerSelectPage: Resolving shared server "${server.name}" via discoverSharedServer flow...`)
+        const sharedInfo = await discoverSharedServer(token, server.clientIdentifier, null)
+        
+        if (sharedInfo && sharedInfo.uri && sharedInfo.token) {
+          // Register the shared server credentials in local cache immediately
+          const cache = await getSharedServersCache()
+          cache[server.clientIdentifier] = sharedInfo
+          await saveSharedServersCache(cache)
+
+          useAppStore.setState({ hasServer: true })
+
+          console.log('[AUTH FLOW] ServerSelectPage: Shared server resolved! Navigating to library select...')
+          navigate('/library-select', {
+            state: {
+              isShared: true,
+              serverClientId: server.clientIdentifier,
+              serverName: server.name,
+              uri: sharedInfo.uri,
+              token: sharedInfo.token
+            }
+          })
+          return
+        }
       }
 
-      console.error(`[AUTH FLOW] ServerSelectPage: Failed to establish a connection to "${server.name}" (none of the connections responded).`)
+      console.error(`[AUTH FLOW] ServerSelectPage: Failed to establish a connection to "${server.name}".`)
       setError(`Could not connect to "${server.name}". Please ensure secure connections are allowed or server is online.`)
       setLoading(false)
     } catch (err) {
