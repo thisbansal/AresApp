@@ -865,13 +865,11 @@ function ContentBrowserPage() {
         }
       `}</style>
 
-      {libraries.length > 0 && (
-        <NavigationBar
-          libraries={libraries}
-          activeTab={activeTab}
-          onItemClick={handleNavClick}
-        />
-      )}
+      <NavigationBar
+        libraries={libraries}
+        activeTab={activeTab}
+        onItemClick={handleNavClick}
+      />
 
       {loading ? (
         <div style={styles.emptyContainer}>
