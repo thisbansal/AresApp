@@ -35,7 +35,15 @@ export const getServers = async (authToken, options = {}) => {
   if (!res.ok) throw new Error(`Failed to fetch servers: ${res.status}`)
 
   const rawResources = await res.json()
+  console.log(`[getServers] Raw resources from plex.tv/api/v2/resources:`, JSON.stringify(rawResources, null, 2))
+  console.log(`[getServers] Raw resources type: ${typeof rawResources}, isArray: ${Array.isArray(rawResources)}`)
+  if (Array.isArray(rawResources) && rawResources.length > 0) {
+    console.log(`[getServers] First resource keys:`, Object.keys(rawResources[0]))
+    console.log(`[getServers] First resource provides: "${rawResources[0].provides}", clientIdentifier: "${rawResources[0].clientIdentifier}", name: "${rawResources[0].name}"`)
+  }
+
   const allServers = rawResources.filter(s => s.provides === 'server')
+  console.log(`[getServers] Filtered servers:`, allServers.map(s => ({ name: s.name, clientIdentifier: s.clientIdentifier, owned: s.owned })))
 
   // Find own PMS to broker shared server requests if available
   const ownedServers = allServers.filter(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
