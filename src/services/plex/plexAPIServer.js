@@ -39,6 +39,9 @@ export const getServers = async (authToken, options = {}) => {
 
   // Find own PMS to broker shared server requests if available
   const ownedServers = allServers.filter(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
+  const initialSharedServers = allServers.filter(
+    s => !(s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
+  )
   let discoveredSharedServers = []
 
   for (const ownedServer of ownedServers) {
@@ -58,38 +61,43 @@ export const getServers = async (authToken, options = {}) => {
     console.log(`[getServers] Resolved owned PMS URI for brokering ("${ownedServer.name}"): ${pmsUri}`)
 
     if (pmsUri) {
-      try {
-        console.log(`[getServers] Querying owned PMS security resources for shared servers at ${pmsUri}...`)
-        const securityRes = await fetch(`${pmsUri}/security/resources`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'X-Plex-Token': pmsToken,
-            'X-Plex-Client-Identifier': PLEX_CONFIG.clientId
-          }
-        })
-        if (securityRes.ok) {
-          const securityData = await securityRes.json()
-          const resourcesList = Array.isArray(securityData)
-            ? securityData
-            : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || [])
-          
-          // Filter out servers that are shared (not owned by the user)
-          const sharedServers = resourcesList.filter(
-            r => r.provides === 'server' && 
-            !(r.owned === true || r.owned === 'true' || r.owned === 1 || r.owned === '1')
-          )
-          console.log(`[getServers] Discovered ${sharedServers.length} shared server(s) via owned PMS security check for "${ownedServer.name}".`)
-          for (const s of sharedServers) {
-            if (!discoveredSharedServers.some(ds => ds.clientIdentifier === s.clientIdentifier)) {
-              discoveredSharedServers.push(s)
+      for (const sharedServer of initialSharedServers) {
+        try {
+          const securityUrl = `${pmsUri}/security/resources?source=server://${sharedServer.clientIdentifier}&refresh=1`
+          console.log(`[getServers] Querying security resources for shared server "${sharedServer.name}" via "${ownedServer.name}" at: ${securityUrl}`)
+          const securityRes = await fetch(securityUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'X-Plex-Token': pmsToken,
+              'X-Plex-Client-Identifier': PLEX_CONFIG.clientId
             }
+          })
+          if (securityRes.ok) {
+            const securityData = await securityRes.json()
+            const serverDetails = Array.isArray(securityData)
+              ? securityData.find(s => s.clientIdentifier === sharedServer.clientIdentifier)
+              : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || []).find(s => s.clientIdentifier === sharedServer.clientIdentifier) || securityData?.MediaContainer || securityData
+
+            if (serverDetails) {
+              const token = serverDetails.accessToken || serverDetails.AuthToken || securityData.MediaContainer?.AuthToken || sharedServer.accessToken
+              const conns = serverDetails.connections || sharedServer.connections || []
+
+              const updatedShared = {
+                ...sharedServer,
+                accessToken: token,
+                connections: conns
+              }
+              if (!discoveredSharedServers.some(ds => ds.clientIdentifier === updatedShared.clientIdentifier)) {
+                discoveredSharedServers.push(updatedShared)
+              }
+            }
+          } else {
+            console.warn(`[getServers] Security resources query failed for "${sharedServer.name}" on "${ownedServer.name}": HTTP ${securityRes.status}`)
           }
-        } else {
-          console.warn(`[getServers] Owned PMS security resources query failed for "${ownedServer.name}": HTTP ${securityRes.status}`)
+        } catch (err) {
+          console.warn(`[getServers] Error querying security resources for "${sharedServer.name}" on "${ownedServer.name}":`, err.message)
         }
-      } catch (err) {
-        console.warn(`[getServers] Error querying owned PMS security resources for "${ownedServer.name}":`, err.message)
       }
     }
   }
