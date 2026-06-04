@@ -51,9 +51,9 @@ export const getServers = async (authToken, options = {}) => {
 
   for (const ownedServer of ownedServers) {
     const pmsToken = ownedServer.accessToken
-    // Sort original connections to preserve plex.direct URIs for security brokering
+    // Normalize and sort connections to use standard 192.x.x.x:port addresses for local calls
     const sortedConnections = (ownedServer.connections || [])
-      .map(conn => ({ uri: conn.uri, local: !!conn.local, relay: !!conn.relay }))
+      .map(conn => ({ uri: normalizeConnectionUri(conn), local: !!conn.local, relay: !!conn.relay }))
       .sort((a, b) => {
         if (a.local && !b.local) return -1
         if (!a.local && b.local) return 1
