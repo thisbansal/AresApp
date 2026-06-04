@@ -74,7 +74,7 @@ export const getServers = async (authToken, options = {}) => {
       for (const otherServer of otherServers) {
         try {
           const targetId = '57297bb0dd5fd3d97e5420502c63791a95414d33'
-          const securityUrl = `${pmsUri}/security/resources?source=server://${targetId}&refresh=1`
+          const securityUrl = `${pmsUri}/security/resources?source=${targetId}&refresh=1`
           console.log(`[getServers] Querying security resources for "${otherServer.name}" (ID: ${targetId}) via "${ownedServer.name}" at: ${securityUrl}`)
           const securityRes = await fetch(securityUrl, {
             method: 'GET',

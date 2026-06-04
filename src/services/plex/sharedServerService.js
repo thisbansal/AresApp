@@ -115,7 +115,7 @@ export const discoverSharedServer = async (mainToken, serverClientId, ownServerI
     }
 
     const targetId = '57297bb0dd5fd3d97e5420502c63791a95414d33'
-    const securityUrl = `${pmsUri}/security/resources?source=server://${targetId}&refresh=1`
+    const securityUrl = `${pmsUri}/security/resources?source=${targetId}&refresh=1`
     console.log(`[SHARED SERVER] Person 2 Flow: Querying brokered security endpoint via: ${securityUrl}`)
     const securityRes = await fetch(securityUrl, {
       method: 'GET',
