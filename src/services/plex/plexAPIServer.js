@@ -38,15 +38,14 @@ export const getServers = async (authToken, options = {}) => {
   const allServers = rawResources.filter(s => s.provides === 'server')
 
   // Find own PMS to broker shared server requests if available
-  const ownedServerResource = allServers.find(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
-  let pmsUri = null
-  let pmsToken = null
+  const ownedServers = allServers.filter(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
+  let discoveredSharedServers = []
 
-  if (ownedServerResource) {
-    pmsToken = ownedServerResource.accessToken
-    // Normalize own connections to determine the best connection URI
-    const normalizedConnections = ownedServerResource.connections
-      .map(conn => ({ uri: normalizeConnectionUri(conn), local: !!conn.local, relay: !!conn.relay }))
+  for (const ownedServer of ownedServers) {
+    const pmsToken = ownedServer.accessToken
+    // Sort original connections to preserve plex.direct URIs for security brokering
+    const sortedConnections = (ownedServer.connections || [])
+      .map(conn => ({ uri: conn.uri, local: !!conn.local, relay: !!conn.relay }))
       .sort((a, b) => {
         if (a.local && !b.local) return -1
         if (!a.local && b.local) return 1
@@ -54,26 +53,14 @@ export const getServers = async (authToken, options = {}) => {
         if (a.relay && !b.relay) return 1
         return 0
       })
-    
-    pmsUri = await getBestServerConnection({ connections: normalizedConnections }, pmsToken)
-    console.log(`[getServers] Resolved owned PMS brokering URI: ${pmsUri}`)
-  }
 
-  const mappedServers = []
+    const pmsUri = await getBestServerConnection({ connections: sortedConnections }, pmsToken)
+    console.log(`[getServers] Resolved owned PMS URI for brokering ("${ownedServer.name}"): ${pmsUri}`)
 
-  for (const server of allServers) {
-    if (ownedOnly && !server.owned) continue
-
-    let transientToken = server.accessToken
-    let rawConnections = server.connections || []
-
-    const isShared = !(server.owned === true || server.owned === 'true' || server.owned === 1 || server.owned === '1')
-
-    if (isShared && pmsUri && pmsToken) {
+    if (pmsUri) {
       try {
-        console.log(`[getServers] Brokering shared server "${server.name}" connections through own PMS...`)
-        const securityUrl = `${pmsUri}/security/resources?source=server://${server.clientIdentifier}`
-        const securityRes = await fetch(securityUrl, {
+        console.log(`[getServers] Querying owned PMS security resources for shared servers at ${pmsUri}...`)
+        const securityRes = await fetch(`${pmsUri}/security/resources`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -83,24 +70,45 @@ export const getServers = async (authToken, options = {}) => {
         })
         if (securityRes.ok) {
           const securityData = await securityRes.json()
-          const serverDetails = Array.isArray(securityData) 
-            ? securityData.find(s => s.clientIdentifier === server.clientIdentifier) 
-            : securityData?.MediaContainer?.AuthToken || securityData
-
-          if (serverDetails) {
-            transientToken = serverDetails.accessToken || serverDetails.AuthToken || securityData.MediaContainer?.AuthToken || transientToken
-            rawConnections = serverDetails.connections || rawConnections
-            console.log(`[getServers] Successfully brokered shared server "${server.name}"! Connections count: ${rawConnections.length}`)
+          const resourcesList = Array.isArray(securityData)
+            ? securityData
+            : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || [])
+          
+          // Filter out servers that are shared (not owned by the user)
+          const sharedServers = resourcesList.filter(
+            r => r.provides === 'server' && 
+            !(r.owned === true || r.owned === 'true' || r.owned === 1 || r.owned === '1')
+          )
+          console.log(`[getServers] Discovered ${sharedServers.length} shared server(s) via owned PMS security check for "${ownedServer.name}".`)
+          for (const s of sharedServers) {
+            if (!discoveredSharedServers.some(ds => ds.clientIdentifier === s.clientIdentifier)) {
+              discoveredSharedServers.push(s)
+            }
           }
         } else {
-          console.warn(`[getServers] Failed to broker shared server "${server.name}" (HTTP ${securityRes.status}). Falling back to resources.`)
+          console.warn(`[getServers] Owned PMS security resources query failed for "${ownedServer.name}": HTTP ${securityRes.status}`)
         }
       } catch (err) {
-        console.warn(`[getServers] Error brokering shared server "${server.name}":`, err.message)
+        console.warn(`[getServers] Error querying owned PMS security resources for "${ownedServer.name}":`, err.message)
       }
     }
+  }
 
-    const connections = rawConnections
+  // Combine servers from plex.tv and those discovered via owned PMS security brokering
+  const combinedServers = [...allServers]
+  for (const shared of discoveredSharedServers) {
+    if (!combinedServers.some(s => s.clientIdentifier === shared.clientIdentifier)) {
+      combinedServers.push(shared)
+    }
+  }
+
+  const mappedServers = []
+
+  for (const server of combinedServers) {
+    const isShared = !(server.owned === true || server.owned === 'true' || server.owned === 1 || server.owned === '1')
+    if (ownedOnly && isShared) continue
+
+    const connections = (server.connections || [])
       .map(conn => ({
         uri: normalizeConnectionUri(conn),
         local: !!conn.local,
@@ -117,7 +125,7 @@ export const getServers = async (authToken, options = {}) => {
     mappedServers.push({
       name: server.name,
       clientIdentifier: server.clientIdentifier,
-      accessToken: transientToken,
+      accessToken: server.accessToken,
       owned: !isShared,
       connections
     })
