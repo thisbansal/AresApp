@@ -38,7 +38,8 @@ export const resolveAccessibleServer = async (token, preferredUri = null) => {
     }
   }
 
-  for (const server of servers) {
+  // Probe all accessible servers concurrently to race them
+  const resolutionPromises = servers.map(async (server) => {
     const serverToken = getServerAccessToken(server, token)
     const bestUri = await getBestServerConnection(server, serverToken)
     if (bestUri) {
@@ -48,7 +49,32 @@ export const resolveAccessibleServer = async (token, preferredUri = null) => {
         server
       }
     }
-  }
+    throw new Error('Server unreachable')
+  })
 
-  throw new Error('Unable to resolve a reachable Plex server for this account.')
+  return new Promise((resolve, reject) => {
+    let rejectedCount = 0
+    let resolved = false
+
+    for (const promise of resolutionPromises) {
+      promise.then(
+        (result) => {
+          if (!resolved) {
+            resolved = true
+            resolve(result)
+          }
+        },
+        () => {
+          rejectedCount++
+          if (rejectedCount === resolutionPromises.length && !resolved) {
+            reject(new Error('Unable to resolve a reachable Plex server for this account.'))
+          }
+        }
+      )
+    }
+
+    if (resolutionPromises.length === 0) {
+      reject(new Error('Unable to resolve a reachable Plex server for this account.'))
+    }
+  })
 }
