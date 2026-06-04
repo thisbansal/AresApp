@@ -84,11 +84,8 @@ function LibrarySelectPage() {
         await useAppStore.getState().setSelectedLibraries(selectedIds)
       }
       
-      if (fromSettings) {
-        navigate('/browse', { replace: true })
-      } else {
-        navigate('/server-select')
-      }
+      // Navigate directly to homepage (/browse) on successful selection save
+      navigate('/browse', { replace: true })
     } catch (err) {
       console.error('Failed to save libraries', err)
       setError('Failed to save selections.')
