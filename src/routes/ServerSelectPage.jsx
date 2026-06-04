@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
 import { useAppStore } from '../stores/AppStore'
-import { discoverSharedServer, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
+import { getSharedServerToken, discoverSharedServer, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
 
 function ServerSelectPage() {
   const navigate = useNavigate()
@@ -37,6 +37,14 @@ function ServerSelectPage() {
 
       setServers(serverList)
       setLoading(false)
+
+      // Background prefetching for shared servers to resolve connection/tokens early
+      const sharedServers = serverList.filter(s => !s.owned)
+      for (const shared of sharedServers) {
+        getSharedServerToken(token, shared.clientIdentifier, null).catch(err => {
+          console.warn(`[AUTH FLOW] Background prefetch failed for shared server "${shared.name}":`, err)
+        })
+      }
     } catch (err) {
       console.error('[AUTH FLOW] ServerSelectPage: Failed to load servers:', err)
       setError('Connection failed. Please check your network and try again.')
@@ -71,9 +79,9 @@ function ServerSelectPage() {
           return
         }
       } else {
-        // Shared Server onboarding - run full discoverSharedServer flow (Steps 4 & 5)
-        console.log(`[AUTH FLOW] ServerSelectPage: Resolving shared server "${server.name}" via discoverSharedServer flow...`)
-        const sharedInfo = await discoverSharedServer(token, server.clientIdentifier, null)
+        // Shared Server onboarding - run getSharedServerToken check/flow
+        console.log(`[AUTH FLOW] ServerSelectPage: Resolving shared server "${server.name}"...`)
+        const sharedInfo = await getSharedServerToken(token, server.clientIdentifier, null)
         
         if (sharedInfo && sharedInfo.uri && sharedInfo.token) {
           // Register the shared server credentials in local cache immediately
