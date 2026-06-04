@@ -1,6 +1,6 @@
 import { PLEX_CONFIG } from '../../config/app'
 import { DB_KINDS, getData, setData } from '../luna/lunaService'
-import { getServers, getBestServerConnection, testConnectionToServer } from './plexAPIServer'
+import { getServers, getBestServerConnection, testConnectionToServer, getPlexDirectIdentifier } from './plexAPIServer'
 
 const SHARED_SERVERS_KEY = 'plexSharedServersAuth'
 
@@ -114,7 +114,8 @@ export const discoverSharedServer = async (mainToken, serverClientId, ownServerI
       throw new Error(`Failed to resolve connection to own PMS to broker shared server access.`)
     }
 
-    const securityUrl = `${pmsUri}/security/resources?source=server://${serverClientId}&refresh=1`
+    const directIdentifier = getPlexDirectIdentifier(sharedServerResource || { clientIdentifier: serverClientId })
+    const securityUrl = `${pmsUri}/security/resources?source=server://${directIdentifier}&refresh=1`
     console.log(`[SHARED SERVER] Person 2 Flow: Querying brokered security endpoint via: ${securityUrl}`)
     const securityRes = await fetch(securityUrl, {
       method: 'GET',

@@ -29,7 +29,8 @@ vi.mock('../src/services/luna/lunaService', () => ({
 vi.mock('../src/services/plex/plexAPIServer', () => ({
   getServers: vi.fn(),
   testConnectionToServer: vi.fn(),
-  getBestServerConnection: vi.fn()
+  getBestServerConnection: vi.fn(),
+  getPlexDirectIdentifier: vi.fn(server => server?.clientIdentifier)
 }))
 
 // Mock global fetch
