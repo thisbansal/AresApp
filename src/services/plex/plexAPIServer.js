@@ -73,11 +73,7 @@ export const getServers = async (authToken, options = {}) => {
           console.log(`[getServers] Querying security resources for "${otherServer.name}" (ID: ${otherServer.clientIdentifier}) via "${ownedServer.name}" at: ${securityUrl}`)
           const securityRes = await fetch(securityUrl, {
             method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'X-Plex-Token': pmsToken,
-              'X-Plex-Client-Identifier': PLEX_CONFIG.clientId
-            }
+            headers: getHeaders(pmsToken)
           })
           if (securityRes.ok) {
             const securityData = await securityRes.json()

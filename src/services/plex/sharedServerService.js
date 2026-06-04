@@ -118,11 +118,7 @@ export const discoverSharedServer = async (mainToken, serverClientId, ownServerI
     console.log(`[SHARED SERVER] Person 2 Flow: Querying brokered security endpoint via: ${securityUrl}`)
     const securityRes = await fetch(securityUrl, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'X-Plex-Token': pmsToken,
-        'X-Plex-Client-Identifier': PLEX_CONFIG.clientId
-      }
+      headers: getHeaders(pmsToken)
     })
 
     if (!securityRes.ok) {
