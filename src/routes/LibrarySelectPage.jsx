@@ -84,57 +84,29 @@ function LibrarySelectPage() {
 
     setSelectedIds(updatedIds)
 
-    // Save immediately if NOT from settings
-    if (!fromSettings) {
-      try {
-        if (isShared && serverClientId) {
-          await useAppStore.getState().setSelectedLibrariesForServer(serverClientId, updatedIds)
-          
-          // Ensure shared server auth is registered persistently in cache
-          if (location.state?.uri && location.state?.token) {
-            const cache = await getSharedServersCache()
-            cache[serverClientId] = {
-              token: location.state.token,
-              uri: location.state.uri,
-              timestamp: Date.now()
-            }
-            await saveSharedServersCache(cache)
-          }
-        } else {
-          await useAppStore.getState().setSelectedLibraries(updatedIds)
-        }
-        console.log('[AUTH FLOW] LibrarySelectPage: Selection saved immediately:', updatedIds)
-      } catch (err) {
-        console.error('[AUTH FLOW] LibrarySelectPage: Failed to save immediately:', err)
-      }
-    }
-  }
-
-  const handleDone = async () => {
-    if (!isShared && selectedIds.length === 0) return // Own server needs minimum 1 selection
-    console.log('[AUTH FLOW] LibrarySelectPage: Saving selected libraries:', selectedIds)
-    
     try {
       if (isShared && serverClientId) {
-        await useAppStore.getState().setSelectedLibrariesForServer(serverClientId, selectedIds)
+        await useAppStore.getState().setSelectedLibrariesForServer(serverClientId, updatedIds)
         
         // Ensure shared server auth is registered persistently in cache
-        if (location.state?.uri && location.state?.token) {
-          const cache = await getSharedServersCache()
+        const cache = await getSharedServersCache()
+        const resolvedUri = location.state?.uri || cache[serverClientId]?.uri
+        const resolvedToken = location.state?.token || cache[serverClientId]?.token
+        
+        if (resolvedUri && resolvedToken) {
           cache[serverClientId] = {
-            token: location.state.token,
-            uri: location.state.uri,
+            token: resolvedToken,
+            uri: resolvedUri,
             timestamp: Date.now()
           }
           await saveSharedServersCache(cache)
         }
       } else {
-        await useAppStore.getState().setSelectedLibraries(selectedIds)
+        await useAppStore.getState().setSelectedLibraries(updatedIds)
       }
-      navigate('/browse', { replace: true })
+      console.log('[AUTH FLOW] LibrarySelectPage: Selection saved immediately:', updatedIds)
     } catch (err) {
-      console.error('Failed to save libraries', err)
-      setError('Failed to save selections.')
+      console.error('[AUTH FLOW] LibrarySelectPage: Failed to save immediately:', err)
     }
   }
 
@@ -182,7 +154,7 @@ function LibrarySelectPage() {
             onClick={handleBack}
             className="retry-btn"
           >
-            <div style={styles.actionButton}>{fromSettings ? 'Cancel' : 'Go Back'}</div>
+            <div style={styles.actionButton}>Go Back</div>
           </FocusableItem>
         </div>
       </div>
@@ -289,20 +261,8 @@ function LibrarySelectPage() {
             onClick={handleBack}
             className={`action-btn ${isBackDisabled ? 'disabled' : ''}`}
           >
-            <div style={{ ...styles.actionButton, backgroundColor: '#ffffff', borderColor: '#ffffff', color: '#000000' }} className="btn-inner">{fromSettings ? 'Cancel' : 'Back'}</div>
+            <div style={{ ...styles.actionButton, backgroundColor: '#ffffff', borderColor: '#ffffff', color: '#000000' }} className="btn-inner">Back</div>
           </FocusableItem>
-
-          {fromSettings && (
-            <FocusableItem
-              id="lib-done-btn"
-              rowIndex={1}
-              colIndex={1}
-              onClick={handleDone}
-              className={`action-btn ${(!isShared && selectedIds.length === 0) ? 'disabled' : ''}`}
-            >
-              <div style={{ ...styles.actionButton, backgroundColor: '#ffffff', borderColor: '#ffffff', color: '#000000' }} className="btn-inner">Done</div>
-            </FocusableItem>
-          )}
         </div>
       </div>
     </div>
