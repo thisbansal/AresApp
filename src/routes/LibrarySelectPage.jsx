@@ -30,7 +30,17 @@ function LibrarySelectPage() {
       let targetToken = ''
       let initialSelected = []
 
-      if (isShared && serverClientId) {
+      // If connection parameters were already resolved and passed in location state
+      if (location.state?.uri && location.state?.token) {
+        targetUri = location.state.uri
+        targetToken = location.state.token
+        if (isShared && serverClientId) {
+          initialSelected = useAppStore.getState().selectedLibrariesByServer[serverClientId] || []
+        } else {
+          initialSelected = useAppStore.getState().selectedLibraryIds || []
+        }
+      } else if (isShared && serverClientId) {
+        // Dynamic lookup fallback (e.g. from Settings panel)
         const mainToken = useAppStore.getState().mainToken || await getMainToken()
         const activeOwnServer = useServerStore.getState().activeServer
         const sharedInfo = await getSharedServerToken(mainToken, serverClientId, activeOwnServer)
