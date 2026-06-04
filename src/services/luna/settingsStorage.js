@@ -100,3 +100,19 @@ export const saveSelectedLibrariesForServer = async (serverClientId, libraryIds)
   await setData(DB_KINDS.PREFERENCES, key, libraryIds)
 }
 
+export const getSelectedLibrariesMap = async () => {
+  if (!isWebOS()) {
+    const val = localStorage.getItem('app_selectedLibrariesMap')
+    return val ? JSON.parse(val) : {}
+  }
+  return await getData(DB_KINDS.PREFERENCES, 'selectedLibrariesMap', {})
+}
+
+export const saveSelectedLibrariesMap = async (librariesMap) => {
+  if (!isWebOS()) {
+    localStorage.setItem('app_selectedLibrariesMap', JSON.stringify(librariesMap))
+    return
+  }
+  await setData(DB_KINDS.PREFERENCES, 'selectedLibrariesMap', librariesMap)
+}
+

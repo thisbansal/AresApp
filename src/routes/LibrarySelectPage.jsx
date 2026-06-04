@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getLibraries } from '../services/plex/plexContentService'
 import { useAppStore } from '../stores/AppStore'
-import { getSharedServerToken } from '../services/plex/sharedServerService'
+import { getSharedServerToken, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { useServerStore } from '../stores/serverStore'
 
@@ -89,6 +89,17 @@ function LibrarySelectPage() {
       try {
         if (isShared && serverClientId) {
           await useAppStore.getState().setSelectedLibrariesForServer(serverClientId, updatedIds)
+          
+          // Ensure shared server auth is registered persistently in cache
+          if (location.state?.uri && location.state?.token) {
+            const cache = await getSharedServersCache()
+            cache[serverClientId] = {
+              token: location.state.token,
+              uri: location.state.uri,
+              timestamp: Date.now()
+            }
+            await saveSharedServersCache(cache)
+          }
         } else {
           await useAppStore.getState().setSelectedLibraries(updatedIds)
         }
@@ -106,6 +117,17 @@ function LibrarySelectPage() {
     try {
       if (isShared && serverClientId) {
         await useAppStore.getState().setSelectedLibrariesForServer(serverClientId, selectedIds)
+        
+        // Ensure shared server auth is registered persistently in cache
+        if (location.state?.uri && location.state?.token) {
+          const cache = await getSharedServersCache()
+          cache[serverClientId] = {
+            token: location.state.token,
+            uri: location.state.uri,
+            timestamp: Date.now()
+          }
+          await saveSharedServersCache(cache)
+        }
       } else {
         await useAppStore.getState().setSelectedLibraries(selectedIds)
       }
