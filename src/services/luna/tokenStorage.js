@@ -57,11 +57,22 @@ export const clearAllStoredInfo = async () => {
     deleteData(DB_KINDS.CONFIG, MAIN_TOKEN_KEY),
     deleteData(DB_KINDS.USER, USER_TOKEN_KEY),
     deleteData(DB_KINDS.SERVER, KINDS.server),
+    deleteData(DB_KINDS.SERVER, 'plexSharedServersAuth'),
     deleteData(DB_KINDS.PREFERENCES, KINDS.preferences)
   ])
 
   // Free up space by explicitly clearing localStorage caches
-  localStorage.removeItem('cached_users_list')
-  localStorage.removeItem('cached_current_profile')
-  localStorage.removeItem('app_selectedLibraries')
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    localStorage.removeItem('cached_users_list')
+    localStorage.removeItem('cached_current_profile')
+    localStorage.removeItem('app_selectedLibraries')
+    
+    // Clear any shared server library selections from localStorage
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i)
+      if (key && (key.startsWith('setting:selectedLibraries_') || key.startsWith('app_selectedLibraries_'))) {
+        localStorage.removeItem(key)
+      }
+    }
+  }
 }

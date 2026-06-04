@@ -6,7 +6,7 @@ import { FallbackImage } from '../components/media/FallbackImage'
 import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
-import { testConnectionToServer } from '../services/plex/plexAPIServer'
+import { testConnectionToServer, getServers } from '../services/plex/plexAPIServer'
 import { resolveAccessibleServer } from '../services/plex/plexAccessService'
 import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
 import { isMediaWatched } from '../services/plex/plexWatchedService'
@@ -18,6 +18,7 @@ import { useServerStore } from '../stores/serverStore'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
 import { getMainToken } from '../services/luna/tokenStorage'
+import { getSharedServerToken } from '../services/plex/sharedServerService'
 
 
 // Module-level cache to persist clicked item ID across route transitions (for back morph animations)
@@ -85,6 +86,15 @@ function ContentBrowserPage() {
   const [pinError, setPinError] = useState('')
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false)
 
+  // Shared Server State
+  const [sharedServers, setSharedServers] = useState([])
+  const [showSharedLibModal, setShowSharedLibModal] = useState(false)
+  const [targetSharedServer, setTargetSharedServer] = useState(null)
+  const [modalLibraries, setModalLibraries] = useState([])
+  const [modalSelectedIds, setModalSelectedIds] = useState([])
+  const [modalLoading, setModalLoading] = useState(false)
+  const [modalError, setModalError] = useState('')
+
   useEffect(() => {
     if (activeTab.type === 'settings') {
       const loadSettingsData = async () => {
@@ -100,6 +110,15 @@ function ContentBrowserPage() {
             const list = await getUsers(mainToken)
             setUsersList(list)
             localStorage.setItem('cached_users_list', JSON.stringify(list))
+
+            // Fetch servers and filter for shared ones
+            try {
+              const allServers = await getServers(mainToken, { ownedOnly: false })
+              const shared = allServers.filter(s => !s.owned)
+              setSharedServers(shared)
+            } catch (err) {
+              console.error('[Settings] Error fetching servers for settings:', err)
+            }
           }
         } catch (e) {
           console.error('[Settings] Error loading profiles:', e)
@@ -223,6 +242,67 @@ function ContentBrowserPage() {
 
   const ITEMS_PER_ROW = 6
 
+  const loadAllSelectedLibraries = async (ownUri = null, ownToken = null) => {
+    try {
+      const activeOwnUri = ownUri || serverInfo?.uri || useServerStore.getState().activeServer?.uri
+      const activeOwnToken = ownToken || serverInfo?.token || useServerStore.getState().activeServer?.token
+      
+      const allNavLibs = []
+
+      // 1. Load own libraries
+      if (activeOwnUri && activeOwnToken) {
+        try {
+          const ownLibs = await getLibraries(activeOwnUri, activeOwnToken)
+          const ownSelectedIds = useAppStore.getState().selectedLibraryIds
+          const ownFiltered = ownSelectedIds.length > 0 
+            ? ownLibs.filter(l => ownSelectedIds.includes(l.id))
+            : ownLibs
+            
+          allNavLibs.push(...ownFiltered.map(l => ({
+            ...l,
+            isShared: false,
+            serverUri: activeOwnUri,
+            token: activeOwnToken
+          })))
+        } catch (e) {
+          console.warn('[init] Failed to get own libraries:', e)
+        }
+      }
+
+      // 2. Load shared libraries
+      const mainToken = useAppStore.getState().mainToken || await getMainToken()
+      if (mainToken) {
+        const selectedLibrariesByServer = useAppStore.getState().selectedLibrariesByServer || {}
+        
+        for (const [clientId, selectedIds] of Object.entries(selectedLibrariesByServer)) {
+          if (selectedIds && selectedIds.length > 0) {
+            try {
+              const ownInfo = activeOwnUri ? { uri: activeOwnUri, token: activeOwnToken } : null
+              const sharedInfo = await getSharedServerToken(mainToken, clientId, ownInfo)
+              if (sharedInfo && sharedInfo.uri && sharedInfo.token) {
+                const sharedLibs = await getLibraries(sharedInfo.uri, sharedInfo.token)
+                const sharedFiltered = sharedLibs.filter(l => selectedIds.includes(l.id))
+                allNavLibs.push(...sharedFiltered.map(l => ({
+                  ...l,
+                  isShared: true,
+                  serverClientId: clientId,
+                  serverUri: sharedInfo.uri,
+                  token: sharedInfo.token
+                })))
+              }
+            } catch (err) {
+              console.error(`[init] Failed to load shared libraries for server ${clientId}:`, err)
+            }
+          }
+        }
+      }
+
+      setLibraries(allNavLibs)
+    } catch (err) {
+      console.error('[loadAllSelectedLibraries] Error:', err)
+    }
+  }
+
   // 1. Initialise Server Info and Libraries
   useEffect(() => {
     const initServerAndNav = async () => {
@@ -241,15 +321,6 @@ function ContentBrowserPage() {
           if (prefs.subtitleSize !== undefined) setSubtitleSize(prefs.subtitleSize)
           if (prefs.showSubtitleHUDControls !== undefined) setShowSubtitleHUDControls(prefs.showSubtitleHUDControls)
         }
-
-        const handleSetLibraries = (libs) => {
-          const selectedIds = useAppStore.getState().selectedLibraryIds;
-          if (selectedIds && selectedIds.length > 0) {
-            setLibraries(libs.filter(l => selectedIds.includes(l.id)));
-          } else {
-            setLibraries(libs); // Fallback to all if somehow none selected
-          }
-        };
 
         // 1. Fast Path: Try to boot instantly using the last known server address
         let currentUri = storedActiveServer?.uri || await getData(DB_KINDS.SERVER, KINDS.server)
@@ -270,7 +341,7 @@ function ContentBrowserPage() {
             const fastPathServer = { uri: currentUri, token: currentToken }
             setServerInfo(fastPathServer)
             useServerStore.setState({ activeServer: fastPathServer })
-            getLibraries(currentUri, currentToken).then(handleSetLibraries).catch(e => console.warn('Fast path getLibraries failed:', e))
+            loadAllSelectedLibraries(currentUri, currentToken).catch(e => console.warn('Fast path loadAllSelectedLibraries failed:', e))
 
             // If it's a fast local connection, we're done. No need to hit Plex.tv.
             if (!currentUri.includes('relay')) {
@@ -292,13 +363,13 @@ function ContentBrowserPage() {
           const nextServerInfo = { uri: resolvedServer.uri, token: resolvedServer.token }
           setServerInfo(nextServerInfo)
           useServerStore.setState({ activeServer: nextServerInfo })
-          getLibraries(resolvedServer.uri, resolvedServer.token).then(handleSetLibraries).catch(e => console.warn('Background getLibraries failed:', e))
+          loadAllSelectedLibraries(resolvedServer.uri, resolvedServer.token).catch(e => console.warn('Background loadAllSelectedLibraries failed:', e))
         } else if (!isCurrentHealthy && resolvedServer?.uri) {
           console.log('[init] Reusing stored server for active profile:', resolvedServer.uri)
           const nextServerInfo = { uri: resolvedServer.uri, token: resolvedServer.token }
           setServerInfo(nextServerInfo)
           useServerStore.setState({ activeServer: nextServerInfo })
-          getLibraries(resolvedServer.uri, resolvedServer.token).then(handleSetLibraries).catch(e => console.warn('Background getLibraries failed:', e))
+          loadAllSelectedLibraries(resolvedServer.uri, resolvedServer.token).catch(e => console.warn('Background loadAllSelectedLibraries failed:', e))
         }
       } catch (error) {
         console.error('[initServerAndNav] Error:', error)
@@ -334,9 +405,11 @@ function ContentBrowserPage() {
       setLoading(true)
       try {
         if (activeTab.type === 'home') {
+          const targetUri = serverInfo.uri
+          const targetToken = serverInfo.token
           const [onDeckData, recentData] = await Promise.all([
-            getOnDeck(serverInfo.uri, serverInfo.token, 20),
-            getRecentlyAdded(serverInfo.uri, serverInfo.token, null, 40) // Fetch more to ensure we have enough for both rows
+            getOnDeck(targetUri, targetToken, 20),
+            getRecentlyAdded(targetUri, targetToken, null, 40) // Fetch more to ensure we have enough for both rows
           ])
 
           await preloadImages([onDeckData, recentData])
@@ -346,7 +419,9 @@ function ContentBrowserPage() {
           setRecentTv(recentData.filter(i => ['show', 'season', 'episode'].includes(i.type)))
         } else if (activeTab.type === 'library') {
           const libId = activeTab.data.id
-          const allData = await getLibraryItems(serverInfo.uri, serverInfo.token, libId)
+          const targetUri = activeTab.data.serverUri || serverInfo.uri
+          const targetToken = activeTab.data.token || serverInfo.token
+          const allData = await getLibraryItems(targetUri, targetToken, libId)
 
           await preloadImages([allData])
 
@@ -387,6 +462,10 @@ function ContentBrowserPage() {
     console.log('Selected item:', item, 'isContinueWatching:', isContinueWatching)
     const { path } = resolveMediaNavigation(item, isContinueWatching)
 
+    const targetServerInfo = activeTab.type === 'library' && activeTab.data?.isShared
+      ? { uri: activeTab.data.serverUri, token: activeTab.data.token, owned: false }
+      : serverInfo
+
     if (document.startViewTransition) {
       globalClickedItemId = uid
       setClickedItemId(uid)
@@ -394,17 +473,20 @@ function ContentBrowserPage() {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.startViewTransition(() => {
-            navigate(path, { state: { serverInfo, item } })
+            navigate(path, { state: { serverInfo: targetServerInfo, item } })
           })
         })
       })
     } else {
-      navigate(path, { state: { serverInfo, item } })
+      navigate(path, { state: { serverInfo: targetServerInfo, item } })
     }
   }
 
   const handleToggleWatched = async (item) => {
-    const newWatchedState = await toggleWatched(item)
+    const targetServerInfo = activeTab.type === 'library' && activeTab.data?.isShared
+      ? { uri: activeTab.data.serverUri, token: activeTab.data.token }
+      : serverInfo
+    const newWatchedState = await toggleWatched(item, targetServerInfo)
     if (newWatchedState !== null) {
       const updateItem = (i) => {
         if (i.id === item.id) {
@@ -439,7 +521,9 @@ function ContentBrowserPage() {
 
       // Fetch latest On Deck to populate the next episode or updated state
       try {
-        const onDeckData = await getOnDeck(serverInfo.uri, serverInfo.token, 20)
+        const targetUri = targetServerInfo?.uri || serverInfo.uri
+        const targetToken = targetServerInfo?.token || serverInfo.token
+        const onDeckData = await getOnDeck(targetUri, targetToken, 20)
         // Preload only the new images to avoid pop-in
         const existingThumbs = new Set((continueWatching || []).map(i => i.thumb))
         const newUrls = onDeckData.map(i => i.thumb).filter(url => url && !existingThumbs.has(url))
@@ -1125,14 +1209,103 @@ function ContentBrowserPage() {
                 </div>
               </div>
 
-              {/* Row 12: System */}
+              {/* Row 12: Shared Servers */}
+              {sharedServers.length > 0 && (
+                <div style={styles.section} className="row">
+                  <h2 style={styles.sectionTitle}>Shared Servers</h2>
+                  <div style={styles.row} className="hide-scrollbar row-items">
+                    {sharedServers.map((server, colIdx) => {
+                      const selectedIds = useAppStore.getState().selectedLibrariesByServer[server.clientIdentifier] || []
+                      const hasSelectedLibs = selectedIds.length > 0
+                      
+                      return (
+                        <FocusableItem
+                          key={`setting-shared-server-${server.clientIdentifier}`}
+                          id={`setting-shared-server-${server.clientIdentifier}`}
+                          rowIndex={12}
+                          colIndex={colIdx}
+                          onClick={async () => {
+                            setTargetSharedServer(server)
+                            setModalLoading(true)
+                            setShowSharedLibModal(true)
+                            setModalError('')
+                            try {
+                              const mainToken = useAppStore.getState().mainToken || await getMainToken()
+                              const activeOwnServer = useServerStore.getState().activeServer
+                              const sharedInfo = await getSharedServerToken(mainToken, server.clientIdentifier, activeOwnServer)
+                              const libs = await getLibraries(sharedInfo.uri, sharedInfo.token)
+                              setModalLibraries(libs)
+                              setModalSelectedIds(selectedIds)
+                            } catch (err) {
+                              console.error('[Shared Server Modal] Failed to load libraries:', err)
+                              setModalError('Failed to load libraries from server.')
+                            } finally {
+                              setModalLoading(false)
+                            }
+                          }}
+                          style={{ flexShrink: 0 }}
+                        >
+                          <div className="setting-card" style={{ position: 'relative' }}>
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff' }}>
+                              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                              <line x1="8" y1="21" x2="16" y2="21"></line>
+                              <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            <div className="setting-card-title">{server.name}</div>
+                            <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
+                              {hasSelectedLibs ? `${selectedIds.length} libraries pinned` : 'None pinned'}
+                            </div>
+
+                            {hasSelectedLibs && (
+                              <div 
+                                style={{
+                                  position: 'absolute',
+                                  top: '16px',
+                                  right: '16px',
+                                  backgroundColor: '#34a853',
+                                  borderRadius: '50%',
+                                  width: '32px',
+                                  height: '32px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  border: '2px solid #ffffff',
+                                  boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+                                  zIndex: 10
+                                }}
+                                onClick={async (e) => {
+                                  e.stopPropagation()
+                                  try {
+                                    await useAppStore.getState().setSelectedLibrariesForServer(server.clientIdentifier, [])
+                                    await loadAllSelectedLibraries()
+                                  } catch (err) {
+                                    console.error('Failed to clear library selections:', err)
+                                  }
+                                }}
+                                title="Click to deselect all libraries"
+                              >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </FocusableItem>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Row 13: System */}
               <div style={styles.section} className="row">
                 <h2 style={styles.sectionTitle}>System</h2>
                 <div style={styles.row} className="hide-scrollbar row-items">
 
                   <FocusableItem
                     id="setting-sign-out"
-                    rowIndex={12}
+                    rowIndex={sharedServers.length > 0 ? 13 : 12}
                     colIndex={0}
                     onClick={() => setShowSignoutConfirm(true)}
                     style={{ flexShrink: 0 }}
@@ -1315,6 +1488,163 @@ function ContentBrowserPage() {
                         <div style={styles.cancelButton}>Cancel</div>
                       </FocusableItem>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Shared Server Library Selection Overlay */}
+              {showSharedLibModal && targetSharedServer && (
+                <div style={styles.exitOverlay} className="exit-overlay">
+                  <div style={{ ...styles.exitModal, maxWidth: '1000px', width: '90%', padding: '40px' }} className="exit-modal">
+                    <span style={{ ...styles.exitTitle, fontSize: '38px', marginBottom: '10px' }}>
+                      Libraries on {targetSharedServer.name}
+                    </span>
+                    <p style={{ color: '#9aa0a6', fontSize: '20px', marginBottom: '30px' }}>
+                      Pin libraries to your navigation bar. You can deselect all to hide this server.
+                    </p>
+
+                    {modalLoading && (
+                      <div style={{ padding: '60px', textAlign: 'center' }}>
+                        <div className="spinner" style={{ width: '50px', height: '50px', border: '3px solid rgba(255,255,255,0.1)', borderLeftColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }}></div>
+                        <p style={{ color: '#bdc1c6', fontSize: '24px' }}>Loading libraries...</p>
+                      </div>
+                    )}
+
+                    {modalError && (
+                      <div style={{ padding: '40px', textAlign: 'center' }}>
+                        <p style={{ color: '#f28b82', fontSize: '24px', marginBottom: '20px' }}>{modalError}</p>
+                        <FocusableItem
+                          id="modal-retry-btn"
+                          rowIndex={200}
+                          colIndex={0}
+                          onClick={async () => {
+                            setModalLoading(true)
+                            setModalError('')
+                            try {
+                              const mainToken = useAppStore.getState().mainToken || await getMainToken()
+                              const activeOwnServer = useServerStore.getState().activeServer
+                              const sharedInfo = await getSharedServerToken(mainToken, targetSharedServer.clientIdentifier, activeOwnServer)
+                              const libs = await getLibraries(sharedInfo.uri, sharedInfo.token)
+                              setModalLibraries(libs)
+                            } catch (err) {
+                              setModalError('Failed to load libraries from server.')
+                            } finally {
+                              setModalLoading(false)
+                            }
+                          }}
+                          className="exit-btn cancel"
+                        >
+                          Retry
+                        </FocusableItem>
+                      </div>
+                    )}
+
+                    {!modalLoading && !modalError && (
+                      <>
+                        <div style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '20px',
+                          justifyContent: 'center',
+                          maxHeight: '40vh',
+                          overflowY: 'auto',
+                          marginBottom: '40px',
+                          padding: '10px'
+                        }} className="hide-scrollbar">
+                          {modalLibraries.length === 0 ? (
+                            <p style={{ color: '#9aa0a6', fontSize: '24px' }}>No libraries found on this server.</p>
+                          ) : (
+                            modalLibraries.map((lib, idx) => {
+                              const isSelected = modalSelectedIds.includes(lib.id)
+                              const row = 100 + Math.floor(idx / 3)
+                              const col = idx % 3
+                              
+                              return (
+                                <FocusableItem
+                                  key={lib.id}
+                                  id={`modal-lib-${lib.id}`}
+                                  rowIndex={row}
+                                  colIndex={col}
+                                  onClick={() => {
+                                    setModalSelectedIds(prev =>
+                                      prev.includes(lib.id)
+                                        ? prev.filter(id => id !== lib.id)
+                                        : [...prev, lib.id]
+                                    )
+                                  }}
+                                  className="lib-item"
+                                  style={{ flexShrink: 0 }}
+                                >
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '16px',
+                                    padding: '18px 24px',
+                                    background: isSelected ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.06)',
+                                    border: isSelected ? '2px solid rgba(255,255,255,0.6)' : '2px solid rgba(255,255,255,0.12)',
+                                    borderRadius: '16px',
+                                    width: '280px',
+                                    transition: 'all 0.2s ease',
+                                    cursor: 'pointer'
+                                  }}>
+                                    <div style={{
+                                      width: '24px',
+                                      height: '24px',
+                                      borderRadius: '6px',
+                                      border: '2px solid rgba(255,255,255,0.4)',
+                                      backgroundColor: isSelected ? '#ffffff' : 'transparent',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}>
+                                      {isSelected && (
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round">
+                                          <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                      )}
+                                    </div>
+                                    <div style={{ textAlign: 'left', overflow: 'hidden' }}>
+                                      <div style={{ fontSize: '22px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', width: '200px' }}>{lib.title}</div>
+                                      <div style={{ fontSize: '16px', color: '#9aa0a6', textTransform: 'capitalize' }}>{lib.type}</div>
+                                    </div>
+                                  </div>
+                                </FocusableItem>
+                              )
+                            })
+                          )}
+                        </div>
+
+                        <div style={{ ...styles.exitButtonRow, justifyContent: 'center', gap: '30px' }}>
+                          <FocusableItem
+                            id="modal-cancel-btn"
+                            rowIndex={200}
+                            colIndex={0}
+                            onClick={() => setShowSharedLibModal(false)}
+                            className="exit-btn cancel"
+                          >
+                            Cancel
+                          </FocusableItem>
+                          <FocusableItem
+                            id="modal-ok-btn"
+                            rowIndex={200}
+                            colIndex={1}
+                            onClick={async () => {
+                              try {
+                                await useAppStore.getState().setSelectedLibrariesForServer(targetSharedServer.clientIdentifier, modalSelectedIds)
+                                await loadAllSelectedLibraries()
+                                setShowSharedLibModal(false)
+                              } catch (err) {
+                                console.error('Failed to save libraries:', err)
+                                setModalError('Failed to save selections.')
+                              }
+                            }}
+                            className="exit-btn confirm"
+                          >
+                            OK
+                          </FocusableItem>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

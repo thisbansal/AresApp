@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { initialiseDatabase, getMainToken, saveMainToken, clearAllStoredInfo } from '../services/luna/tokenStorage'
-import { saveProfileSession, getLastProfile, updateRememberPinInSession, getSelectedLibraries, saveSelectedLibraries } from '../services/luna/settingsStorage'
+import { saveProfileSession, getLastProfile, updateRememberPinInSession, getSelectedLibraries, saveSelectedLibraries, getSelectedLibrariesForServer, saveSelectedLibrariesForServer } from '../services/luna/settingsStorage'
 import { hasCompleteSession } from '../utils/appSettings'
 import { getData, setData, DB_KINDS, initDeviceId } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
@@ -18,6 +18,7 @@ export const useAppStore = create((set, get) => ({
   serverUri: null,
   setupServerToken: null,
   selectedLibraryIds: [],
+  selectedLibrariesByServer: {}, // Maps serverClientId -> libraryIds[]
   userProfile: null,
 
   initializeAuth: async () => {
@@ -58,15 +59,23 @@ export const useAppStore = create((set, get) => ({
       const sessionComplete = await hasCompleteSession()
       const userProfile = await getLastProfile()
 
+      const sharedServersAuth = await getData(DB_KINDS.SERVER, 'plexSharedServersAuth') || {}
+      const selectedLibrariesByServer = {}
+      for (const clientId of Object.keys(sharedServersAuth)) {
+        selectedLibrariesByServer[clientId] = await getSelectedLibrariesForServer(clientId)
+      }
+
       const activeToken = (sessionComplete && userProfile?.userToken) ? userProfile.userToken : mainToken
       const activeServer = (sessionComplete && userProfile?.serverUri && userProfile?.serverToken)
         ? { uri: userProfile.serverUri, token: userProfile.serverToken, owned: userProfile.serverOwned ?? true }
         : null
 
+      const hasLibraries = selectedLibraries.length > 0 || Object.values(selectedLibrariesByServer).some(libs => libs.length > 0)
+
       console.log('[AUTH STORE] Initialized:', {
         isAuthenticated: !!mainToken,
         hasServer: !!serverUri,
-        hasLibraries: selectedLibraries.length > 0,
+        hasLibraries,
         hasSession: sessionComplete,
         userProfile,
         activeToken: activeToken ? `${activeToken.substring(0, 5)}...` : null
@@ -80,7 +89,8 @@ export const useAppStore = create((set, get) => ({
         setupServerToken,
         hasServer: !!serverUri,
         selectedLibraryIds: selectedLibraries,
-        hasLibraries: selectedLibraries.length > 0,
+        selectedLibrariesByServer,
+        hasLibraries,
         hasSession: sessionComplete,
         userProfile,
         isLoading: false
@@ -155,7 +165,7 @@ export const useAppStore = create((set, get) => ({
       await saveSelectedLibraries(libraryIds)
       set({
         selectedLibraryIds: libraryIds,
-        hasLibraries: libraryIds.length > 0
+        hasLibraries: libraryIds.length > 0 || Object.values(get().selectedLibrariesByServer).some(libs => libs.length > 0)
       })
       console.log('[AUTH STORE] setSelectedLibraries completed')
     } catch (err) {
@@ -163,6 +173,26 @@ export const useAppStore = create((set, get) => ({
       throw err
     }
   },
+
+  setSelectedLibrariesForServer: async (serverClientId, libraryIds) => {
+    console.log(`[AUTH STORE] setSelectedLibrariesForServer starting for: ${serverClientId}`)
+    try {
+      await saveSelectedLibrariesForServer(serverClientId, libraryIds)
+      const updatedMap = {
+        ...get().selectedLibrariesByServer,
+        [serverClientId]: libraryIds
+      }
+      set({
+        selectedLibrariesByServer: updatedMap,
+        hasLibraries: get().selectedLibraryIds.length > 0 || Object.values(updatedMap).some(libs => libs.length > 0)
+      })
+      console.log('[AUTH STORE] setSelectedLibrariesForServer completed')
+    } catch (err) {
+      console.error('[AUTH STORE] Failed to set libraries for server:', err)
+      throw err
+    }
+  },
+
 
   setProfileSession: async (profileId, userName, token, pin = null, rememberPin = true, isProtected = false, serverConnection = null) => {
     console.log('[AUTH STORE] setProfileSession starting for:', userName)

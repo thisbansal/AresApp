@@ -21,10 +21,11 @@ describe('Sign Out Stored Data Cleansing Service', () => {
   it('should clear main token, user token, server address, and preferences from DB8 storage', async () => {
     await clearAllStoredInfo()
 
-    expect(deleteData).toHaveBeenCalledTimes(4)
+    expect(deleteData).toHaveBeenCalledTimes(5)
     expect(deleteData).toHaveBeenCalledWith('config', 'plexMainToken')
     expect(deleteData).toHaveBeenCalledWith('user', 'plexMainUser')
     expect(deleteData).toHaveBeenCalledWith('servers', KINDS.server)
+    expect(deleteData).toHaveBeenCalledWith('servers', 'plexSharedServersAuth')
     expect(deleteData).toHaveBeenCalledWith('preferences', KINDS.preferences)
   })
 })

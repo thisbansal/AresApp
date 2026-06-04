@@ -9,13 +9,14 @@ import { toggleWatchedState } from '../services/plex/plexWatchedService'
  */
 export function useToggleWatched(serverInfo) {
   return useCallback(
-    async (item) => {
-      if (!serverInfo?.uri || !serverInfo?.token) {
+    async (item, customServerInfo = null) => {
+      const activeServer = customServerInfo || serverInfo
+      if (!activeServer?.uri || !activeServer?.token) {
         console.warn('[useToggleWatched] Cannot toggle watched state: server credentials are missing')
         return null
       }
       try {
-        return await toggleWatchedState(serverInfo.uri, serverInfo.token, item)
+        return await toggleWatchedState(activeServer.uri, activeServer.token, item)
       } catch (err) {
         console.error('[useToggleWatched] Failed to toggle watched state:', err)
         return null
