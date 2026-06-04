@@ -51,6 +51,10 @@ export const getServers = async (authToken, options = {}) => {
 
   for (const ownedServer of ownedServers) {
     const pmsToken = ownedServer.accessToken
+    if (!pmsToken) {
+      console.log(`[getServers] Skipping owned server "${ownedServer.name}" due to missing accessToken.`)
+      continue
+    }
     // Normalize and sort connections to use standard 192.x.x.x:port addresses for local calls
     const sortedConnections = (ownedServer.connections || [])
       .map(conn => ({ uri: normalizeConnectionUri(conn), local: !!conn.local, relay: !!conn.relay }))
