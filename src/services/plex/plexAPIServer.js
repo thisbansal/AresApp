@@ -99,8 +99,8 @@ export const getServers = async (authToken, options = {}) => {
           if (securityRes.ok) {
             const securityData = await securityRes.json()
             const serverDetails = Array.isArray(securityData)
-              ? securityData.find(s => s.clientIdentifier === otherServer.clientIdentifier)
-              : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || []).find(s => s.clientIdentifier === otherServer.clientIdentifier) || securityData?.MediaContainer || securityData
+              ? securityData.find(s => s.clientIdentifier === directId)
+              : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || []).find(s => s.clientIdentifier === directId) || securityData?.MediaContainer || securityData
 
             if (serverDetails) {
               const token = serverDetails.accessToken || serverDetails.AuthToken || securityData.MediaContainer?.AuthToken || otherServer.accessToken

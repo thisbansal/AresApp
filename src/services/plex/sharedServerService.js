@@ -133,7 +133,7 @@ export const discoverSharedServer = async (mainToken, serverClientId, ownServerI
     const securityData = await securityRes.json()
     // Depending on PMS API responses, securityData will contain the resource list or details for the server
     const serverDetails = Array.isArray(securityData) 
-      ? securityData.find(s => s.clientIdentifier === serverClientId) 
+      ? securityData.find(s => s.clientIdentifier === directIdentifier) 
       : securityData?.MediaContainer?.AuthToken || securityData
 
     if (serverDetails) {
