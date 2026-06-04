@@ -298,6 +298,14 @@ function ContentBrowserPage() {
       }
 
       setLibraries(allNavLibs)
+      
+      if (activeTab && activeTab.type === 'library') {
+        const stillExists = allNavLibs.some(l => l.id === activeTab.data?.id)
+        if (!stillExists) {
+          console.log('[ContentBrowserPage] Active library tab no longer selected. Resetting to Home.')
+          setActiveTab({ type: 'home' })
+        }
+      }
     } catch (err) {
       console.error('[loadAllSelectedLibraries] Error:', err)
     }
