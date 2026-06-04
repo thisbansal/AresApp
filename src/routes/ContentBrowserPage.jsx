@@ -61,6 +61,9 @@ function ContentBrowserPage() {
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
 
+  const selectedLibraryIds = useAppStore((state) => state.selectedLibraryIds)
+  const selectedLibrariesByServer = useAppStore((state) => state.selectedLibrariesByServer)
+
   const [loading, setLoading] = useState(true)
   const toggleWatched = useToggleWatched(serverInfo)
 
@@ -253,10 +256,8 @@ function ContentBrowserPage() {
       if (activeOwnUri && activeOwnToken) {
         try {
           const ownLibs = await getLibraries(activeOwnUri, activeOwnToken)
-          const ownSelectedIds = useAppStore.getState().selectedLibraryIds
-          const ownFiltered = ownSelectedIds.length > 0 
-            ? ownLibs.filter(l => ownSelectedIds.includes(l.id))
-            : ownLibs
+          const ownSelectedIds = useAppStore.getState().selectedLibraryIds || []
+          const ownFiltered = ownLibs.filter(l => ownSelectedIds.includes(l.id))
             
           allNavLibs.push(...ownFiltered.map(l => ({
             ...l,
@@ -274,7 +275,10 @@ function ContentBrowserPage() {
       if (mainToken) {
         const selectedLibrariesByServer = useAppStore.getState().selectedLibrariesByServer || {}
         
-        for (const [clientId, selectedIds] of Object.entries(selectedLibrariesByServer)) {
+        // Sort server clientIds stably to prevent key insertion order from swapping tabs in navbar
+        const sortedServerEntries = Object.entries(selectedLibrariesByServer).sort((a, b) => a[0].localeCompare(b[0]))
+        
+        for (const [clientId, selectedIds] of sortedServerEntries) {
           if (selectedIds && selectedIds.length > 0) {
             try {
               const ownInfo = activeOwnUri ? { uri: activeOwnUri, token: activeOwnToken } : null
@@ -385,6 +389,13 @@ function ContentBrowserPage() {
     }
     initServerAndNav()
   }, [])
+
+  // 1b. Reload libraries dynamically if selections change (e.g. from Settings Library Select)
+  useEffect(() => {
+    if (serverInfo?.uri && serverInfo?.token) {
+      loadAllSelectedLibraries(serverInfo.uri, serverInfo.token).catch(e => console.warn('[init] Reactive reload failed:', e))
+    }
+  }, [selectedLibraryIds, selectedLibrariesByServer, serverInfo])
 
   // Helper to preload images before showing content
   const preloadImages = async (itemsArrays) => {

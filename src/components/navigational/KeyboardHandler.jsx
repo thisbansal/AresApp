@@ -83,13 +83,19 @@ export function KeyboardHandler() {
 
         if (isLibrarySelectRoute) {
           const isShared = location.state?.isShared || false;
+          const fromSettings = location.state?.from === 'settings';
           const selectedLibraryIds = useAppStore.getState().selectedLibraryIds || [];
           if (!isShared && selectedLibraryIds.length === 0) {
             console.log('[AUTH FLOW] KeyboardHandler: Back key blocked. Owned server needs at least 1 library.');
             return;
           }
-          console.log('[AUTH FLOW] KeyboardHandler: Navigating back to server select.');
-          navigateReactRouter('/server-select');
+          if (fromSettings) {
+            console.log('[AUTH FLOW] KeyboardHandler: Navigating back to browse.');
+            navigateReactRouter('/browse', { replace: true });
+          } else {
+            console.log('[AUTH FLOW] KeyboardHandler: Navigating back to server select.');
+            navigateReactRouter('/server-select');
+          }
           return;
         }
 

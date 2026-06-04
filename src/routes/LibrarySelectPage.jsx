@@ -111,13 +111,13 @@ function LibrarySelectPage() {
   }
 
   const handleBack = () => {
+    if (!isShared && selectedIds.length === 0) {
+      console.log('[AUTH FLOW] LibrarySelectPage: Back blocked. Needs at least 1 library.')
+      return
+    }
     if (fromSettings) {
       navigate('/browse', { replace: true })
     } else {
-      if (!isShared && selectedIds.length === 0) {
-        console.log('[AUTH FLOW] LibrarySelectPage: Back blocked. Needs at least 1 library.')
-        return
-      }
       navigate('/server-select')
     }
   }
@@ -161,7 +161,7 @@ function LibrarySelectPage() {
     )
   }
 
-  const isBackDisabled = !fromSettings && !isShared && selectedIds.length === 0
+  const isBackDisabled = !isShared && selectedIds.length === 0
 
   return (
     <div style={styles.container}>

@@ -87,7 +87,7 @@ export const useAppStore = create((set, get) => ({
         isAuthenticated: !!mainToken,
         serverUri,
         setupServerToken,
-        hasServer: !!serverUri,
+        hasServer: !!serverUri || Object.keys(selectedLibrariesByServer).length > 0,
         selectedLibraryIds: selectedLibraries,
         selectedLibrariesByServer,
         hasLibraries,
@@ -188,6 +188,7 @@ export const useAppStore = create((set, get) => ({
       }
       set({
         selectedLibrariesByServer: updatedMap,
+        hasServer: true,
         hasLibraries: get().selectedLibraryIds.length > 0 || Object.values(updatedMap).some(libs => libs.length > 0)
       })
       console.log('[AUTH STORE] setSelectedLibrariesForServer completed')

@@ -74,7 +74,8 @@ describe('plexBridge and useServerStore Unit Tests', () => {
       expect(response.ok).toBe(true)
     })
 
-    it('should use the explicitly provided server context for profile-scoped requests', async () => {
+    it('should use the explicitly provided server context for profile-scoped requests but NOT overwrite the global activeServer', async () => {
+      useServerStore.setState({ activeServer: { uri: 'http://owned-pms', token: 'owned-token' } })
       global.fetch.mockResolvedValue({ ok: true, json: async () => ({ status: 'ok' }) })
 
       await plexBridge.request('/library/sections', {}, { uri: 'http://shared-pms', token: 'profile-token' })
@@ -85,8 +86,8 @@ describe('plexBridge and useServerStore Unit Tests', () => {
         expect.any(Object)
       )
       expect(useServerStore.getState().activeServer).toEqual({
-        uri: 'http://shared-pms',
-        token: 'profile-token'
+        uri: 'http://owned-pms',
+        token: 'owned-token'
       })
     })
 

@@ -56,6 +56,8 @@ function ServerSelectPage() {
         
         if (server.owned) {
           await useAppStore.getState().setServerUri(bestUri, server.accessToken)
+        } else {
+          useAppStore.setState({ hasServer: true })
         }
 
         console.log('[AUTH FLOW] ServerSelectPage: Done! Navigating to library select (/library-select)...')

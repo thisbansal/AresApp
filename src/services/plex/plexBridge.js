@@ -63,8 +63,10 @@ export const plexBridge = {
         activeServer = await getActiveServerInfo(serverInfo)
         useServerStore.setState({ activeServer })
       } else if (
-        activeServer.uri !== store.activeServer?.uri ||
-        activeServer.token !== store.activeServer?.token
+        !serverInfo && (
+          activeServer.uri !== store.activeServer?.uri ||
+          activeServer.token !== store.activeServer?.token
+        )
       ) {
         useServerStore.setState({ activeServer })
       }
