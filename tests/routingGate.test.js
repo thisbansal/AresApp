@@ -24,7 +24,7 @@ describe('AuthRoute Routing Gate', () => {
     expect(res.props.to).toBe('/login')
   })
 
-  it('should redirect to /browse if user tries to access server-select with completed session', () => {
+  it('should allow accessing server-select if user has a completed session (to support switching servers)', () => {
     mockPathname = '/server-select'
     const res = AuthRoute({
       children: 'Content',
@@ -32,7 +32,7 @@ describe('AuthRoute Routing Gate', () => {
       isAuthenticated: true,
       hasSession: true
     })
-    expect(res.props.to).toBe('/browse')
+    expect(res).toBe('Content')
   })
 
   it('should redirect to /server-select if no session and no server selected', () => {
@@ -48,13 +48,14 @@ describe('AuthRoute Routing Gate', () => {
     expect(res.props.to).toBe('/server-select')
   })
 
-  it('should redirect straight to /user-select if no session but server is already selected', () => {
+  it('should redirect straight to /user-select if no session but server is already selected and libraries are selected', () => {
     mockPathname = '/browse'
     const res = AuthRoute({
       children: 'Content',
       requireAuth: true,
       isAuthenticated: true,
       hasServer: true,
+      hasLibraries: true,
       hasSession: false,
       allowIncompleteSession: false
     })
