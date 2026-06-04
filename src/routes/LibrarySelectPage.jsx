@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getLibraries } from '../services/plex/plexContentService'
 import { useAppStore } from '../stores/AppStore'
+import { getSharedServerToken } from '../services/plex/sharedServerService'
+import { getMainToken } from '../services/luna/tokenStorage'
+import { useServerStore } from '../stores/serverStore'
 
 function LibrarySelectPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const isShared = location.state?.isShared || false
+  const serverClientId = location.state?.serverClientId
+  const fromSettings = location.state?.from === 'settings'
+
   const [loading, setLoading] = useState(true)
   const [libraries, setLibraries] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
@@ -18,13 +26,29 @@ function LibrarySelectPage() {
   const loadLibraries = async () => {
     console.log('[AUTH FLOW] LibrarySelectPage: Fetching available libraries...')
     try {
-      const { serverUri, token, setupServerToken, selectedLibraryIds } = useAppStore.getState()
-      if (!serverUri || !token) {
+      let targetUri = ''
+      let targetToken = ''
+      let initialSelected = []
+
+      if (isShared && serverClientId) {
+        const mainToken = useAppStore.getState().mainToken || await getMainToken()
+        const activeOwnServer = useServerStore.getState().activeServer
+        const sharedInfo = await getSharedServerToken(mainToken, serverClientId, activeOwnServer)
+        targetUri = sharedInfo.uri
+        targetToken = sharedInfo.token
+        initialSelected = useAppStore.getState().selectedLibrariesByServer[serverClientId] || []
+      } else {
+        const { serverUri, token, setupServerToken, selectedLibraryIds } = useAppStore.getState()
+        targetUri = serverUri
+        targetToken = setupServerToken || token
+        initialSelected = selectedLibraryIds || []
+      }
+
+      if (!targetUri || !targetToken) {
         throw new Error('Missing server connection details.')
       }
 
-      const activeTokenToUse = setupServerToken || token
-      const libs = await getLibraries(serverUri, activeTokenToUse)
+      const libs = await getLibraries(targetUri, targetToken)
       console.log(`[AUTH FLOW] LibrarySelectPage: Found ${libs.length} libraries.`)
 
       if (libs.length === 0) {
@@ -34,9 +58,7 @@ function LibrarySelectPage() {
       }
 
       setLibraries(libs)
-      // Pre-select any previously saved ones, or default to all if none saved (optional)
-      // We will just start with empty or previously saved
-      setSelectedIds(selectedLibraryIds || [])
+      setSelectedIds(initialSelected)
       setLoading(false)
     } catch (err) {
       console.error('[AUTH FLOW] LibrarySelectPage: Error loading libraries:', err)
@@ -52,12 +74,21 @@ function LibrarySelectPage() {
   }
 
   const handleDone = async () => {
-    if (selectedIds.length === 0) return
+    if (!isShared && selectedIds.length === 0) return // Own server needs minimum 1 selection
     console.log('[AUTH FLOW] LibrarySelectPage: Saving selected libraries:', selectedIds)
     
     try {
-      await useAppStore.getState().setSelectedLibraries(selectedIds)
-      navigate('/server-select')
+      if (isShared && serverClientId) {
+        await useAppStore.getState().setSelectedLibrariesForServer(serverClientId, selectedIds)
+      } else {
+        await useAppStore.getState().setSelectedLibraries(selectedIds)
+      }
+      
+      if (fromSettings) {
+        navigate('/browse', { replace: true })
+      } else {
+        navigate('/server-select')
+      }
     } catch (err) {
       console.error('Failed to save libraries', err)
       setError('Failed to save selections.')
@@ -65,7 +96,11 @@ function LibrarySelectPage() {
   }
 
   const handleBack = () => {
-    navigate('/server-select')
+    if (fromSettings) {
+      navigate('/browse', { replace: true })
+    } else {
+      navigate('/server-select')
+    }
   }
 
   if (loading) {
@@ -212,7 +247,7 @@ function LibrarySelectPage() {
             rowIndex={1}
             colIndex={1}
             onClick={handleDone}
-            className={`action-btn ${selectedIds.length === 0 ? 'disabled' : ''}`}
+            className={`action-btn ${(!isShared && selectedIds.length === 0) ? 'disabled' : ''}`}
           >
             <div style={styles.actionButton} className="btn-inner">Done</div>
           </FocusableItem>

@@ -1224,24 +1224,14 @@ function ContentBrowserPage() {
                           id={`setting-shared-server-${server.clientIdentifier}`}
                           rowIndex={12}
                           colIndex={colIdx}
-                          onClick={async () => {
-                            setTargetSharedServer(server)
-                            setModalLoading(true)
-                            setShowSharedLibModal(true)
-                            setModalError('')
-                            try {
-                              const mainToken = useAppStore.getState().mainToken || await getMainToken()
-                              const activeOwnServer = useServerStore.getState().activeServer
-                              const sharedInfo = await getSharedServerToken(mainToken, server.clientIdentifier, activeOwnServer)
-                              const libs = await getLibraries(sharedInfo.uri, sharedInfo.token)
-                              setModalLibraries(libs)
-                              setModalSelectedIds(selectedIds)
-                            } catch (err) {
-                              console.error('[Shared Server Modal] Failed to load libraries:', err)
-                              setModalError('Failed to load libraries from server.')
-                            } finally {
-                              setModalLoading(false)
-                            }
+                          onClick={() => {
+                            navigate('/library-select', {
+                              state: {
+                                isShared: true,
+                                serverClientId: server.clientIdentifier,
+                                from: 'settings'
+                              }
+                            })
                           }}
                           style={{ flexShrink: 0 }}
                         >
@@ -1492,162 +1482,7 @@ function ContentBrowserPage() {
                 </div>
               )}
 
-              {/* Shared Server Library Selection Overlay */}
-              {showSharedLibModal && targetSharedServer && (
-                <div style={styles.exitOverlay} className="exit-overlay">
-                  <div style={{ ...styles.exitModal, maxWidth: '1000px', width: '90%', padding: '40px' }} className="exit-modal">
-                    <span style={{ ...styles.exitTitle, fontSize: '38px', marginBottom: '10px' }}>
-                      Libraries on {targetSharedServer.name}
-                    </span>
-                    <p style={{ color: '#9aa0a6', fontSize: '20px', marginBottom: '30px' }}>
-                      Pin libraries to your navigation bar. You can deselect all to hide this server.
-                    </p>
 
-                    {modalLoading && (
-                      <div style={{ padding: '60px', textAlign: 'center' }}>
-                        <div className="spinner" style={{ width: '50px', height: '50px', border: '3px solid rgba(255,255,255,0.1)', borderLeftColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }}></div>
-                        <p style={{ color: '#bdc1c6', fontSize: '24px' }}>Loading libraries...</p>
-                      </div>
-                    )}
-
-                    {modalError && (
-                      <div style={{ padding: '40px', textAlign: 'center' }}>
-                        <p style={{ color: '#f28b82', fontSize: '24px', marginBottom: '20px' }}>{modalError}</p>
-                        <FocusableItem
-                          id="modal-retry-btn"
-                          rowIndex={200}
-                          colIndex={0}
-                          onClick={async () => {
-                            setModalLoading(true)
-                            setModalError('')
-                            try {
-                              const mainToken = useAppStore.getState().mainToken || await getMainToken()
-                              const activeOwnServer = useServerStore.getState().activeServer
-                              const sharedInfo = await getSharedServerToken(mainToken, targetSharedServer.clientIdentifier, activeOwnServer)
-                              const libs = await getLibraries(sharedInfo.uri, sharedInfo.token)
-                              setModalLibraries(libs)
-                            } catch (err) {
-                              setModalError('Failed to load libraries from server.')
-                            } finally {
-                              setModalLoading(false)
-                            }
-                          }}
-                          className="exit-btn cancel"
-                        >
-                          Retry
-                        </FocusableItem>
-                      </div>
-                    )}
-
-                    {!modalLoading && !modalError && (
-                      <>
-                        <div style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: '20px',
-                          justifyContent: 'center',
-                          maxHeight: '40vh',
-                          overflowY: 'auto',
-                          marginBottom: '40px',
-                          padding: '10px'
-                        }} className="hide-scrollbar">
-                          {modalLibraries.length === 0 ? (
-                            <p style={{ color: '#9aa0a6', fontSize: '24px' }}>No libraries found on this server.</p>
-                          ) : (
-                            modalLibraries.map((lib, idx) => {
-                              const isSelected = modalSelectedIds.includes(lib.id)
-                              const row = 100 + Math.floor(idx / 3)
-                              const col = idx % 3
-                              
-                              return (
-                                <FocusableItem
-                                  key={lib.id}
-                                  id={`modal-lib-${lib.id}`}
-                                  rowIndex={row}
-                                  colIndex={col}
-                                  onClick={() => {
-                                    setModalSelectedIds(prev =>
-                                      prev.includes(lib.id)
-                                        ? prev.filter(id => id !== lib.id)
-                                        : [...prev, lib.id]
-                                    )
-                                  }}
-                                  className="lib-item"
-                                  style={{ flexShrink: 0 }}
-                                >
-                                  <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '16px',
-                                    padding: '18px 24px',
-                                    background: isSelected ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.06)',
-                                    border: isSelected ? '2px solid rgba(255,255,255,0.6)' : '2px solid rgba(255,255,255,0.12)',
-                                    borderRadius: '16px',
-                                    width: '280px',
-                                    transition: 'all 0.2s ease',
-                                    cursor: 'pointer'
-                                  }}>
-                                    <div style={{
-                                      width: '24px',
-                                      height: '24px',
-                                      borderRadius: '6px',
-                                      border: '2px solid rgba(255,255,255,0.4)',
-                                      backgroundColor: isSelected ? '#ffffff' : 'transparent',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                    }}>
-                                      {isSelected && (
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round">
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      )}
-                                    </div>
-                                    <div style={{ textAlign: 'left', overflow: 'hidden' }}>
-                                      <div style={{ fontSize: '22px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', width: '200px' }}>{lib.title}</div>
-                                      <div style={{ fontSize: '16px', color: '#9aa0a6', textTransform: 'capitalize' }}>{lib.type}</div>
-                                    </div>
-                                  </div>
-                                </FocusableItem>
-                              )
-                            })
-                          )}
-                        </div>
-
-                        <div style={{ ...styles.exitButtonRow, justifyContent: 'center', gap: '30px' }}>
-                          <FocusableItem
-                            id="modal-cancel-btn"
-                            rowIndex={200}
-                            colIndex={0}
-                            onClick={() => setShowSharedLibModal(false)}
-                            className="exit-btn cancel"
-                          >
-                            Cancel
-                          </FocusableItem>
-                          <FocusableItem
-                            id="modal-ok-btn"
-                            rowIndex={200}
-                            colIndex={1}
-                            onClick={async () => {
-                              try {
-                                await useAppStore.getState().setSelectedLibrariesForServer(targetSharedServer.clientIdentifier, modalSelectedIds)
-                                await loadAllSelectedLibraries()
-                                setShowSharedLibModal(false)
-                              } catch (err) {
-                                console.error('Failed to save libraries:', err)
-                                setModalError('Failed to save selections.')
-                              }
-                            }}
-                            className="exit-btn confirm"
-                          >
-                            OK
-                          </FocusableItem>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </>
