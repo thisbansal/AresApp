@@ -142,6 +142,10 @@ export const useAppStore = create((set, get) => ({
   setServerUri: async (uri, setupServerToken = null) => {
     console.log('[AUTH STORE] setServerUri starting for:', uri)
     try {
+      if (get().serverUri === uri) {
+        console.log('[AUTH STORE] Server URI is identical. Skipping library selection reset.')
+        return
+      }
       const serverData = setupServerToken ? { uri, token: setupServerToken } : uri
       await setData(DB_KINDS.SERVER, KINDS.server, serverData)
       set({
