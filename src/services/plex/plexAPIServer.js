@@ -34,31 +34,96 @@ export const getServers = async (authToken, options = {}) => {
 
   if (!res.ok) throw new Error(`Failed to fetch servers: ${res.status}`)
 
-  const servers = await res.json()
+  const rawResources = await res.json()
+  const allServers = rawResources.filter(s => s.provides === 'server')
 
-  // Return PMS resources accessible to this token, including shared servers for non-owner profiles.
-  return servers
-    .filter(s => s.provides === 'server' && (!ownedOnly || s.owned))
-    .map(server => ({
+  // Find own PMS to broker shared server requests if available
+  const ownedServerResource = allServers.find(s => s.owned === true || s.owned === 'true' || s.owned === 1 || s.owned === '1')
+  let pmsUri = null
+  let pmsToken = null
+
+  if (ownedServerResource) {
+    pmsToken = ownedServerResource.accessToken
+    // Normalize own connections to determine the best connection URI
+    const normalizedConnections = ownedServerResource.connections
+      .map(conn => ({ uri: normalizeConnectionUri(conn), local: !!conn.local, relay: !!conn.relay }))
+      .sort((a, b) => {
+        if (a.local && !b.local) return -1
+        if (!a.local && b.local) return 1
+        if (!a.relay && b.relay) return -1
+        if (a.relay && !b.relay) return 1
+        return 0
+      })
+    
+    pmsUri = await getBestServerConnection({ connections: normalizedConnections }, pmsToken)
+    console.log(`[getServers] Resolved owned PMS brokering URI: ${pmsUri}`)
+  }
+
+  const mappedServers = []
+
+  for (const server of allServers) {
+    if (ownedOnly && !server.owned) continue
+
+    let transientToken = server.accessToken
+    let rawConnections = server.connections || []
+
+    const isShared = !(server.owned === true || server.owned === 'true' || server.owned === 1 || server.owned === '1')
+
+    if (isShared && pmsUri && pmsToken) {
+      try {
+        console.log(`[getServers] Brokering shared server "${server.name}" connections through own PMS...`)
+        const securityUrl = `${pmsUri}/security/resources?source=server://${server.clientIdentifier}`
+        const securityRes = await fetch(securityUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'X-Plex-Token': pmsToken,
+            'X-Plex-Client-Identifier': PLEX_CONFIG.clientId
+          }
+        })
+        if (securityRes.ok) {
+          const securityData = await securityRes.json()
+          const serverDetails = Array.isArray(securityData) 
+            ? securityData.find(s => s.clientIdentifier === server.clientIdentifier) 
+            : securityData?.MediaContainer?.AuthToken || securityData
+
+          if (serverDetails) {
+            transientToken = serverDetails.accessToken || serverDetails.AuthToken || securityData.MediaContainer?.AuthToken || transientToken
+            rawConnections = serverDetails.connections || rawConnections
+            console.log(`[getServers] Successfully brokered shared server "${server.name}"! Connections count: ${rawConnections.length}`)
+          }
+        } else {
+          console.warn(`[getServers] Failed to broker shared server "${server.name}" (HTTP ${securityRes.status}). Falling back to resources.`)
+        }
+      } catch (err) {
+        console.warn(`[getServers] Error brokering shared server "${server.name}":`, err.message)
+      }
+    }
+
+    const connections = rawConnections
+      .map(conn => ({
+        uri: normalizeConnectionUri(conn),
+        local: !!conn.local,
+        relay: !!conn.relay
+      }))
+      .sort((a, b) => {
+        if (a.local && !b.local) return -1
+        if (!a.local && b.local) return 1
+        if (!a.relay && b.relay) return -1
+        if (a.relay && !b.relay) return 1
+        return 0
+      })
+
+    mappedServers.push({
       name: server.name,
       clientIdentifier: server.clientIdentifier,
-      accessToken: server.accessToken,
-      owned: !!server.owned,
-      connections: server.connections
-        .sort((a, b) => {
-          // Prioritize: local > non-relay > relay
-          if (a.local && !b.local) return -1
-          if (!a.local && b.local) return 1
-          if (!a.relay && b.relay) return -1
-          if (a.relay && !b.relay) return 1
-          return 0
-        })
-        .map(conn => ({
-          uri: normalizeConnectionUri(conn), // Use normalized IP for reliability
-          local: conn.local,
-          relay: conn.relay
-        }))
-    }))
+      accessToken: transientToken,
+      owned: !isShared,
+      connections
+    })
+  }
+
+  return mappedServers
 }
 
 export const testConnectionToServer = async (uri, authToken, timeoutMs = 5000) => {
