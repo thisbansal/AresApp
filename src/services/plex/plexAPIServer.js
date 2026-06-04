@@ -58,38 +58,45 @@ export const getServers = async (authToken, options = {}) => {
     console.log(`[getServers] Resolved owned PMS URI for brokering ("${ownedServer.name}"): ${pmsUri}`)
 
     if (pmsUri) {
-      try {
-        console.log(`[getServers] Querying owned PMS security resources for shared servers at ${pmsUri}...`)
-        const securityRes = await fetch(`${pmsUri}/security/resources`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'X-Plex-Token': pmsToken,
-            'X-Plex-Client-Identifier': PLEX_CONFIG.clientId
-          }
-        })
-        if (securityRes.ok) {
-          const securityData = await securityRes.json()
-          const resourcesList = Array.isArray(securityData)
-            ? securityData
-            : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || [])
-
-          // Filter out servers that are shared (not owned by the user)
-          const sharedServers = resourcesList.filter(
-            r => r.provides === 'server' &&
-            !(r.owned === true || r.owned === 'true' || r.owned === 1 || r.owned === '1')
-          )
-          console.log(`[getServers] Discovered ${sharedServers.length} shared server(s) via owned PMS security check for "${ownedServer.name}".`)
-          for (const s of sharedServers) {
-            if (!discoveredSharedServers.some(ds => ds.clientIdentifier === s.clientIdentifier)) {
-              discoveredSharedServers.push(s)
+      // Loop over all other servers (including shared servers and other owned servers) to broker details
+      const otherServers = allServers.filter(s => s.clientIdentifier !== ownedServer.clientIdentifier)
+      for (const otherServer of otherServers) {
+        try {
+          const securityUrl = `${pmsUri}/security/resources?source=server://${otherServer.clientIdentifier}&refresh=1`
+          console.log(`[getServers] Querying security resources for "${otherServer.name}" via "${ownedServer.name}" at: ${securityUrl}`)
+          const securityRes = await fetch(securityUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'X-Plex-Token': pmsToken,
+              'X-Plex-Client-Identifier': PLEX_CONFIG.clientId
             }
+          })
+          if (securityRes.ok) {
+            const securityData = await securityRes.json()
+            const serverDetails = Array.isArray(securityData)
+              ? securityData.find(s => s.clientIdentifier === otherServer.clientIdentifier)
+              : (securityData.MediaContainer?.Device || securityData.MediaContainer?.Resource || []).find(s => s.clientIdentifier === otherServer.clientIdentifier) || securityData?.MediaContainer || securityData
+
+            if (serverDetails) {
+              const token = serverDetails.accessToken || serverDetails.AuthToken || securityData.MediaContainer?.AuthToken || otherServer.accessToken
+              const conns = serverDetails.connections || otherServer.connections || []
+
+              const updatedServer = {
+                ...otherServer,
+                accessToken: token,
+                connections: conns
+              }
+              if (!discoveredSharedServers.some(ds => ds.clientIdentifier === updatedServer.clientIdentifier)) {
+                discoveredSharedServers.push(updatedServer)
+              }
+            }
+          } else {
+            console.warn(`[getServers] Security resources query failed for "${otherServer.name}" on "${ownedServer.name}": HTTP ${securityRes.status}`)
           }
-        } else {
-          console.warn(`[getServers] Owned PMS security resources query failed for "${ownedServer.name}": HTTP ${securityRes.status}`)
+        } catch (err) {
+          console.warn(`[getServers] Error querying security resources for "${otherServer.name}" on "${ownedServer.name}":`, err.message)
         }
-      } catch (err) {
-        console.warn(`[getServers] Error querying owned PMS security resources for "${ownedServer.name}":`, err.message)
       }
     }
   }
