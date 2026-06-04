@@ -1192,7 +1192,12 @@ function ContentBrowserPage() {
                     rowIndex={11}
                     colIndex={5}
                     onClick={() => {
-                      navigate('/library-select')
+                      navigate('/library-select', {
+                        state: {
+                          isShared: false,
+                          from: 'settings'
+                        }
+                      })
                     }}
                     style={{ flexShrink: 0 }}
                   >
