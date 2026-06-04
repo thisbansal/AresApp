@@ -163,11 +163,11 @@ function LibrarySelectPage() {
     <div style={styles.container}>
       <style>{`
         .spinner {
-          border: 4px solid rgba(0, 0, 0, 0.1);
+          border: 4px solid rgba(255, 255, 255, 0.1);
           width: 70px;
           height: 70px;
           border-radius: 50%;
-          border-left-color: #000000;
+          border-left-color: #ffffff;
           animation: spin 1s linear infinite;
           margin: 0 auto 30px;
         }
@@ -182,10 +182,10 @@ function LibrarySelectPage() {
         }
         .lib-item.focused {
           transform: scale(1.05) !important;
-          box-shadow: 0 0 20px rgba(0, 0, 0, 0.1) !important;
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.3) !important;
         }
         .lib-item.focused .lib-card {
-          border-color: #000000 !important;
+          border-color: #ffffff !important;
         }
         
         .action-btn {
@@ -196,12 +196,12 @@ function LibrarySelectPage() {
         }
         .action-btn.focused {
           transform: scale(1.08) !important;
-          box-shadow: 0 0 25px rgba(0, 0, 0, 0.15) !important;
+          box-shadow: 0 0 25px rgba(255, 255, 255, 0.4) !important;
         }
         .action-btn.focused .btn-inner {
-          background-color: #ffffff !important;
-          color: #000000 !important;
-          border-color: #000000 !important;
+          background-color: #000000 !important;
+          color: #ffffff !important;
+          border-color: #ffffff !important;
         }
         .action-btn.disabled {
           opacity: 0.35;
@@ -235,7 +235,7 @@ function LibrarySelectPage() {
                       ...(isSelected ? styles.checkboxChecked : {})
                     }}>
                       {isSelected && (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                       )}
@@ -257,7 +257,7 @@ function LibrarySelectPage() {
             onClick={handleBack}
             className={`action-btn ${isBackDisabled ? 'disabled' : ''}`}
           >
-            <div style={styles.actionButton} className="btn-inner">{fromSettings ? 'Cancel' : 'Back'}</div>
+            <div style={{ ...styles.actionButton, backgroundColor: '#ffffff', borderColor: '#ffffff', color: '#000000' }} className="btn-inner">{fromSettings ? 'Cancel' : 'Back'}</div>
           </FocusableItem>
 
           {fromSettings && (
@@ -268,7 +268,7 @@ function LibrarySelectPage() {
               onClick={handleDone}
               className={`action-btn ${(!isShared && selectedIds.length === 0) ? 'disabled' : ''}`}
             >
-              <div style={styles.actionButton} className="btn-inner">Done</div>
+              <div style={{ ...styles.actionButton, backgroundColor: '#ffffff', borderColor: '#ffffff', color: '#000000' }} className="btn-inner">Done</div>
             </FocusableItem>
           )}
         </div>
@@ -285,8 +285,7 @@ const styles = {
     height: '100vh',
     padding: '0 80px',
     overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#ffffff'
+    position: 'relative'
   },
   content: {
     textAlign: 'center',
@@ -302,13 +301,13 @@ const styles = {
     fontSize: '64px',
     marginBottom: '15px',
     fontWeight: '800',
-    color: '#1a1a1a',
+    color: '#ffffff',
     fontFamily: "'Outfit', 'Inter', sans-serif",
     letterSpacing: '-1px'
   },
   subtitle: {
     fontSize: '28px',
-    color: '#5f6368',
+    color: '#9aa0a6',
     marginBottom: '60px',
     fontWeight: '400',
     fontFamily: "'Outfit', 'Inter', sans-serif"
@@ -330,16 +329,16 @@ const styles = {
     cursor: 'pointer',
     textAlign: 'center',
     padding: '30px 40px',
-    background: '#ffffff',
-    border: '2px solid rgba(0, 0, 0, 0.08)',
+    background: 'rgba(255, 255, 255, 0.08)',
+    border: '2px solid rgba(255, 255, 255, 0.12)',
     borderRadius: '20px',
     width: '280px',
     position: 'relative',
-    transition: 'background-color 0.2s ease, border-color 0.2s ease',
-    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.04)'
+    transition: 'background-color 0.2s ease, border-color 0.2s ease'
   },
   libraryCardSelected: {
-    borderColor: '#000000'
+    background: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.5)'
   },
   checkboxContainer: {
     position: 'absolute',
@@ -350,19 +349,19 @@ const styles = {
     width: '32px',
     height: '32px',
     borderRadius: '8px',
-    border: '2px solid rgba(0, 0, 0, 0.2)',
+    border: '2px solid rgba(255, 255, 255, 0.4)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s ease'
   },
   checkboxChecked: {
-    backgroundColor: '#000000',
-    borderColor: '#000000'
+    backgroundColor: '#ffffff',
+    borderColor: '#ffffff'
   },
   libraryTitle: {
     fontSize: '32px',
-    color: '#1a1a1a',
+    color: '#ffffff',
     fontWeight: '600',
     marginBottom: '10px',
     marginTop: '20px',
@@ -373,7 +372,7 @@ const styles = {
   },
   libraryType: {
     fontSize: '20px',
-    color: '#5f6368',
+    color: '#9aa0a6',
     textTransform: 'capitalize',
     fontFamily: "'Outfit', 'Inter', sans-serif",
   },
@@ -387,8 +386,8 @@ const styles = {
     fontSize: '26px',
     padding: '16px 64px',
     backgroundColor: 'transparent',
-    color: '#1a1a1a',
-    border: '2px solid #000000',
+    color: '#ffffff',
+    border: '2px solid #ffffff',
     borderRadius: '50px',
     fontWeight: '700',
     fontFamily: "'Outfit', 'Inter', sans-serif",
@@ -399,20 +398,19 @@ const styles = {
   },
   spinnerText: {
     fontSize: '32px',
-    color: '#5f6368',
+    color: '#bdc1c6',
     fontFamily: "'Outfit', 'Inter', sans-serif"
   },
   errorCard: {
     padding: '60px 80px',
-    background: '#ffffff',
-    border: '1.5px solid rgba(0, 0, 0, 0.08)',
+    background: 'rgba(25, 25, 30, 0.95)',
+    border: '1.5px solid rgba(255, 255, 255, 0.08)',
     borderRadius: '24px',
-    textAlign: 'center',
-    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.06)'
+    textAlign: 'center'
   },
   errorText: {
     fontSize: '30px',
-    color: '#d93838',
+    color: '#f28b82',
     marginBottom: '30px',
     fontFamily: "'Outfit', 'Inter', sans-serif"
   }

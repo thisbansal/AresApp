@@ -129,11 +129,11 @@ function ServerSelectPage() {
     <div style={styles.container}>
       <style>{`
         .spinner {
-          border: 4px solid rgba(0, 0, 0, 0.1);
+          border: 4px solid rgba(255, 255, 255, 0.1);
           width: 70px;
           height: 70px;
           border-radius: 50%;
-          border-left-color: #000000;
+          border-left-color: #ffffff;
           animation: spin 1s linear infinite;
           margin: 0 auto 30px;
         }
@@ -152,12 +152,12 @@ function ServerSelectPage() {
           transform: scale(1.08) !important;
         }
         .server-item.focused .server-card {
-          background: #ffffff !important;
-          border-color: #000000 !important;
-          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12) !important;
+          background: rgba(255, 255, 255, 0.12) !important;
+          border-color: rgba(255, 255, 255, 0.8) !important;
+          box-shadow: 0 15px 40px rgba(255, 255, 255, 0.25) !important;
         }
         .server-item.focused .server-icon svg {
-          stroke: #000000 !important;
+          stroke: #ffffff !important;
           transform: scale(1.08);
         }
         .retry-btn {
@@ -184,12 +184,12 @@ function ServerSelectPage() {
         }
         .action-btn.focused {
           transform: scale(1.08) !important;
-          box-shadow: 0 0 25px rgba(0, 0, 0, 0.2) !important;
+          box-shadow: 0 0 25px rgba(255, 255, 255, 0.4) !important;
         }
         .action-btn.focused .btn-inner {
-          background-color: #ffffff !important;
-          color: #000000 !important;
-          border-color: #000000 !important;
+          background-color: #000000 !important;
+          color: #ffffff !important;
+          border-color: #ffffff !important;
         }
         .action-btn.disabled {
           opacity: 0.35;
@@ -217,7 +217,7 @@ function ServerSelectPage() {
               >
                 <div style={styles.serverCard}>
                   <div style={styles.serverIcon} className="server-icon">
-                    <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="rgba(0, 0, 0, 0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: '0 auto', transition: 'stroke 0.25s ease, transform 0.25s ease' }}>
+                    <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: '0 auto', transition: 'stroke 0.25s ease, transform 0.25s ease' }}>
                       <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                       <line x1="8" y1="21" x2="16" y2="21"></line>
                       <line x1="12" y1="17" x2="12" y2="21"></line>
@@ -246,7 +246,7 @@ function ServerSelectPage() {
             onClick={handleDone}
             className={`action-btn ${!hasSelections ? 'disabled' : ''}`}
           >
-            <div style={{ ...styles.actionButton, backgroundColor: '#000000', borderColor: '#000000', color: '#ffffff' }} className="btn-inner">Done</div>
+            <div style={{ ...styles.actionButton, backgroundColor: '#ffffff', borderColor: '#ffffff', color: '#000000' }} className="btn-inner">Done</div>
           </FocusableItem>
         </div>
       </div>
@@ -261,8 +261,7 @@ const styles = {
     justifyContent: 'center',
     height: '100vh',
     padding: '0 80px',
-    overflow: 'hidden',
-    backgroundColor: '#ffffff'
+    overflow: 'hidden'
   },
   content: {
     textAlign: 'center',
@@ -278,13 +277,13 @@ const styles = {
     fontSize: '76px',
     marginBottom: '15px',
     fontWeight: '800',
-    color: '#1a1a1a',
+    color: '#ffffff',
     fontFamily: "'Outfit', 'Inter', sans-serif",
     letterSpacing: '-1px'
   },
   subtitle: {
     fontSize: '32px',
-    color: '#5f6368',
+    color: '#9aa0a6',
     marginBottom: '80px',
     fontWeight: '400',
     fontFamily: "'Outfit', 'Inter', sans-serif"
@@ -302,11 +301,11 @@ const styles = {
     cursor: 'pointer',
     textAlign: 'center',
     padding: '50px 70px',
-    background: '#ffffff',
-    border: '1.5px solid rgba(0, 0, 0, 0.08)',
+    background: 'rgba(255, 255, 255, 0.08)',
+    border: '1.5px solid rgba(255, 255, 255, 0.12)',
     borderRadius: '24px',
     transition: 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease',
-    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.04)',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.45)',
     width: '380px',
     position: 'relative'
   },
@@ -315,7 +314,7 @@ const styles = {
   },
   serverName: {
     fontSize: '38px',
-    color: '#1a1a1a',
+    color: '#ffffff',
     fontWeight: '600',
     marginBottom: '15px',
     fontFamily: "'Outfit', 'Inter', sans-serif",
@@ -326,9 +325,9 @@ const styles = {
   sharedBadge: {
     display: 'inline-block',
     padding: '4px 12px',
-    backgroundColor: 'rgba(234, 67, 53, 0.08)',
+    backgroundColor: 'rgba(234, 67, 53, 0.2)',
     color: '#ea4335',
-    border: '1px solid rgba(234, 67, 53, 0.2)',
+    border: '1px solid rgba(234, 67, 53, 0.4)',
     borderRadius: '12px',
     fontSize: '14px',
     fontWeight: 'bold',
@@ -342,7 +341,7 @@ const styles = {
     width: '32px',
     height: '32px',
     borderRadius: '50%',
-    backgroundColor: 'rgba(46, 125, 50, 0.12)',
+    backgroundColor: 'rgba(46, 125, 50, 0.15)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
@@ -352,24 +351,24 @@ const styles = {
   },
   spinnerText: {
     fontSize: '32px',
-    color: '#5f6368',
+    color: '#bdc1c6',
     fontFamily: "'Outfit', 'Inter', sans-serif"
   },
   errorCard: {
     padding: '60px 80px',
-    background: '#ffffff',
-    border: '1.5px solid rgba(0, 0, 0, 0.08)',
+    background: 'rgba(25, 25, 30, 0.95)',
+    border: '1.5px solid rgba(255, 255, 255, 0.08)',
     borderRadius: '24px',
     textAlign: 'center',
     maxWidth: '700px',
-    boxShadow: '0 8px 30px rgba(0,0,0,0.06)'
+    boxShadow: '0 20px 45px rgba(0,0,0,0.5)'
   },
   errorIcon: {
     marginBottom: '25px'
   },
   errorText: {
     fontSize: '30px',
-    color: '#d93838',
+    color: '#f28b82',
     lineHeight: '1.5',
     fontFamily: "'Outfit', 'Inter', sans-serif",
     marginBottom: '10px'
@@ -378,8 +377,8 @@ const styles = {
     fontSize: '26px',
     padding: '16px 48px',
     backgroundColor: 'transparent',
-    color: '#1a1a1a',
-    border: '2px solid rgba(0, 0, 0, 0.15)',
+    color: '#ffffff',
+    border: '2px solid rgba(255, 255, 255, 0.2)',
     borderRadius: '50px',
     cursor: 'pointer',
     fontWeight: '600',
@@ -395,7 +394,7 @@ const styles = {
     padding: '16px 64px',
     backgroundColor: 'transparent',
     color: '#ffffff',
-    border: '2px solid #000000',
+    border: '2px solid #ffffff',
     borderRadius: '50px',
     fontWeight: '700',
     fontFamily: "'Outfit', 'Inter', sans-serif",
@@ -404,4 +403,3 @@ const styles = {
 }
 
 export default ServerSelectPage
-
