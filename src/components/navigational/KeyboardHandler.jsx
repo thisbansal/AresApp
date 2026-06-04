@@ -1,11 +1,13 @@
 // KeyboardHandler.jsx
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
+import { useAppStore } from '../../stores/AppStore';
 
 export function KeyboardHandler() {
   const { navigate: spatialNavigate, showExitDialog, setShowExitDialog } = useSpatialNavigation();
   const navigateReactRouter = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     console.log('KeyboardHandler mounted. ExitDialog State:', showExitDialog);
@@ -73,11 +75,23 @@ export function KeyboardHandler() {
 
         const isLoginRoute = hash.includes('/login') || path.includes('/login');
         const isServerSelectRoute = hash.includes('/server-select') || path.includes('/server-select');
-        const isLibrarySelectRoute = hash.includes('/library-select') || path.includes('/library-select');
+        const isLibrarySelectRoute = hash.includes('/library-select') || path.includes('/library-select') || location.pathname === '/library-select';
         const isUserSelectRoute = hash.includes('/user-select') || path.includes('/user-select');
         const isHomeRoute = hash.includes('/browse') || path.includes('/browse') || hash.includes('/home') || path.includes('/home');
 
         const isColdStart = !window.history.state || window.history.state.idx === 0;
+
+        if (isLibrarySelectRoute) {
+          const isShared = location.state?.isShared || false;
+          const selectedLibraryIds = useAppStore.getState().selectedLibraryIds || [];
+          if (!isShared && selectedLibraryIds.length === 0) {
+            console.log('[AUTH FLOW] KeyboardHandler: Back key blocked. Owned server needs at least 1 library.');
+            return;
+          }
+          console.log('[AUTH FLOW] KeyboardHandler: Navigating back to server select.');
+          navigateReactRouter('/server-select');
+          return;
+        }
 
         if (isLoginRoute || isServerSelectRoute || isHomeRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
           console.log('[AUTH FLOW] Back button triggered on entry/exit route or cold start. Showing global ExitDialog.');
@@ -91,7 +105,7 @@ export function KeyboardHandler() {
           // Let video player internal back capture handle it
           return;
         } else {
-          // 2. If in-between (e.g. library-select, user-select), naturally redirect to the previous route (traverse back in react router history)
+          // 2. If in-between (e.g. user-select), naturally redirect to the previous route (traverse back in react router history)
           console.log('[AUTH FLOW] Back button triggered in setup flow. Traversing back in router history.');
           navigateReactRouter(-1);
         }

@@ -67,10 +67,26 @@ function LibrarySelectPage() {
     }
   }
 
-  const toggleLibrary = (id) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(lId => lId !== id) : [...prev, id]
-    )
+  const toggleLibrary = async (id) => {
+    const updatedIds = selectedIds.includes(id)
+      ? selectedIds.filter(lId => lId !== id)
+      : [...selectedIds, id]
+
+    setSelectedIds(updatedIds)
+
+    // Save immediately if NOT from settings
+    if (!fromSettings) {
+      try {
+        if (isShared && serverClientId) {
+          await useAppStore.getState().setSelectedLibrariesForServer(serverClientId, updatedIds)
+        } else {
+          await useAppStore.getState().setSelectedLibraries(updatedIds)
+        }
+        console.log('[AUTH FLOW] LibrarySelectPage: Selection saved immediately:', updatedIds)
+      } catch (err) {
+        console.error('[AUTH FLOW] LibrarySelectPage: Failed to save immediately:', err)
+      }
+    }
   }
 
   const handleDone = async () => {
@@ -83,8 +99,6 @@ function LibrarySelectPage() {
       } else {
         await useAppStore.getState().setSelectedLibraries(selectedIds)
       }
-      
-      // Navigate directly to homepage (/browse) on successful selection save
       navigate('/browse', { replace: true })
     } catch (err) {
       console.error('Failed to save libraries', err)
@@ -96,6 +110,10 @@ function LibrarySelectPage() {
     if (fromSettings) {
       navigate('/browse', { replace: true })
     } else {
+      if (!isShared && selectedIds.length === 0) {
+        console.log('[AUTH FLOW] LibrarySelectPage: Back blocked. Needs at least 1 library.')
+        return
+      }
       navigate('/server-select')
     }
   }
@@ -132,22 +150,24 @@ function LibrarySelectPage() {
             onClick={handleBack}
             className="retry-btn"
           >
-            <div style={styles.actionButton}>Go Back</div>
+            <div style={styles.actionButton}>{fromSettings ? 'Cancel' : 'Go Back'}</div>
           </FocusableItem>
         </div>
       </div>
     )
   }
 
+  const isBackDisabled = !fromSettings && !isShared && selectedIds.length === 0
+
   return (
     <div style={styles.container}>
       <style>{`
         .spinner {
-          border: 4px solid rgba(255, 255, 255, 0.1);
+          border: 4px solid rgba(0, 0, 0, 0.1);
           width: 70px;
           height: 70px;
           border-radius: 50%;
-          border-left-color: #ffffff;
+          border-left-color: #000000;
           animation: spin 1s linear infinite;
           margin: 0 auto 30px;
         }
@@ -162,10 +182,10 @@ function LibrarySelectPage() {
         }
         .lib-item.focused {
           transform: scale(1.05) !important;
-          box-shadow: 0 0 20px rgba(255, 255, 255, 0.3) !important;
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.1) !important;
         }
         .lib-item.focused .lib-card {
-          border-color: #ffffff !important;
+          border-color: #000000 !important;
         }
         
         .action-btn {
@@ -176,14 +196,15 @@ function LibrarySelectPage() {
         }
         .action-btn.focused {
           transform: scale(1.08) !important;
-          box-shadow: 0 0 25px rgba(255, 255, 255, 0.4) !important;
+          box-shadow: 0 0 25px rgba(0, 0, 0, 0.15) !important;
         }
         .action-btn.focused .btn-inner {
           background-color: #ffffff !important;
           color: #000000 !important;
+          border-color: #000000 !important;
         }
         .action-btn.disabled {
-          opacity: 0.5;
+          opacity: 0.35;
           pointer-events: none;
         }
       `}</style>
@@ -214,7 +235,7 @@ function LibrarySelectPage() {
                       ...(isSelected ? styles.checkboxChecked : {})
                     }}>
                       {isSelected && (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                       )}
@@ -234,20 +255,22 @@ function LibrarySelectPage() {
             rowIndex={1}
             colIndex={0}
             onClick={handleBack}
-            className="action-btn"
+            className={`action-btn ${isBackDisabled ? 'disabled' : ''}`}
           >
-            <div style={styles.actionButton} className="btn-inner">Back</div>
+            <div style={styles.actionButton} className="btn-inner">{fromSettings ? 'Cancel' : 'Back'}</div>
           </FocusableItem>
 
-          <FocusableItem
-            id="lib-done-btn"
-            rowIndex={1}
-            colIndex={1}
-            onClick={handleDone}
-            className={`action-btn ${(!isShared && selectedIds.length === 0) ? 'disabled' : ''}`}
-          >
-            <div style={styles.actionButton} className="btn-inner">Done</div>
-          </FocusableItem>
+          {fromSettings && (
+            <FocusableItem
+              id="lib-done-btn"
+              rowIndex={1}
+              colIndex={1}
+              onClick={handleDone}
+              className={`action-btn ${(!isShared && selectedIds.length === 0) ? 'disabled' : ''}`}
+            >
+              <div style={styles.actionButton} className="btn-inner">Done</div>
+            </FocusableItem>
+          )}
         </div>
       </div>
     </div>
@@ -261,7 +284,9 @@ const styles = {
     justifyContent: 'center',
     height: '100vh',
     padding: '0 80px',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#ffffff'
   },
   content: {
     textAlign: 'center',
@@ -277,13 +302,13 @@ const styles = {
     fontSize: '64px',
     marginBottom: '15px',
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#1a1a1a',
     fontFamily: "'Outfit', 'Inter', sans-serif",
     letterSpacing: '-1px'
   },
   subtitle: {
     fontSize: '28px',
-    color: '#9aa0a6',
+    color: '#5f6368',
     marginBottom: '60px',
     fontWeight: '400',
     fontFamily: "'Outfit', 'Inter', sans-serif"
@@ -305,16 +330,16 @@ const styles = {
     cursor: 'pointer',
     textAlign: 'center',
     padding: '30px 40px',
-    background: 'rgba(255, 255, 255, 0.08)',
-    border: '2px solid rgba(255, 255, 255, 0.12)',
+    background: '#ffffff',
+    border: '2px solid rgba(0, 0, 0, 0.08)',
     borderRadius: '20px',
     width: '280px',
     position: 'relative',
-    transition: 'background-color 0.2s ease, border-color 0.2s ease'
+    transition: 'background-color 0.2s ease, border-color 0.2s ease',
+    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.04)'
   },
   libraryCardSelected: {
-    background: 'rgba(255, 255, 255, 0.15)',
-    borderColor: 'rgba(255, 255, 255, 0.5)'
+    borderColor: '#000000'
   },
   checkboxContainer: {
     position: 'absolute',
@@ -325,19 +350,19 @@ const styles = {
     width: '32px',
     height: '32px',
     borderRadius: '8px',
-    border: '2px solid rgba(255, 255, 255, 0.4)',
+    border: '2px solid rgba(0, 0, 0, 0.2)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s ease'
   },
   checkboxChecked: {
-    backgroundColor: '#ffffff',
-    borderColor: '#ffffff'
+    backgroundColor: '#000000',
+    borderColor: '#000000'
   },
   libraryTitle: {
     fontSize: '32px',
-    color: '#ffffff',
+    color: '#1a1a1a',
     fontWeight: '600',
     marginBottom: '10px',
     marginTop: '20px',
@@ -348,7 +373,7 @@ const styles = {
   },
   libraryType: {
     fontSize: '20px',
-    color: '#9aa0a6',
+    color: '#5f6368',
     textTransform: 'capitalize',
     fontFamily: "'Outfit', 'Inter', sans-serif",
   },
@@ -362,8 +387,8 @@ const styles = {
     fontSize: '26px',
     padding: '16px 64px',
     backgroundColor: 'transparent',
-    color: '#ffffff',
-    border: '2px solid #ffffff',
+    color: '#1a1a1a',
+    border: '2px solid #000000',
     borderRadius: '50px',
     fontWeight: '700',
     fontFamily: "'Outfit', 'Inter', sans-serif",
@@ -374,19 +399,20 @@ const styles = {
   },
   spinnerText: {
     fontSize: '32px',
-    color: '#bdc1c6',
+    color: '#5f6368',
     fontFamily: "'Outfit', 'Inter', sans-serif"
   },
   errorCard: {
     padding: '60px 80px',
-    background: 'rgba(25, 25, 30, 0.95)',
-    border: '1.5px solid rgba(255, 255, 255, 0.08)',
+    background: '#ffffff',
+    border: '1.5px solid rgba(0, 0, 0, 0.08)',
     borderRadius: '24px',
-    textAlign: 'center'
+    textAlign: 'center',
+    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.06)'
   },
   errorText: {
     fontSize: '30px',
-    color: '#f28b82',
+    color: '#d93838',
     marginBottom: '30px',
     fontFamily: "'Outfit', 'Inter', sans-serif"
   }
