@@ -51,13 +51,13 @@ function LibrarySelectPage() {
     )
   }
 
-  const handleNext = async () => {
+  const handleDone = async () => {
     if (selectedIds.length === 0) return
     console.log('[AUTH FLOW] LibrarySelectPage: Saving selected libraries:', selectedIds)
     
     try {
       await useAppStore.getState().setSelectedLibraries(selectedIds)
-      navigate('/user-select')
+      navigate('/server-select')
     } catch (err) {
       console.error('Failed to save libraries', err)
       setError('Failed to save selections.')
@@ -65,7 +65,7 @@ function LibrarySelectPage() {
   }
 
   const handleBack = () => {
-    navigate(-1)
+    navigate('/server-select')
   }
 
   if (loading) {
@@ -208,13 +208,13 @@ function LibrarySelectPage() {
           </FocusableItem>
 
           <FocusableItem
-            id="lib-next-btn"
+            id="lib-done-btn"
             rowIndex={1}
             colIndex={1}
-            onClick={handleNext}
+            onClick={handleDone}
             className={`action-btn ${selectedIds.length === 0 ? 'disabled' : ''}`}
           >
-            <div style={styles.actionButton} className="btn-inner">Next</div>
+            <div style={styles.actionButton} className="btn-inner">Done</div>
           </FocusableItem>
         </div>
       </div>
