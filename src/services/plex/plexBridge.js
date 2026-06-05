@@ -104,16 +104,21 @@ export const plexBridge = {
 
       if (!response.ok) {
         if (response.status === 401) {
-          useAppStore.getState().handleServerAuthError()
+          store.handleServerAuthError()
         }
-        store.log('ERROR', `Server returned status ${response.status} on ${endpoint}`)
+        if (!options.silent) {
+          store.log('ERROR', `Server returned status ${response.status} on ${endpoint}`)
+        }
         throw new Error(`HTTP ${response.status}`)
       }
 
-      // If we got a successful response, ensure server status is set back to online!
-      if (!store.isOnline) {
+      // If we got a successful response for the main server, ensure server status is set back to online
+      const isMainServer = store.serverInfo?.uri && url.startsWith(store.serverInfo.uri)
+      if (isMainServer && !store.isOnline) {
         store.setServerState(true)
-        store.log('INFO', 'Server connection recovered.')
+        if (!options.silent) {
+          store.log('INFO', 'Server connection recovered.')
+        }
       }
 
       return response
@@ -121,13 +126,26 @@ export const plexBridge = {
       clearTimeout(timeoutId)
       const isNetworkError = err.name === 'AbortError' || err instanceof TypeError
       
+      const isMainServer = store.serverInfo?.uri && url.startsWith(store.serverInfo.uri)
+
       if (isNetworkError) {
         const errorMsg = err.name === 'AbortError' ? 'Request timeout' : err.message
-        store.setServerState(false, errorMsg)
-        store.log('FATAL', `Network failure on request to ${endpoint}: ${errorMsg}`)
+        
+        if (isMainServer) {
+          store.setServerState(false, errorMsg)
+          if (!options.silent) {
+            store.log('FATAL', `Network failure on request to ${endpoint}: ${errorMsg}`)
+          }
+        } else {
+          if (!options.silent) {
+            store.log('WARN', `Network failure on secondary server request to ${endpoint}: ${errorMsg}`)
+          }
+        }
         
       } else {
-        store.log('ERROR', `Request error on ${endpoint}: ${err.message}`)
+        if (!options.silent) {
+          store.log('ERROR', `Request error on ${endpoint}: ${err.message}`)
+        }
       }
       
       throw err

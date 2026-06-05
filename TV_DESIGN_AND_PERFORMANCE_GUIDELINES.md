@@ -23,6 +23,11 @@ Smart TV applications are viewed from a distance of approximately 10 feet (3 met
 * **Visual Distinctness**: Interactive items must have an unmistakable focus state (a thick border, a bright accent color, or a scale-up transition).
 * **No Mouse/Hover Assumptions**: The UI must be fully navigable via keyboard arrow keys/D-pad. Hover styles (`:hover`) should only complement focus states (`.focused`) to support dual simulator/TV input, but the primary focus of development is the active focused class.
 
+### Default Button Styling
+* **Single Source of Truth**: The app uses the `.capsule-btn` CSS class as the standard, universal styling for prominent buttons (e.g., "Go Back", HUD controls).
+* **Colors & Focus**: The default styling is **white fill with black text** and a white border. On focus, the button **inverts** to **black fill with white text** and scales up slightly. This high-contrast inversion provides an unmistakable and premium focus indicator.
+* **Consistency**: Do not create custom ad-hoc buttons. Always leverage `.capsule-btn` to maintain a single source of truth and consistent design language across the entire application.
+
 ---
 
 ## 2. GPU & CPU Performance Guidelines

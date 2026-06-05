@@ -101,4 +101,27 @@ describe('multiServerCacheService', () => {
 
     multiServerCacheService.stopBackgroundSync('cache_test_partial')
   })
+
+  it('should return cached data immediately when forceRefresh is true (stale-while-revalidate)', async () => {
+    // Mock the DB to return a valid cache
+    const oldCache = [{ id: '1', title: 'Cached Item' }]
+    lunaService.request.mockImplementation((service, options) => {
+      if (options.method === 'find') {
+        return Promise.resolve({ returnValue: true, results: [{ value: JSON.stringify(oldCache) }] })
+      }
+      return Promise.resolve({ returnValue: true })
+    })
+
+    // Act
+    const onDeckItems = await multiServerCacheService.getOnDeck(true)
+    const recentlyAddedItems = await multiServerCacheService.getRecentlyAdded(true)
+
+    // Assert
+    expect(onDeckItems).toEqual(oldCache)
+    expect(recentlyAddedItems).toEqual(oldCache)
+    
+    // Clean up timers
+    multiServerCacheService.stopBackgroundSync(CACHE_KEYS_MULTI.ON_DECK)
+    multiServerCacheService.stopBackgroundSync(CACHE_KEYS_MULTI.RECENTLY_ADDED)
+  })
 })

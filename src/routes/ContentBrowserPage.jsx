@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
+import { ServerOfflineMessage } from '../components/ServerOfflineMessage'
 import { FallbackImage } from '../components/media/FallbackImage'
 import { MediaCard } from '../components/media/MediaCard'
 import { useAppStore } from '../stores/AppStore'
@@ -250,6 +251,7 @@ function ContentBrowserPage() {
     try {
       const activeOwnUri = ownUri || serverInfo?.uri || useServerStore.getState().activeServer?.uri
       const activeOwnToken = ownToken || serverInfo?.token || useServerStore.getState().activeServer?.token
+      const activeOwnClientId = serverInfo?.clientIdentifier || useServerStore.getState().activeServer?.clientIdentifier
       
       const allNavLibs = []
 
@@ -260,14 +262,30 @@ function ContentBrowserPage() {
         try {
           const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
           const ownLibs = await getLibrariesCached(activeOwnUri, activeOwnToken)
-          const ownFiltered = ownLibs.filter(l => ownSelectedIds.includes(l.id))
-            
-          allNavLibs.push(...ownFiltered.map(l => ({
-            ...l,
-            isShared: false,
-            serverUri: activeOwnUri,
-            token: activeOwnToken
-          })))
+          
+          // Map over selected IDs so that missing items get placeholders
+          ownSelectedIds.forEach(id => {
+            const lib = ownLibs.find(l => l.id === id)
+            if (lib) {
+              allNavLibs.push({
+                ...lib,
+                isShared: false,
+                serverUri: activeOwnUri,
+                token: activeOwnToken
+              })
+            } else {
+              // Not found in cache (e.g. server offline and cache empty for this item)
+              allNavLibs.push({
+                id,
+                title: selectedLibrariesMap[id]?.title || 'Offline',
+                type: selectedLibrariesMap[id]?.type || 'offline',
+                isShared: false,
+                serverUri: activeOwnUri,
+                token: activeOwnToken,
+                isOffline: true
+              })
+            }
+          })
         } catch (e) {
           console.warn('[init] Failed to get own libraries, using offline placeholders:', e)
           allNavLibs.push(...ownSelectedIds.map(id => ({
@@ -292,8 +310,7 @@ function ContentBrowserPage() {
         
         for (const [clientId, selectedIds] of sortedServerEntries) {
           // Skip the active own server to prevent duplicating its libraries
-          const ownServerClientId = useServerStore.getState().activeServer?.clientIdentifier
-          if (clientId === ownServerClientId) {
+          if (clientId === activeOwnClientId) {
             continue
           }
 
@@ -304,14 +321,30 @@ function ContentBrowserPage() {
               if (sharedInfo && sharedInfo.uri && sharedInfo.accessToken) {
                 const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
                 const sharedLibs = await getLibrariesCached(sharedInfo.uri, sharedInfo.accessToken)
-                const sharedFiltered = sharedLibs.filter(l => selectedIds.includes(l.id))
-                allNavLibs.push(...sharedFiltered.map(l => ({
-                  ...l,
-                  isShared: true,
-                  serverClientId: clientId,
-                  serverUri: sharedInfo.uri,
-                  token: sharedInfo.accessToken
-                })))
+                
+                selectedIds.forEach(id => {
+                  const lib = sharedLibs.find(l => l.id === id)
+                  if (lib) {
+                    allNavLibs.push({
+                      ...lib,
+                      isShared: true,
+                      serverClientId: clientId,
+                      serverUri: sharedInfo.uri,
+                      token: sharedInfo.accessToken
+                    })
+                  } else {
+                    allNavLibs.push({
+                      id,
+                      title: selectedLibrariesMap[id]?.title || 'Offline',
+                      type: selectedLibrariesMap[id]?.type || 'offline',
+                      isShared: true,
+                      serverClientId: clientId,
+                      serverUri: sharedInfo.uri,
+                      token: sharedInfo.accessToken,
+                      isOffline: true
+                    })
+                  }
+                })
               } else {
                 // Shared server info is missing (likely offline), push placeholders
                 allNavLibs.push(...selectedIds.map(id => ({
@@ -484,7 +517,7 @@ function ContentBrowserPage() {
           const recentAddedData = await multiServerCacheService.getRecentlyAdded(true)
           
           const recentMovies = recentAddedData.filter(item => item.type === 'movie')
-          const recentTv = recentAddedData.filter(item => item.type === 'show')
+          const recentTv = recentAddedData.filter(item => item.type === 'show' || item.type === 'season' || item.type === 'episode')
 
           setContinueWatching(onDeckData)
           setRecentMovies(recentMovies)
@@ -498,7 +531,7 @@ function ContentBrowserPage() {
           const unsubRecent = multiServerCacheService.subscribe(CACHE_KEYS_MULTI.RECENTLY_ADDED, async (newData) => {
             console.log('[ContentBrowser] Recently Added background update received')
             const rm = newData.filter(item => item.type === 'movie')
-            const rtv = newData.filter(item => item.type === 'show')
+            const rtv = newData.filter(item => item.type === 'show' || item.type === 'season' || item.type === 'episode')
             setRecentMovies(rm)
             setRecentTv(rtv)
           })
@@ -915,11 +948,8 @@ function ContentBrowserPage() {
       />
 
       {(!isOnline || libraryOffline) ? (
-        <div style={styles.offlineContainer}>
-          <div style={styles.offlineText}>
-            <h2>Plex Server Took a Nap 😴</h2>
-            <p>We lost connection to this server. It's either updating, offline, or just ignoring us.</p>
-          </div>
+        <div style={{...styles.offlineContainer, marginTop: '80px'}}>
+          <ServerOfflineMessage />
         </div>
       ) : loading ? (
         <div style={styles.emptyContainer}>

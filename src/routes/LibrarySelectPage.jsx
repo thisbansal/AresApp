@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
+import { ServerOfflineMessage } from '../components/ServerOfflineMessage'
 import { getLibraries } from '../services/plex/plexContentService'
 import { useAppStore } from '../stores/AppStore'
 import { getSharedServerToken, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
@@ -164,32 +165,19 @@ function LibrarySelectPage() {
   if (error) {
     return (
       <div style={styles.container}>
-        <div style={{ ...styles.errorCard, backgroundColor: 'rgba(20, 20, 20, 0.85)', border: 'none', padding: '60px 80px', borderRadius: '30px', textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
-          <h2 style={{ fontSize: '42px', fontWeight: '800', color: '#ffffff', marginBottom: '15px', fontFamily: '"Outfit", "Inter", sans-serif' }}>Plex Server Took a Nap 😴</h2>
-          <p style={{ fontSize: '22px', color: '#a8a8af', marginBottom: '40px', maxWidth: '500px', lineHeight: '1.4' }}>We lost connection to your server. It's either updating, offline, or just ignoring us.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '30px' }}>
+          <ServerOfflineMessage />
           
-          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
-            <FocusableItem
-              id="error-retry-btn"
-              rowIndex={0}
-              colIndex={0}
-              onClick={loadLibraries}
-            >
-              <div className="player-hud-stream-btn" style={{ padding: '16px 36px', fontSize: '20px' }}>
-                Try Again
-              </div>
-            </FocusableItem>
-            <FocusableItem
-              id="error-back-btn"
-              rowIndex={0}
-              colIndex={1}
-              onClick={handleBack}
-            >
-              <div className="player-hud-stream-btn" style={{ padding: '16px 36px', fontSize: '20px' }}>
-                Go Back
-              </div>
-            </FocusableItem>
-          </div>
+          <FocusableItem
+            id="error-back-btn"
+            rowIndex={0}
+            colIndex={0}
+            onClick={handleBack}
+          >
+            <div className="capsule-btn" style={{ padding: '16px 40px', fontSize: '22px' }}>
+              Go Back
+            </div>
+          </FocusableItem>
         </div>
       </div>
     )

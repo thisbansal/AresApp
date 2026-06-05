@@ -49,13 +49,14 @@ class MediaCacheService {
    * Get library items with image preloading
    */
   async getLibraryItems(serverUri, token, libraryId, options = {}, forceRefresh = false) {
-    const cacheKey = `${CACHE_KEYS.LIBRARY_METADATA}${libraryId}`
+    const safeUri = serverUri ? serverUri.replace(/[^a-zA-Z0-9]/g, '_') : 'default'
+    const cacheKey = `${CACHE_KEYS.LIBRARY_METADATA}${safeUri}_${libraryId}`
     const { start = 0, size = 100 } = options
 
     if (!forceRefresh) {
       const cached = await this.getCached(cacheKey)
       if (cached && cached.items && cached.items.length > 0) {
-        console.log(`[Cache] Returning cached library ${libraryId}:`, cached.items.length, 'items')
+        console.log(`[Cache] Returning cached library ${libraryId} for ${serverUri}:`, cached.items.length, 'items')
 
         // Preload images for instant display
         this.preloadImages(cached.items)
@@ -67,7 +68,7 @@ class MediaCacheService {
       }
     }
 
-    console.log(`[Cache] No cached library ${libraryId}, fetching from server...`)
+    console.log(`[Cache] No cached library ${libraryId} for ${serverUri}, fetching from server...`)
     const data = await this.fetchAndCacheLibraryItems(serverUri, token, libraryId, cacheKey, options)
 
     // Preload images after fetching

@@ -77,12 +77,10 @@ class MultiServerCacheService {
     // Always start background sync when requested
     this.startBackgroundSync('On Deck', () => getMultiServerOnDeck(50), cacheKey)
 
-    if (!forceRefresh) {
-      const cached = await this.getCached(cacheKey)
-      if (cached) {
-        console.log('[MULTI CACHE] Returning cached On Deck items:', cached.length)
-        return cached
-      }
+    const cached = await this.getCached(cacheKey)
+    if (cached) {
+      console.log('[MULTI CACHE] Returning cached On Deck items:', cached.length)
+      return cached
     }
 
     // If no cache, return empty array instantly while background sync fetches it
@@ -95,12 +93,10 @@ class MultiServerCacheService {
     
     this.startBackgroundSync('Recently Added', () => getMultiServerRecentlyAdded(50), cacheKey)
 
-    if (!forceRefresh) {
-      const cached = await this.getCached(cacheKey)
-      if (cached) {
-        console.log('[MULTI CACHE] Returning cached Recently Added items:', cached.length)
-        return cached
-      }
+    const cached = await this.getCached(cacheKey)
+    if (cached) {
+      console.log('[MULTI CACHE] Returning cached Recently Added items:', cached.length)
+      return cached
     }
 
     return []
