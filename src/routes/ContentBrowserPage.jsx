@@ -253,10 +253,10 @@ function ContentBrowserPage() {
       const allNavLibs = []
 
       // 1. Load own libraries
+      const ownSelectedIds = useAppStore.getState().selectedLibraryIds || []
       if (activeOwnUri && activeOwnToken) {
         try {
           const ownLibs = await getLibraries(activeOwnUri, activeOwnToken)
-          const ownSelectedIds = useAppStore.getState().selectedLibraryIds || []
           const ownFiltered = ownLibs.filter(l => ownSelectedIds.includes(l.id))
             
           allNavLibs.push(...ownFiltered.map(l => ({
@@ -266,7 +266,16 @@ function ContentBrowserPage() {
             token: activeOwnToken
           })))
         } catch (e) {
-          console.warn('[init] Failed to get own libraries:', e)
+          console.warn('[init] Failed to get own libraries, using offline placeholders:', e)
+          allNavLibs.push(...ownSelectedIds.map(id => ({
+            id,
+            title: 'Offline', // Placeholder title since server is offline
+            type: 'offline',
+            isShared: false,
+            serverUri: activeOwnUri,
+            token: activeOwnToken,
+            isOffline: true
+          })))
         }
       }
 
@@ -279,6 +288,12 @@ function ContentBrowserPage() {
         const sortedServerEntries = Object.entries(selectedLibrariesByServer).sort((a, b) => a[0].localeCompare(b[0]))
         
         for (const [clientId, selectedIds] of sortedServerEntries) {
+          // Skip the active own server to prevent duplicating its libraries
+          const ownServerClientId = useServerStore.getState().activeServer?.clientIdentifier
+          if (clientId === ownServerClientId) {
+            continue
+          }
+
           if (selectedIds && selectedIds.length > 0) {
             try {
               const servers = useServerManagerStore.getState().servers
@@ -293,9 +308,27 @@ function ContentBrowserPage() {
                   serverUri: sharedInfo.uri,
                   token: sharedInfo.accessToken
                 })))
+              } else {
+                // Shared server info is missing (likely offline), push placeholders
+                allNavLibs.push(...selectedIds.map(id => ({
+                  id,
+                  title: 'Offline',
+                  type: 'offline',
+                  isShared: true,
+                  serverClientId: clientId,
+                  isOffline: true
+                })))
               }
             } catch (err) {
-              console.error(`[init] Failed to load shared libraries for server ${clientId}:`, err)
+              console.error(`[init] Failed to load shared libraries for server ${clientId}, using offline placeholders:`, err)
+              allNavLibs.push(...selectedIds.map(id => ({
+                id,
+                title: 'Offline',
+                type: 'offline',
+                isShared: true,
+                serverClientId: clientId,
+                isOffline: true
+              })))
             }
           }
         }
