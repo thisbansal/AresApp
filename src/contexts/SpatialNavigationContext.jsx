@@ -7,11 +7,24 @@ export const SpatialNavigationProvider = ({ children }) => {
   const [navigationMode, setNavigationMode] = useState('remote'); // 'remote' or 'cursor'
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [isNavbarExpanded, setIsNavbarExpanded] = useState(false);
+  const [layerStack, setLayerStack] = useState(['base']);
+  const activeLayer = layerStack.length > 0 ? layerStack[layerStack.length - 1] : 'base';
   const lastRemoteActionRef = useRef(0);
   const lastNavDirectionRef = useRef(null);
 
-  const registerNode = useCallback((id, node) => {
-    nodesRef.current.set(id, node);
+  const pushLayer = useCallback((layerId) => {
+    setLayerStack(prev => [...prev.filter(id => id !== layerId), layerId]);
+  }, []);
+
+  const popLayer = useCallback((layerId) => {
+    setLayerStack(prev => {
+      const newStack = prev.filter(id => id !== layerId);
+      return newStack.length > 0 ? newStack : ['base'];
+    });
+  }, []);
+
+  const registerNode = useCallback((id, node, layerId = 'base') => {
+    nodesRef.current.set(id, { node, layerId });
   }, []);
 
   const unregisterNode = useCallback((id) => {
@@ -66,8 +79,9 @@ export const SpatialNavigationProvider = ({ children }) => {
 
     const activeElement = document.activeElement;
     if (!activeElement || activeElement === document.body) {
-      // If nothing is focused, focus the first registered node
-      const firstNode = Array.from(nodesRef.current.values())[0];
+      // If nothing is focused, focus the first registered node IN THE ACTIVE LAYER
+      const nodesInActiveLayer = Array.from(nodesRef.current.values()).filter(entry => entry.layerId === activeLayer);
+      const firstNode = nodesInActiveLayer[0]?.node;
       if (firstNode) firstNode.focus({ preventScroll: true });
       return;
     }
@@ -89,7 +103,9 @@ export const SpatialNavigationProvider = ({ children }) => {
       }
     }
 
-    nodesRef.current.forEach((node, id) => {
+    nodesRef.current.forEach((entry, id) => {
+      const { node, layerId: nodeLayerId } = entry;
+      if (nodeLayerId !== activeLayer) return;
       if (node === activeElement) return;
       if (!document.body.contains(node)) return;
 
@@ -156,6 +172,9 @@ export const SpatialNavigationProvider = ({ children }) => {
     setShowExitDialog,
     isNavbarExpanded,
     setIsNavbarExpanded,
+    activeLayer,
+    pushLayer,
+    popLayer,
     lastRemoteActionRef,
     lastNavDirectionRef
   };
@@ -173,4 +192,26 @@ export const useSpatialNavigation = () => {
     throw new Error('useSpatialNavigation must be used within a SpatialNavigationProvider');
   }
   return context;
+};
+
+export const LayerContext = createContext('base');
+
+export const FocusLayer = ({ id, isActive = true, children }) => {
+  const { pushLayer, popLayer } = useSpatialNavigation();
+
+  useEffect(() => {
+    if (isActive) {
+      pushLayer(id);
+    } else {
+      popLayer(id);
+    }
+    return () => popLayer(id);
+  }, [isActive, id, pushLayer, popLayer]);
+
+  // If not active, we still provide 'base' so children don't trap focus if layer is deactivated but still mounted
+  return (
+    <LayerContext.Provider value={isActive ? id : 'base'}>
+      {children}
+    </LayerContext.Provider>
+  );
 };

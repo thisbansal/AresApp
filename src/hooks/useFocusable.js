@@ -1,20 +1,21 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { useSpatialNavigation } from '../contexts/SpatialNavigationContext';
+import { useEffect, useRef, useCallback, useState, useContext } from 'react';
+import { useSpatialNavigation, LayerContext } from '../contexts/SpatialNavigationContext';
 
 export function useFocusable({ id, onFocus, onBlur, onClick }) {
   const ref = useRef(null);
   const [focused, setFocused] = useState(false);
-  const { registerNode, unregisterNode, setNavigationMode, lastRemoteActionRef, lastNavDirectionRef, isNavbarExpanded } = useSpatialNavigation();
+  const { registerNode, unregisterNode, setNavigationMode, lastRemoteActionRef, lastNavDirectionRef, activeLayer } = useSpatialNavigation();
+  const layerId = useContext(LayerContext);
 
   useEffect(() => {
     const node = ref.current;
     if (node && id) {
-      registerNode(id, node);
+      registerNode(id, node, layerId);
     }
     return () => {
       if (id) unregisterNode(id);
     };
-  }, [id, registerNode, unregisterNode]);
+  }, [id, registerNode, unregisterNode, layerId]);
 
   const handleFocus = useCallback((e) => {
     setFocused(true);
@@ -99,15 +100,17 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
       return;
     }
     
-    // Prevent focus stealing by elements outside the navbar when the navbar is expanded
-    if (isNavbarExpanded && ref.current && !ref.current.closest('.nav-wrapper')) {
+    // LAYER SYSTEM: Ignore hover if this element is not in the active layer
+    // This prevents background items from stealing focus when an overlay (navbar, dialog) is open.
+    if (layerId !== activeLayer) {
       return;
     }
+
     setNavigationMode('cursor');
     if (ref.current) {
       ref.current.focus({ preventScroll: true });
     }
-  }, [setNavigationMode, lastRemoteActionRef]);
+  }, [setNavigationMode, lastRemoteActionRef, layerId, activeLayer]);
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' || e.key === ' ') {

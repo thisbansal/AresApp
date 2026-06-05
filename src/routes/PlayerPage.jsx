@@ -5,6 +5,7 @@ import { createPlayQueue, setStreamSelection } from '../services/plex/plexPlayba
 import { useActiveServer } from '../hooks/useActiveServer'
 import { subtitleConverter } from '../utils/subtitleConverter'
 import { FocusableItem } from '../components/navigational/FocusableItem'
+import { FocusLayer } from '../contexts/SpatialNavigationContext'
 import { FiTv, FiSliders, FiRewind, FiPause, FiPlay } from 'react-icons/fi'
 import { MdSubtitles } from 'react-icons/md'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
@@ -1008,70 +1009,70 @@ export default function PlayerPage() {
 
           {/* Active Menu Popover */}
           {activeMenu !== 'none' && (
-            <div className="player-hud-stream-popover stream-menu-popover">
-              {activeMenu === 'subtitle' && (
-                <>
+            <FocusLayer id="player-menu" isActive={true}>
+              <div className="player-hud-stream-popover stream-menu-popover">
+                {activeMenu === 'subtitle' && (
+                  <>
+                    <FocusableItem
+                      id="stream-sub-burnin-toggle"
+                      rowIndex={-1} colIndex={0}
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
+                      className="hud-stream-menu-item player-hud-stream-menu-item"
+                      onClick={() => {
+                        const newValue = !forceSubtitleBurnIn
+                        setForceSubtitleBurnIn(newValue)
+
+                        // Trigger a stream reload with the active streams, but now using the new forceSubtitleBurnIn value
+                        const activeVideo = availableStreams.find(s => s.streamType === 1 && s.selected)
+                        const activeAudio = availableStreams.find(s => s.streamType === 2 && s.selected)
+                        const activeSub = availableStreams.find(s => s.streamType === 3 && s.selected)
+
+                        setTimeout(() => {
+                          handleStreamSelect(3, activeSub ? activeSub.id : 0)
+                        }, 100)
+                      }}
+                    >
+                      <div style={{ borderRadius: '4px', backgroundColor: forceSubtitleBurnIn ? '#e50914' : 'transparent'}} className="player-hud-stream-radio" />
+                      <span style={{color: forceSubtitleBurnIn ? '#fff' : '#a8a8af', fontWeight: forceSubtitleBurnIn ? '600' : '500', flex: 1}}>Force Burn-in (Transcode)</span>
+                    </FocusableItem>
+
+                    <FocusableItem
+                      id="stream-sub-toggle"
+                      rowIndex={-1} colIndex={1}
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
+                      className="hud-stream-menu-item player-hud-stream-menu-item"
+                      onClick={() => setIsSubtitleVisible(prev => !prev)}
+                    >
+                      <div style={{ borderRadius: '2px', backgroundColor: isSubtitleVisible ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
+                      <span style={{ flex: 1 }}>{isSubtitleVisible ? "Hide Subtitles" : "Show Subtitles"}</span>
+                    </FocusableItem>
+                  </>
+                )}
+                {availableStreams.filter(s => {
+                  if (activeMenu === 'video') return s.streamType === 1
+                  if (activeMenu === 'audio') return s.streamType === 2
+                  if (activeMenu === 'subtitle') return s.streamType === 3
+                  return false
+                }).map((stream, idx) => (
                   <FocusableItem
-                    id="stream-sub-burnin-toggle"
-                    rowIndex={-1} colIndex={0}
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
+                    key={stream.id}
+                    id={`stream-${activeMenu}-${stream.id}`}
+                    rowIndex={-1} colIndex={activeMenu === 'subtitle' ? idx + 2 : idx}
                     className="hud-stream-menu-item player-hud-stream-menu-item"
                     onClick={() => {
-                      const newValue = !forceSubtitleBurnIn
-                      setForceSubtitleBurnIn(newValue)
-
-                      // Trigger a stream reload with the active streams, but now using the new forceSubtitleBurnIn value
-                      const activeVideo = availableStreams.find(s => s.streamType === 1 && s.selected)
-                      const activeAudio = availableStreams.find(s => s.streamType === 2 && s.selected)
-                      const activeSub = availableStreams.find(s => s.streamType === 3 && s.selected)
-
-                      setTimeout(() => {
-                        handleStreamSelect(3, activeSub ? activeSub.id : 0)
-                      }, 100)
+                      handleStreamSelect(stream.streamType, stream.id)
+                      if (stream.streamType === 3) setIsSubtitleVisible(prev => !prev)
                     }}
                   >
-                    <div style={{ borderRadius: '4px', backgroundColor: forceSubtitleBurnIn ? '#e50914' : 'transparent'}} className="player-hud-stream-radio" />
-                    <span style={{color: forceSubtitleBurnIn ? '#fff' : '#a8a8af', fontWeight: forceSubtitleBurnIn ? '600' : '500', flex: 1}}>Force Burn-in (Transcode)</span>
+                    <div style={{ backgroundColor: stream.selected ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
+                    <span style={{ flex: 1 }}>
+                      {stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}
+                      {getStreamSupport(stream.streamType, stream.id)?.supported && ` (Native)`}
+                    </span>
                   </FocusableItem>
-
-                  <FocusableItem
-                    id="stream-sub-toggle"
-                    rowIndex={-1} colIndex={1}
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
-                    className="hud-stream-menu-item player-hud-stream-menu-item"
-                    onClick={() => setIsSubtitleVisible(prev => !prev)}
-                  >
-                    <div style={{ borderRadius: '2px', backgroundColor: isSubtitleVisible ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
-                    <span style={{ flex: 1 }}>{isSubtitleVisible ? "Hide Subtitles" : "Show Subtitles"}</span>
-                  </FocusableItem>
-                </>
-              )}
-              {availableStreams.filter(s => {
-                if (activeMenu === 'video') return s.streamType === 1
-                if (activeMenu === 'audio') return s.streamType === 2
-                if (activeMenu === 'subtitle') return s.streamType === 3
-                return false
-              }).map((stream, idx) => (
-                <FocusableItem
-                  key={stream.id}
-                  id={`stream-${activeMenu}-${stream.id}`}
-                  rowIndex={-1} colIndex={activeMenu === 'subtitle' ? idx + 2 : idx}
-                  className="hud-stream-menu-item player-hud-stream-menu-item"
-                  onClick={() => {
-                    handleStreamSelect(stream.streamType, stream.id)
-                    if (stream.streamType === 3) setIsSubtitleVisible(prev => !prev)
-                  }}
-                >
-                  <div style={{ backgroundColor: stream.selected ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
-                  {/* <span>{stream.extendedDisplayTitle || stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span> */}
-                  {/* <span>{stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span> */}
-                  <span style={{ flex: 1 }}>
-                    {stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}
-                    {getStreamSupport(stream.streamType, stream.id)?.supported && ` (Native)`}
-                  </span>
-                </FocusableItem>
-              ))}
-            </div>
+                ))}
+              </div>
+            </FocusLayer>
           )}
         </div>
 

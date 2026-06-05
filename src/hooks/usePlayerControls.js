@@ -40,7 +40,7 @@ export function usePlayerControls({
   activeMenu,
   setActiveMenu
 }) {
-  const { navigate: spatialNavigate } = useSpatialNavigation()
+  const { navigate: spatialNavigate, activeLayer } = useSpatialNavigation()
   const [shouldPause, setShouldPause] = useState(1)
 
   // Mirror volatile state into refs so listeners stay stable and never go stale
@@ -51,6 +51,7 @@ export function usePlayerControls({
   const targetTimeRef = useRef(null)
   const shouldPauseRef = useRef(shouldPause)
   const activeMenuRef = useRef(activeMenu)
+  const activeLayerRef = useRef(activeLayer)
 
   // Cursor presence tracking
   const cursorActiveRef = useRef(false)
@@ -66,6 +67,7 @@ export function usePlayerControls({
   useEffect(() => { currentTimeRef.current = currentTime }, [currentTime])
   useEffect(() => { shouldPauseRef.current = shouldPause }, [shouldPause])
   useEffect(() => { activeMenuRef.current = activeMenu }, [activeMenu])
+  useEffect(() => { activeLayerRef.current = activeLayer }, [activeLayer])
 
   useEffect(() => {
     const getVideoElement = () => {
@@ -230,6 +232,11 @@ export function usePlayerControls({
     }
 
     const handleWheel = (e) => {
+      // If a popover or layer is active (e.g. settings menu), let native scroll handle it
+      if (activeLayerRef.current !== 'base') {
+        return;
+      }
+      
       e.preventDefault()
       triggerHUD();
       if (!showHUDRef.current) return

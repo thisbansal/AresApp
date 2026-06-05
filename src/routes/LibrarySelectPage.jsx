@@ -31,7 +31,7 @@ function LibrarySelectPage() {
     try {
       const smStore = useServerManagerStore.getState()
       const servers = Object.values(smStore.servers)
-      
+
       if (servers.length === 0) {
         setError('No reachable servers found.')
         setLoading(false)
@@ -53,7 +53,7 @@ function LibrarySelectPage() {
         try {
           const libs = await getLibrariesCached(server.uri, server.accessToken)
           const videoLibs = libs.filter(l => l.type === 'movie' || l.type === 'show')
-          
+
           videoLibs.forEach(l => {
             allLibs.push({
               ...l,
@@ -97,7 +97,7 @@ function LibrarySelectPage() {
     try {
       // Build the unified array of selected library objects to save
       const newSelectedLibraries = []
-      
+
       updatedIds.forEach(idStr => {
         const [clientId, libId] = idStr.split('|')
         const libObj = libraries.find(l => l.serverClientId === clientId && l.id === libId)
@@ -147,7 +147,7 @@ function LibrarySelectPage() {
       <div style={styles.container}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '30px' }}>
           <ServerOfflineMessage />
-          
+
           <FocusableItem
             id="error-back-btn"
             rowIndex={0}
@@ -193,7 +193,7 @@ function LibrarySelectPage() {
         .lib-item.focused .lib-card {
           border-color: #ffffff !important;
         }
-        
+
         .action-btn {
           display: inline-block;
           border-radius: 50px;
@@ -263,7 +263,7 @@ function LibrarySelectPage() {
             onClick={handleBack}
             className={`action-btn ${isBackDisabled ? 'disabled' : ''}`}
           >
-            <div style={{ ...styles.actionButton, backgroundColor: '#1a1a1a', borderColor: '#1a1a1a', color: '#ffffff' }} className="btn-inner">Back</div>
+            <div style={{ ...styles.actionButton, backgroundColor: '#1a1a1a', borderColor: '#1a1a1a', color: '#ffffff' }} className="btn-inner">Done</div>
           </FocusableItem>
         </div>
       </div>

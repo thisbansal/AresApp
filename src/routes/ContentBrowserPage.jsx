@@ -1001,7 +1001,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <FiUsers size={48} strokeWidth={2.5} />
-                      <div className="setting-card-title"><FiUsers style={{ marginRight: '10px' }} />Switch Profile</div>
+                      <div className="setting-card-title">Switch Profile</div>
                       <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                         Go to profile selection
                       </div>
@@ -1037,7 +1037,7 @@ function ContentBrowserPage() {
                       ) : (
                         <FiEyeOff size={48} color="rgba(255, 255, 255, 0.4)" strokeWidth={2.5} />
                       )}
-                      <div className="setting-card-title">{showUnwatchedIndicator ? <FiEye style={{ marginRight: '10px' }} /> : <FiEyeOff style={{ marginRight: '10px' }} />}Unwatched Ribbon</div>
+                      <div className="setting-card-title">Unwatched Ribbon</div>
                     </div>
                   </FocusableItem>
 
@@ -1064,7 +1064,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>W</div>
-                      <div className="setting-card-title"><FiType style={{ marginRight: '10px' }} />Subtitle Weight: {subtitleWeight === 400 ? 'Normal' : subtitleWeight === 700 ? 'Bold' : 'Heavy'}</div>
+                      <div className="setting-card-title">Subtitle Weight: {subtitleWeight === 400 ? 'Normal' : subtitleWeight === 700 ? 'Bold' : 'Heavy'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1091,7 +1091,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: subtitleColor || '#FFFFFF', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
-                      <div className="setting-card-title"><FiDroplet style={{ marginRight: '10px' }} />Color: {subtitleColor === '#FFFFFF' ? 'White' : subtitleColor === '#737373' ? 'Grey' : subtitleColor === '#4A4A4A' ? 'Dark Grey' : 'Extra Dark'}</div>
+                      <div className="setting-card-title">Color: {subtitleColor === '#FFFFFF' ? 'White' : subtitleColor === '#737373' ? 'Grey' : subtitleColor === '#4A4A4A' ? 'Dark Grey' : 'Extra Dark'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1118,7 +1118,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>Aa</div>
-                      <div className="setting-card-title"><FiMaximize style={{ marginRight: '10px' }} />Size: {subtitleSize === '1.5rem' ? 'Small' : subtitleSize === '2.5rem' ? 'Medium' : 'Large'}</div>
+                      <div className="setting-card-title">Size: {subtitleSize === '1.5rem' ? 'Small' : subtitleSize === '2.5rem' ? 'Medium' : 'Large'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1142,7 +1142,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold', color: showSubtitleHUDControls ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>HUD</div>
-                      <div className="setting-card-title"><FiSliders style={{ marginRight: '10px' }} />Player Toggles: {showSubtitleHUDControls ? 'On' : 'Off'}</div>
+                      <div className="setting-card-title">Player Toggles: {showSubtitleHUDControls ? 'On' : 'Off'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1163,7 +1163,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <FiGrid size={48} color="#ffffff" strokeWidth={2.5} />
-                      <div className="setting-card-title"><FiSettings style={{ marginRight: '10px' }} />Manage Libraries</div>
+                      <div className="setting-card-title">Manage Libraries</div>
                     </div>
                   </FocusableItem>
                 </div>
@@ -1185,7 +1185,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <FiLogOut size={40} strokeWidth={2.5} />
-                      <div className="setting-card-title"><FiLogOut style={{ marginRight: '10px' }} />Sign Out</div>
+                      <div className="setting-card-title">Sign Out</div>
                       <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                         Back to login screen
                       </div>

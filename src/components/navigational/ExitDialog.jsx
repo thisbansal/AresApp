@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext'
+import { useSpatialNavigation, FocusLayer } from '../../contexts/SpatialNavigationContext'
 import { FocusableItem } from './FocusableItem'
 
 export function ExitDialog() {
@@ -18,7 +18,8 @@ export function ExitDialog() {
   if (!showExitDialog) return null
 
   return (
-    <div style={styles.exitOverlay} className="exit-overlay">
+    <FocusLayer id="exit-dialog" isActive={true}>
+      <div style={styles.exitOverlay} className="exit-overlay">
       <div style={styles.exitModal} className="exit-modal">
         <span style={styles.exitTitle}>Are you sure you want to exit?</span>
 
@@ -48,7 +49,8 @@ export function ExitDialog() {
           </FocusableItem>
         </div>
       </div>
-    </div>
+      </div>
+    </FocusLayer>
   )
 }
 

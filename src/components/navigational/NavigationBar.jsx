@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FocusableItem } from './FocusableItem';
 import { FiHome, FiSettings, FiUser } from 'react-icons/fi';
 import { MdKeyboardArrowLeft } from 'react-icons/md';
-import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
+import { useSpatialNavigation, FocusLayer } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
 
 export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
@@ -34,26 +34,27 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
   }, [isNavbarExpanded]);
 
   return (
-    <div 
-      className={`nav-wrapper ${isNavbarExpanded ? 'expanded' : 'collapsed'}`} 
-      onBlur={(e) => {
-        const currentTarget = e.currentTarget;
-        setTimeout(() => {
-          if (!currentTarget.contains(document.activeElement)) {
-            setIsNavbarExpanded(false);
-          }
-        }, 0);
-      }}
-    >
+    <FocusLayer id="navbar" isActive={isNavbarExpanded}>
       <div 
-        className="nav-capsule"
-        onClick={(e) => {
-          // Only expand if clicking the capsule or its dead space, not an item.
-          if (!isNavbarExpanded) {
-             setIsNavbarExpanded(true);
-          }
+        className={`nav-wrapper ${isNavbarExpanded ? 'expanded' : 'collapsed'}`} 
+        onBlur={(e) => {
+          const currentTarget = e.currentTarget;
+          setTimeout(() => {
+            if (!currentTarget.contains(document.activeElement)) {
+              setIsNavbarExpanded(false);
+            }
+          }, 0);
         }}
       >
+        <div 
+          className="nav-capsule"
+          onClick={(e) => {
+            // Only expand if clicking the capsule or its dead space, not an item.
+            if (!isNavbarExpanded) {
+               setIsNavbarExpanded(true);
+            }
+          }}
+        >
         {isNavbarExpanded && (
           <div className="nav-header">
             <div className="nav-profile">
@@ -177,6 +178,7 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
           </FocusableItem>
         </div>
       </div>
-    </div>
+      </div>
+    </FocusLayer>
   );
 }

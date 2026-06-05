@@ -22,7 +22,7 @@ export const ServerOfflineMessage = () => {
         marginBottom: '15px',
         fontFamily: '"Outfit", "Inter", sans-serif'
       }}>
-        Plex Server Took a Nap 😴
+        Plex Server Took a Nap
       </h2>
       <p style={{
         fontSize: '22px',
