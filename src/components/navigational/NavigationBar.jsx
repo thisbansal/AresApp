@@ -59,9 +59,13 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             className={`nav-item ${activeTab?.type === 'home' ? 'active' : ''}`}
           >
             {!isNavbarExpanded && activeTab?.type === 'home' && <FiChevronLeft size={33} className="nav-chevron" />}
-            <div className="nav-icon-container">
-              <FiHome size={isNavbarExpanded ? 32 : 42} />
-            </div>
+            
+            {!isNavbarExpanded && (
+              <div className="nav-icon-container">
+                <FiHome size={42} />
+              </div>
+            )}
+
             {isNavbarExpanded ? (
               <div className="nav-text-label">Home</div>
             ) : (
@@ -92,9 +96,14 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
                 {!isNavbarExpanded && isActive && <FiChevronLeft size={33} className="nav-chevron" />}
-                <div className="nav-icon-container lib-icon">
-                  {lib.title.charAt(0).toUpperCase()}
-                </div>
+                
+                {/* Only show library icon in collapsed mode */}
+                {!isNavbarExpanded && (
+                  <div className="nav-icon-container lib-icon">
+                    {lib.title.charAt(0).toUpperCase()}
+                  </div>
+                )}
+
                 {isNavbarExpanded ? (
                   <div className="nav-text-label">{lib.title}</div>
                 ) : (
@@ -119,9 +128,13 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             className={`nav-item ${activeTab?.type === 'settings' ? 'active' : ''}`}
           >
             {!isNavbarExpanded && activeTab?.type === 'settings' && <FiChevronLeft size={33} className="nav-chevron" />}
-            <div className="nav-icon-container">
-              <FiSettings size={isNavbarExpanded ? 32 : 42} />
-            </div>
+            
+            {!isNavbarExpanded && (
+              <div className="nav-icon-container">
+                <FiSettings size={42} />
+              </div>
+            )}
+
             {isNavbarExpanded ? (
               <div className="nav-text-label">Settings</div>
             ) : (

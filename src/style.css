@@ -778,7 +778,8 @@ video::-webkit-media-controls-text-track-display {
     font-family: 'Outfit', 'Inter', sans-serif;
     white-space: nowrap;
     opacity: 1;
-    margin-left: 12px; /* Reduced from 15px */
+    margin-left: 0px; /* Reset because icons are hidden in expanded view */
+    padding-left: 15px; /* Add padding so it's not flush against the active background edge */
   }
 
   .nav-header {
