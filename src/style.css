@@ -653,7 +653,7 @@ video::-webkit-media-controls-text-track-display {
 .nav-item.focused {
   background-color: rgba(255, 255, 255, 0.25) !important;
   color: #fff !important;
-  transform: scale(1.05) translate3d(0, 0, 0) !important;
+  /* NO transform scale to prevent growing on focus */
 }
 
 @media (min-width: 1024px) {
@@ -666,8 +666,8 @@ video::-webkit-media-controls-text-track-display {
     bottom: auto;
     flex-direction: column;
     justify-content: flex-start; /* Fix to the top */
-    padding-left: 60px; /* Align to the same safe-area padding */
-    padding-top: 60px;
+    padding-left: 20px; /* Reduced from 60px to next to none */
+    padding-top: 20px; /* Reduced from 60px to next to none */
   }
   
   .nav-capsule {
@@ -716,8 +716,8 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-wrapper.collapsed .nav-chevron {
-    margin-left: -60px; /* Pull chevron slightly outside the pill to match screenshot */
-    margin-right: 30px;
+    margin-left: 0px; /* Reset negative margin so it doesn't clip off screen */
+    margin-right: 20px;
     color: white;
   }
 
@@ -788,12 +788,12 @@ video::-webkit-media-controls-text-track-display {
   .nav-profile {
     display: flex;
     align-items: center;
-    gap: 16px; /* Reduced from 22px */
+    gap: 20px; /* Increased from 16px */
   }
 
   .nav-avatar {
-    width: 50px; /* Reduced from 66px */
-    height: 50px;
+    width: 80px; /* Increased from 50px */
+    height: 80px; /* Increased from 50px */
     border-radius: 50%;
     background-color: rgba(255, 255, 255, 0.1);
     display: flex;
@@ -809,13 +809,13 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-username {
-    font-size: 22px; /* Reduced from 30px */
+    font-size: 28px; /* Increased from 22px */
     font-weight: 600;
     color: white;
   }
 
   .nav-time {
-    font-size: 20px; /* Reduced from 27px */
+    font-size: 26px; /* Increased from 20px */
     color: rgba(255, 255, 255, 0.6);
     font-weight: 500;
   }
@@ -823,8 +823,8 @@ video::-webkit-media-controls-text-track-display {
 
 @media (min-width: 1920px) {
   .nav-wrapper {
-    padding-left: 80px; /* Double standard padding for 4k */
-    padding-top: 80px;
+    padding-left: 30px;
+    padding-top: 30px;
   }
   .nav-wrapper.expanded .nav-capsule {
     width: 600px;

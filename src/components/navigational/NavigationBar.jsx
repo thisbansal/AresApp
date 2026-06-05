@@ -49,8 +49,10 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             id="nav-home"
             rowIndex={-1}
             colIndex={0}
-            onFocus={() => setIsNavbarExpanded(true)}
-            onClick={() => onItemClick({ type: 'home' })}
+            onClick={() => {
+              setIsNavbarExpanded(false);
+              onItemClick({ type: 'home' });
+            }}
             className={`nav-item ${activeTab?.type === 'home' ? 'active' : ''}`}
           >
             {!isNavbarExpanded && activeTab?.type === 'home' && <FiChevronLeft size={33} className="nav-chevron" />}
@@ -77,8 +79,10 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 id={`nav-lib-${uid}`}
                 rowIndex={-1}
                 colIndex={index + 1}
-                onFocus={() => setIsNavbarExpanded(true)}
-                onClick={() => onItemClick({ type: 'library', data: lib })}
+                onClick={() => {
+                  setIsNavbarExpanded(false);
+                  onItemClick({ type: 'library', data: lib });
+                }}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
                 {!isNavbarExpanded && isActive && <FiChevronLeft size={33} className="nav-chevron" />}
@@ -99,8 +103,10 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             id="nav-settings"
             rowIndex={-1}
             colIndex={libraries.length + 1}
-            onFocus={() => setIsNavbarExpanded(true)}
-            onClick={() => onItemClick({ type: 'settings' })}
+            onClick={() => {
+              setIsNavbarExpanded(false);
+              onItemClick({ type: 'settings' });
+            }}
             className={`nav-item ${activeTab?.type === 'settings' ? 'active' : ''}`}
           >
             {!isNavbarExpanded && activeTab?.type === 'settings' && <FiChevronLeft size={33} className="nav-chevron" />}
