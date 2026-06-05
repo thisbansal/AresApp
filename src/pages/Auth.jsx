@@ -21,38 +21,35 @@ function AuthRoute({
       return <Navigate to="/login" replace />
     }
 
-    // We no longer block setup routes when hasSession is true, 
-    // to allow users to navigate to /library-select from Settings, 
-    // or /server-select to switch servers.
-
-    // If session is NOT complete, and we are not on setup pages
-    if (!hasSession && !allowIncompleteSession) {
-      if (!hasServer) {
+    // If we are trying to access a fully protected route (like /browse)
+    if (!allowIncompleteSession) {
+      if (!hasSession) {
+        console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (No profile session). Redirecting to /user-select`)
+        return <Navigate to="/user-select" replace />
+      } else if (!hasServer) {
         console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (No server selected). Redirecting to /server-select`)
         return <Navigate to="/server-select" replace />
       } else if (!hasLibraries) {
         console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (No libraries selected). Redirecting to /library-select`)
         return <Navigate to="/library-select" replace />
-      } else {
-        console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (Server & Libraries exist, no profile session). Redirecting to /user-select`)
-        return <Navigate to="/user-select" replace />
       }
     }
 
     // Enforce linear setup progression if allowIncompleteSession is true
-    if (!hasSession && allowIncompleteSession) {
-      if (location.pathname === "/library-select" && !hasServer) {
-        console.log(`[AUTH ROUTE] Enforcing progression: Missing server for library-select. Redirecting to /server-select`)
-        return <Navigate to="/server-select" replace />
+    // If they are on a setup page, ensure they don't skip ahead.
+    if (allowIncompleteSession) {
+      if (location.pathname === "/server-select" && !hasSession) {
+        console.log(`[AUTH ROUTE] Enforcing progression: Missing session for server-select. Redirecting to /user-select`)
+        return <Navigate to="/user-select" replace />
       }
-      if (location.pathname === "/user-select") {
-        if (!hasServer) {
-          console.log(`[AUTH ROUTE] Enforcing progression: Missing server for user-select. Redirecting to /server-select`)
-          return <Navigate to="/server-select" replace />
+      if (location.pathname === "/library-select") {
+        if (!hasSession) {
+          console.log(`[AUTH ROUTE] Enforcing progression: Missing session for library-select. Redirecting to /user-select`)
+          return <Navigate to="/user-select" replace />
         }
-        if (!hasLibraries) {
-          console.log(`[AUTH ROUTE] Enforcing progression: Missing libraries for user-select. Redirecting to /library-select`)
-          return <Navigate to="/library-select" replace />
+        if (!hasServer) {
+          console.log(`[AUTH ROUTE] Enforcing progression: Missing server for library-select. Redirecting to /server-select`)
+          return <Navigate to="/server-select" replace />
         }
       }
     }
@@ -68,15 +65,15 @@ function AuthRoute({
       return <Navigate to="/browse" replace />
     }
 
-    if (!hasServer) {
-      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with no server. Redirecting to /server-select`)
+    if (!hasSession) {
+      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with no session. Redirecting to /user-select`)
+      return <Navigate to="/user-select" replace />
+    } else if (!hasServer) {
+      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with session but no server. Redirecting to /server-select`)
       return <Navigate to="/server-select" replace />
     } else if (!hasLibraries) {
-      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with server, no libraries. Redirecting to /library-select`)
+      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with session and server, no libraries. Redirecting to /library-select`)
       return <Navigate to="/library-select" replace />
-    } else {
-      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with server & libraries, no profile session. Redirecting to /user-select`)
-      return <Navigate to="/user-select" replace />
     }
   }
 

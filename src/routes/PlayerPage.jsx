@@ -1227,35 +1227,44 @@ export default function PlayerPage() {
         .player-hud-btn-capsule.focused, .player-hud-btn-capsule:hover {
           background-color: #ffffff !important;
           border-color: #ffffff !important;
-          color: #000000 !important;
-          outline: none;
+          transform: translateY(-4px) !important;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5) !important;
         }
         .player-hud-btn-capsule.focused svg, .player-hud-btn-capsule:hover svg {
-          fill: #000000 !important;
-          stroke: #000000 !important;
-          color: #000000 !important;
+          fill: #1a1a1a !important;
+          stroke: #1a1a1a !important;
+          color: #1a1a1a !important;
+          transform: translateY(-1px);
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
         .player-hud-btn-capsule.focused .capsuleLabel, .player-hud-btn-capsule:hover .capsuleLabel {
-          color: #000000 !important;
+          color: #1a1a1a !important;
+          transform: translateY(-1px);
+          text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         .player-hud-btn-capsule:active {
-          transform: scale(1) !important;
+          transform: scale(0.95) !important;
         }
         .hud-stream-btn {
-          transition: background-color 0.15s ease, color 0.15s ease !important;
+          transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease !important;
         }
         .hud-stream-btn.focused, .hud-stream-btn:hover {
           background-color: #ffffff !important;
           border-color: #ffffff !important;
-          color: #000000 !important;
+          transform: translateY(-4px) !important;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5) !important;
         }
         .hud-stream-btn.focused svg, .hud-stream-btn:hover svg {
-          fill: #000000 !important;
-          stroke: #000000 !important;
-          color: #000000 !important;
+          fill: #1a1a1a !important;
+          stroke: #1a1a1a !important;
+          color: #1a1a1a !important;
+          transform: translateY(-1px);
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
         .hud-stream-btn.focused span, .hud-stream-btn:hover span {
-          color: #000000 !important;
+          color: #1a1a1a !important;
+          transform: translateY(-1px);
+          text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .subtitle-caching-spinner {

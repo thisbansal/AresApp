@@ -131,14 +131,14 @@ describe('Shared Servers Authentication and Store Integration', () => {
   })
 
   describe('AppStore hasServer Integration', () => {
-    it('should set hasServer to true when calling setSelectedLibrariesForServer', async () => {
+    it('should set hasServer to true when calling setSelectedLibraries', async () => {
       expect(useAppStore.getState().hasServer).toBe(false)
 
-      await useAppStore.getState().setSelectedLibrariesForServer('shared-client-1', ['lib1', 'lib2'])
+      await useAppStore.getState().setSelectedLibraries(['shared-client-1|lib1', 'shared-client-1|lib2'])
 
       const state = useAppStore.getState()
-      expect(state.hasServer).toBe(true)
-      expect(state.selectedLibrariesByServer['shared-client-1']).toEqual(['lib1', 'lib2'])
+      expect(state.hasLibraries).toBe(true)
+      expect(state.selectedLibraries).toEqual(['shared-client-1|lib1', 'shared-client-1|lib2'])
     })
   })
 })

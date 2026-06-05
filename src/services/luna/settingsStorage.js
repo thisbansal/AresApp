@@ -63,24 +63,8 @@ export const updateRememberPinInSession = async (rememberPin) => {
   }
 }
 
-export const getSelectedLibraries = async () => {
-  if (!isWebOS()) {
-    const val = localStorage.getItem('app_selectedLibraries')
-    return val ? JSON.parse(val) : []
-  }
-  return await getData(DB_KINDS.PREFERENCES, 'selectedLibraries', [])
-}
-
-export const saveSelectedLibraries = async (libraryIds) => {
-  if (!isWebOS()) {
-    localStorage.setItem('app_selectedLibraries', JSON.stringify(libraryIds))
-    return
-  }
-  await setData(DB_KINDS.PREFERENCES, 'selectedLibraries', libraryIds)
-}
-
-export const getSelectedLibrariesForServer = async (serverClientId) => {
-  const key = `selectedLibraries_${serverClientId}`
+export const getSelectedLibraries = async (profileId = 'default') => {
+  const key = `selectedLibraries_${profileId}`
   if (!isWebOS()) {
     const val = localStorage.getItem(`app_${key}`)
     return val ? JSON.parse(val) : []
@@ -88,8 +72,8 @@ export const getSelectedLibrariesForServer = async (serverClientId) => {
   return await getData(DB_KINDS.PREFERENCES, key, [])
 }
 
-export const saveSelectedLibrariesForServer = async (serverClientId, libraryIds) => {
-  const key = `selectedLibraries_${serverClientId}`
+export const saveSelectedLibraries = async (libraryIds, profileId = 'default') => {
+  const key = `selectedLibraries_${profileId}`
   if (!isWebOS()) {
     localStorage.setItem(`app_${key}`, JSON.stringify(libraryIds))
     return
@@ -97,19 +81,5 @@ export const saveSelectedLibrariesForServer = async (serverClientId, libraryIds)
   await setData(DB_KINDS.PREFERENCES, key, libraryIds)
 }
 
-export const getSelectedLibrariesMap = async () => {
-  if (!isWebOS()) {
-    const val = localStorage.getItem('app_selectedLibrariesMap')
-    return val ? JSON.parse(val) : {}
-  }
-  return await getData(DB_KINDS.PREFERENCES, 'selectedLibrariesMap', {})
-}
 
-export const saveSelectedLibrariesMap = async (librariesMap) => {
-  if (!isWebOS()) {
-    localStorage.setItem('app_selectedLibrariesMap', JSON.stringify(librariesMap))
-    return
-  }
-  await setData(DB_KINDS.PREFERENCES, 'selectedLibrariesMap', librariesMap)
-}
 

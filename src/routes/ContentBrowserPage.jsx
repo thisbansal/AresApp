@@ -21,7 +21,7 @@ import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { useServerManagerStore } from '../stores/serverManagerStore'
-import { FiCheck, FiX, FiLock, FiUnlock, FiUsers, FiEye, FiEyeOff, FiGrid, FiMonitor, FiLogOut } from 'react-icons/fi'
+import { FiCheck, FiX, FiLock, FiUnlock, FiUsers, FiEye, FiEyeOff, FiGrid, FiMonitor, FiLogOut, FiSettings, FiType, FiDroplet, FiMaximize, FiSliders, FiDatabase } from 'react-icons/fi'
 
 // Module-level cache to persist clicked item ID across route transitions (for back morph animations)
 let globalClickedItemId = null
@@ -61,8 +61,7 @@ function ContentBrowserPage() {
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
 
-  const selectedLibraryIds = useAppStore((state) => state.selectedLibraryIds)
-  const selectedLibrariesByServer = useAppStore((state) => state.selectedLibrariesByServer)
+  const selectedLibraries = useAppStore((state) => state.selectedLibraries)
   const isOnline = useServerStore(state => state.isOnline)
 
   const [loading, setLoading] = useState(true)
@@ -247,141 +246,43 @@ function ContentBrowserPage() {
 
   const ITEMS_PER_ROW = 6
 
-  const loadAllSelectedLibraries = async (ownUri = null, ownToken = null) => {
+  const loadAllSelectedLibraries = async () => {
     try {
-      const activeOwnUri = ownUri || serverInfo?.uri || useServerStore.getState().activeServer?.uri
-      const activeOwnToken = ownToken || serverInfo?.token || useServerStore.getState().activeServer?.token
-      const activeOwnClientId = serverInfo?.clientIdentifier || useServerStore.getState().activeServer?.clientIdentifier
-      
       const allNavLibs = []
+      const unifiedLibs = useAppStore.getState().selectedLibraries || []
+      const smStoreServers = useServerManagerStore.getState().servers || {}
 
-      // 1. Load own libraries
-      const ownSelectedIds = useAppStore.getState().selectedLibraryIds || []
-      const selectedLibrariesMap = useAppStore.getState().selectedLibrariesMap || {}
-      if (activeOwnUri && activeOwnToken) {
-        try {
-          const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
-          const ownLibs = await getLibrariesCached(activeOwnUri, activeOwnToken)
-          
-          // Map over selected IDs so that missing items get placeholders
-          ownSelectedIds.forEach(id => {
-            const lib = ownLibs.find(l => l.id === id)
-            if (lib) {
-              allNavLibs.push({
-                ...lib,
-                isShared: false,
-                serverUri: activeOwnUri,
-                token: activeOwnToken
-              })
-            } else {
-              // Not found in cache (e.g. server offline and cache empty for this item)
-              allNavLibs.push({
-                id,
-                title: selectedLibrariesMap[id]?.title || 'Offline',
-                type: selectedLibrariesMap[id]?.type || 'offline',
-                isShared: false,
-                serverUri: activeOwnUri,
-                token: activeOwnToken,
-                isOffline: true
-              })
-            }
+      for (const lib of unifiedLibs) {
+        const server = smStoreServers[lib.serverClientId]
+        if (server && server.uri && server.accessToken) {
+          allNavLibs.push({
+            ...lib,
+            isShared: !lib.isOwned,
+            serverUri: server.uri,
+            token: server.accessToken,
+            isOffline: false
           })
-        } catch (e) {
-          console.warn('[init] Failed to get own libraries, using offline placeholders:', e)
-          allNavLibs.push(...ownSelectedIds.map(id => ({
-            id,
-            title: selectedLibrariesMap[id]?.title || 'Offline',
-            type: selectedLibrariesMap[id]?.type || 'offline',
-            isShared: false,
-            serverUri: activeOwnUri,
-            token: activeOwnToken,
+        } else {
+          // Server offline or unreachable
+          allNavLibs.push({
+            ...lib,
+            isShared: !lib.isOwned,
             isOffline: true
-          })))
-        }
-      }
-
-      // 2. Load shared libraries
-      const mainToken = useAppStore.getState().mainToken || await getMainToken()
-      if (mainToken) {
-        const selectedLibrariesByServer = useAppStore.getState().selectedLibrariesByServer || {}
-        
-        // Sort server clientIds stably to prevent key insertion order from swapping tabs in navbar
-        const sortedServerEntries = Object.entries(selectedLibrariesByServer).sort((a, b) => a[0].localeCompare(b[0]))
-        
-        for (const [clientId, selectedIds] of sortedServerEntries) {
-          // Skip the active own server to prevent duplicating its libraries
-          if (clientId === activeOwnClientId) {
-            continue
-          }
-
-          if (selectedIds && selectedIds.length > 0) {
-            try {
-              const servers = useServerManagerStore.getState().servers
-              const sharedInfo = servers[clientId]
-              if (sharedInfo && sharedInfo.uri && sharedInfo.accessToken) {
-                const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
-                const sharedLibs = await getLibrariesCached(sharedInfo.uri, sharedInfo.accessToken)
-                
-                selectedIds.forEach(id => {
-                  const lib = sharedLibs.find(l => l.id === id)
-                  if (lib) {
-                    allNavLibs.push({
-                      ...lib,
-                      isShared: true,
-                      serverClientId: clientId,
-                      serverUri: sharedInfo.uri,
-                      token: sharedInfo.accessToken
-                    })
-                  } else {
-                    allNavLibs.push({
-                      id,
-                      title: selectedLibrariesMap[id]?.title || 'Offline',
-                      type: selectedLibrariesMap[id]?.type || 'offline',
-                      isShared: true,
-                      serverClientId: clientId,
-                      serverUri: sharedInfo.uri,
-                      token: sharedInfo.accessToken,
-                      isOffline: true
-                    })
-                  }
-                })
-              } else {
-                // Shared server info is missing (likely offline), push placeholders
-                allNavLibs.push(...selectedIds.map(id => ({
-                  id,
-                  title: selectedLibrariesMap[id]?.title || 'Offline',
-                  type: selectedLibrariesMap[id]?.type || 'offline',
-                  isShared: true,
-                  serverClientId: clientId,
-                  isOffline: true
-                })))
-              }
-            } catch (err) {
-              console.error(`[init] Failed to load shared libraries for server ${clientId}, using offline placeholders:`, err)
-              allNavLibs.push(...selectedIds.map(id => ({
-                id,
-                title: selectedLibrariesMap[id]?.title || 'Offline',
-                type: selectedLibrariesMap[id]?.type || 'offline',
-                isShared: true,
-                serverClientId: clientId,
-                isOffline: true
-              })))
-            }
-          }
+          })
         }
       }
 
       setLibraries(allNavLibs)
       
       if (activeTab && activeTab.type === 'library') {
-        const stillExists = allNavLibs.some(l => l.id === activeTab.data?.id)
+        const stillExists = allNavLibs.some(l => l.id === activeTab.data?.id && l.serverClientId === activeTab.data?.serverClientId)
         if (!stillExists) {
           console.log('[ContentBrowserPage] Active library tab no longer selected. Resetting to Home.')
           setActiveTab({ type: 'home' })
         }
       }
     } catch (err) {
-      console.error('[loadAllSelectedLibraries] Error:', err)
+      console.error('[ContentBrowserPage] Error loading selected libraries:', err)
     }
   }
 
@@ -464,7 +365,7 @@ function ContentBrowserPage() {
     if (serverInfo?.uri && serverInfo?.token) {
       loadAllSelectedLibraries(serverInfo.uri, serverInfo.token).catch(e => console.warn('[init] Reactive reload failed:', e))
     }
-  }, [selectedLibraryIds, selectedLibrariesByServer, serverInfo])
+  }, [selectedLibraries, serverInfo])
 
   // Helper to preload images before showing content
   const preloadImages = async (itemsArrays) => {
@@ -1100,7 +1001,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <FiUsers size={48} strokeWidth={2.5} />
-                      <div className="setting-card-title">Switch Profile</div>
+                      <div className="setting-card-title"><FiUsers style={{ marginRight: '10px' }} />Switch Profile</div>
                       <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                         Go to profile selection
                       </div>
@@ -1136,7 +1037,7 @@ function ContentBrowserPage() {
                       ) : (
                         <FiEyeOff size={48} color="rgba(255, 255, 255, 0.4)" strokeWidth={2.5} />
                       )}
-                      <div className="setting-card-title">Unwatched Ribbon</div>
+                      <div className="setting-card-title">{showUnwatchedIndicator ? <FiEye style={{ marginRight: '10px' }} /> : <FiEyeOff style={{ marginRight: '10px' }} />}Unwatched Ribbon</div>
                     </div>
                   </FocusableItem>
 
@@ -1163,7 +1064,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>W</div>
-                      <div className="setting-card-title">Subtitle Weight: {subtitleWeight === 400 ? 'Normal' : subtitleWeight === 700 ? 'Bold' : 'Heavy'}</div>
+                      <div className="setting-card-title"><FiType style={{ marginRight: '10px' }} />Subtitle Weight: {subtitleWeight === 400 ? 'Normal' : subtitleWeight === 700 ? 'Bold' : 'Heavy'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1190,7 +1091,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: subtitleColor || '#FFFFFF', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
-                      <div className="setting-card-title">Color: {subtitleColor === '#FFFFFF' ? 'White' : subtitleColor === '#737373' ? 'Grey' : subtitleColor === '#4A4A4A' ? 'Dark Grey' : 'Extra Dark'}</div>
+                      <div className="setting-card-title"><FiDroplet style={{ marginRight: '10px' }} />Color: {subtitleColor === '#FFFFFF' ? 'White' : subtitleColor === '#737373' ? 'Grey' : subtitleColor === '#4A4A4A' ? 'Dark Grey' : 'Extra Dark'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1217,7 +1118,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>Aa</div>
-                      <div className="setting-card-title">Size: {subtitleSize === '1.5rem' ? 'Small' : subtitleSize === '2.5rem' ? 'Medium' : 'Large'}</div>
+                      <div className="setting-card-title"><FiMaximize style={{ marginRight: '10px' }} />Size: {subtitleSize === '1.5rem' ? 'Small' : subtitleSize === '2.5rem' ? 'Medium' : 'Large'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1229,7 +1130,7 @@ function ContentBrowserPage() {
                     onClick={() => {
                       const newValue = !showSubtitleHUDControls
                       setShowSubtitleHUDControls(newValue)
-                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                      setData(DB_KINDS.PREFERENCES, `${KINDS.preferences}_${currentProfile?.id || useAppStore.getState().userProfile?.userId || 'default'}`, {
                         showUnwatchedIndicator,
                         subtitleWeight,
                         subtitleColor,
@@ -1241,7 +1142,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold', color: showSubtitleHUDControls ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>HUD</div>
-                      <div className="setting-card-title">Player Toggles: {showSubtitleHUDControls ? 'On' : 'Off'}</div>
+                      <div className="setting-card-title"><FiSliders style={{ marginRight: '10px' }} />Player Toggles: {showSubtitleHUDControls ? 'On' : 'Off'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1262,84 +1163,13 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <FiGrid size={48} color="#ffffff" strokeWidth={2.5} />
-                      <div className="setting-card-title">Manage Libraries</div>
+                      <div className="setting-card-title"><FiSettings style={{ marginRight: '10px' }} />Manage Libraries</div>
                     </div>
                   </FocusableItem>
                 </div>
               </div>
 
-              {/* Row 12: Shared Servers */}
-              {sharedServers.length > 0 && (
-                <div style={styles.section} className="row">
-                  <h2 style={styles.sectionTitle}>Shared Servers</h2>
-                  <div style={styles.row} className="hide-scrollbar row-items">
-                    {sharedServers.map((server, colIdx) => {
-                      const selectedIds = useAppStore.getState().selectedLibrariesByServer[server.clientIdentifier] || []
-                      const hasSelectedLibs = selectedIds.length > 0
-                      
-                      return (
-                        <FocusableItem
-                          key={`setting-shared-server-${server.clientIdentifier}`}
-                          id={`setting-shared-server-${server.clientIdentifier}`}
-                          rowIndex={12}
-                          colIndex={colIdx}
-                          onClick={() => {
-                            navigate('/library-select', {
-                              state: {
-                                isShared: true,
-                                serverClientId: server.clientIdentifier,
-                                from: 'settings'
-                              }
-                            })
-                          }}
-                          style={{ flexShrink: 0 }}
-                        >
-                          <div className="setting-card" style={{ position: 'relative' }}>
-                            <FiMonitor size={48} color="#ffffff" strokeWidth={2.5} />
-                            <div className="setting-card-title">{server.name}</div>
-                            <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
-                              {hasSelectedLibs ? `${selectedIds.length} libraries pinned` : 'None pinned'}
-                            </div>
 
-                            {hasSelectedLibs && (
-                              <div 
-                                style={{
-                                  position: 'absolute',
-                                  top: '16px',
-                                  right: '16px',
-                                  backgroundColor: '#34a853',
-                                  borderRadius: '50%',
-                                  width: '32px',
-                                  height: '32px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  border: '2px solid #ffffff',
-                                  boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-                                  zIndex: 10
-                                }}
-                                onClick={async (e) => {
-                                  e.stopPropagation()
-                                  try {
-                                    await useAppStore.getState().setSelectedLibrariesForServer(server.clientIdentifier, [])
-                                    await loadAllSelectedLibraries()
-                                  } catch (err) {
-                                    console.error('Failed to clear library selections:', err)
-                                  }
-                                }}
-                                title="Click to deselect all libraries"
-                              >
-                                <FiCheck size={18} color="#ffffff" strokeWidth={4.5} />
-                              </div>
-                            )}
-                          </div>
-                        </FocusableItem>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* Row 13: System */}
               <div style={styles.section} className="row">
@@ -1355,7 +1185,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <FiLogOut size={40} strokeWidth={2.5} />
-                      <div className="setting-card-title">Sign Out</div>
+                      <div className="setting-card-title"><FiLogOut style={{ marginRight: '10px' }} />Sign Out</div>
                       <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                         Back to login screen
                       </div>

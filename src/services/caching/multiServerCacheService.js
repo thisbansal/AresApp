@@ -1,5 +1,6 @@
 import { getData, setData, DB_KINDS } from '../luna/lunaService'
 import { getMultiServerOnDeck, getMultiServerRecentlyAdded } from '../plex/multiServerContentHub'
+import { useAppStore } from '../../stores/AppStore'
 
 const CACHE_KEYS = {
   ON_DECK: 'cache_multiserver_ondeck',
@@ -13,6 +14,11 @@ class MultiServerCacheService {
   constructor() {
     this.syncTimers = new Map()
     this.listeners = new Map()
+  }
+
+  getProfileKey(baseKey) {
+    const profileId = useAppStore.getState().userProfile?.userId || 'default'
+    return `${baseKey}_${profileId}`
   }
 
   // Helper to deep compare metadata to prevent unnecessary React renders
@@ -72,7 +78,7 @@ class MultiServerCacheService {
   }
 
   async getOnDeck(forceRefresh = false) {
-    const cacheKey = CACHE_KEYS.ON_DECK
+    const cacheKey = this.getProfileKey(CACHE_KEYS.ON_DECK)
     
     // Always start background sync when requested
     this.startBackgroundSync('On Deck', () => getMultiServerOnDeck(50), cacheKey)
@@ -89,7 +95,7 @@ class MultiServerCacheService {
   }
 
   async getRecentlyAdded(forceRefresh = false) {
-    const cacheKey = CACHE_KEYS.RECENTLY_ADDED
+    const cacheKey = this.getProfileKey(CACHE_KEYS.RECENTLY_ADDED)
     
     this.startBackgroundSync('Recently Added', () => getMultiServerRecentlyAdded(50), cacheKey)
 
@@ -102,7 +108,8 @@ class MultiServerCacheService {
     return []
   }
 
-  subscribe(cacheKey, callback) {
+  subscribe(baseKey, callback) {
+    const cacheKey = this.getProfileKey(baseKey)
     if (!this.listeners.has(cacheKey)) {
       this.listeners.set(cacheKey, new Set())
     }

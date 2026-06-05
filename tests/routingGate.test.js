@@ -30,7 +30,8 @@ describe('AuthRoute Routing Gate', () => {
       children: 'Content',
       requireAuth: true,
       isAuthenticated: true,
-      hasSession: true
+      hasSession: true,
+      allowIncompleteSession: true
     })
     expect(res).toBe('Content')
   })
@@ -45,7 +46,7 @@ describe('AuthRoute Routing Gate', () => {
       hasSession: false,
       allowIncompleteSession: false
     })
-    expect(res.props.to).toBe('/server-select')
+    expect(res.props.to).toBe('/user-select')
   })
 
   it('should redirect straight to /user-select if no session but server is already selected and libraries are selected', () => {
@@ -69,6 +70,7 @@ describe('AuthRoute Routing Gate', () => {
       requireAuth: true,
       isAuthenticated: true,
       hasServer: true,
+      hasLibraries: true,
       hasSession: true
     })
     expect(res).toBe('Content')

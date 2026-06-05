@@ -14,10 +14,8 @@ function ServerSelectPage() {
   const [servers, setServers] = useState([])
   const [error, setError] = useState('')
 
-  const selectedLibraryIds = useAppStore(state => state.selectedLibraryIds)
-  const selectedLibrariesByServer = useAppStore(state => state.selectedLibrariesByServer)
-
-  const hasSelections = selectedLibraryIds.length > 0 || Object.values(selectedLibrariesByServer).some(libs => libs.length > 0)
+  const selectedLibraries = useAppStore(state => state.selectedLibraries) || []
+  const hasSelections = selectedLibraries.length > 0
 
   useEffect(() => {
     loadServers()
@@ -233,13 +231,13 @@ function ServerSelectPage() {
           outline: none;
         }
         .action-btn.focused {
-          transform: scale(1.08) !important;
-          box-shadow: 0 0 25px rgba(255, 255, 255, 0.4) !important;
+          transform: translateY(-6px) scale(1.05) !important;
         }
         .action-btn.focused .btn-inner {
-          background-color: #000000 !important;
-          color: #ffffff !important;
+          background-color: #ffffff !important;
+          color: #1a1a1a !important;
           border-color: #ffffff !important;
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
         }
         .action-btn.disabled {
           opacity: 0.35;
@@ -253,7 +251,7 @@ function ServerSelectPage() {
 
         <div style={styles.serverGrid}>
           {servers.map((server, index) => {
-            const serverLibs = server.owned ? selectedLibraryIds : (selectedLibrariesByServer[server.clientIdentifier] || [])
+            const serverLibs = selectedLibraries.filter(l => l.serverClientId === server.clientIdentifier)
             const hasLibsSelected = serverLibs.length > 0
             
             return (
@@ -290,7 +288,7 @@ function ServerSelectPage() {
             onClick={handleDone}
             className={`action-btn ${!hasSelections ? 'disabled' : ''}`}
           >
-            <div style={{ ...styles.actionButton, backgroundColor: '#ffffff', borderColor: '#ffffff', color: '#000000' }} className="btn-inner">Done</div>
+            <div style={{ ...styles.actionButton, backgroundColor: '#1a1a1a', borderColor: '#1a1a1a', color: '#ffffff' }} className="btn-inner">Done</div>
           </FocusableItem>
         </div>
       </div>

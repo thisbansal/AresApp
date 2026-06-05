@@ -113,11 +113,12 @@ export const plexBridge = {
       }
 
       // If we got a successful response for the main server, ensure server status is set back to online
-      const isMainServer = store.serverInfo?.uri && url.startsWith(store.serverInfo.uri)
-      if (isMainServer && !store.isOnline) {
-        store.setServerState(true)
+      const currentState = useServerStore.getState()
+      const isMainServer = currentState.activeServer?.uri && url.startsWith(currentState.activeServer.uri)
+      if (isMainServer && !currentState.isOnline) {
+        currentState.setServerState(true)
         if (!options.silent) {
-          store.log('INFO', 'Server connection recovered.')
+          currentState.log('INFO', 'Server connection recovered.')
         }
       }
 
@@ -126,19 +127,20 @@ export const plexBridge = {
       clearTimeout(timeoutId)
       const isNetworkError = err.name === 'AbortError' || err instanceof TypeError
       
-      const isMainServer = store.serverInfo?.uri && url.startsWith(store.serverInfo.uri)
+      const currentState = useServerStore.getState()
+      const isMainServer = currentState.activeServer?.uri && url.startsWith(currentState.activeServer.uri)
 
       if (isNetworkError) {
         const errorMsg = err.name === 'AbortError' ? 'Request timeout' : err.message
         
         if (isMainServer) {
-          store.setServerState(false, errorMsg)
+          currentState.setServerState(false, errorMsg)
           if (!options.silent) {
-            store.log('FATAL', `Network failure on request to ${endpoint}: ${errorMsg}`)
+            currentState.log('FATAL', `Network failure on request to ${endpoint}: ${errorMsg}`)
           }
         } else {
           if (!options.silent) {
-            store.log('WARN', `Network failure on secondary server request to ${endpoint}: ${errorMsg}`)
+            currentState.log('WARN', `Network failure on secondary server request to ${endpoint}: ${errorMsg}`)
           }
         }
         

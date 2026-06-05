@@ -27,67 +27,57 @@ function LibrarySelectPage() {
   }, [])
 
   const loadLibraries = async () => {
-    console.log('[AUTH FLOW] LibrarySelectPage: Fetching available libraries...')
+    console.log('[AUTH FLOW] LibrarySelectPage: Fetching available libraries from ALL servers...')
     try {
-      let targetUri = ''
-      let targetToken = ''
-      let initialSelected = []
-
-      // If connection parameters were already resolved and passed in location state
-      if (location.state?.uri && location.state?.token) {
-        targetUri = location.state.uri
-        targetToken = location.state.token
-        if (isShared && serverClientId) {
-          initialSelected = useAppStore.getState().selectedLibrariesByServer[serverClientId] || []
-        } else {
-          initialSelected = useAppStore.getState().selectedLibraryIds || []
-        }
-      } else {
-        // Look up the server in the new multi-server cache
-        const smStore = useServerManagerStore.getState()
-        
-        if (isShared && serverClientId) {
-          const sharedServer = smStore.servers[serverClientId]
-          if (sharedServer) {
-            targetUri = sharedServer.uri
-            targetToken = sharedServer.accessToken
-          } else {
-            // Dynamic lookup fallback via network
-            const mainToken = useAppStore.getState().mainToken || await getMainToken()
-            const activeOwnServer = useServerStore.getState().activeServer
-            const sharedInfo = await getSharedServerToken(mainToken, serverClientId, activeOwnServer)
-            targetUri = sharedInfo.uri
-            targetToken = sharedInfo.token
-          }
-          initialSelected = useAppStore.getState().selectedLibrariesByServer[serverClientId] || []
-        } else {
-          // Look for the owned server
-          const ownedServer = Object.values(smStore.servers).find(s => s.owned)
-          if (ownedServer) {
-            targetUri = ownedServer.uri
-            targetToken = ownedServer.accessToken
-          }
-          initialSelected = useAppStore.getState().selectedLibraryIds || []
-        }
-      }
-
-      const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
-      if (!targetUri || !targetToken) {
-        throw new Error('Missing server connection details.')
-      }
-
-      const libs = await getLibrariesCached(targetUri, targetToken)
-      // Filter to only show movie and show libraries
-      const videoLibs = libs.filter(l => l.type === 'movie' || l.type === 'show')
-      console.log(`[AUTH FLOW] LibrarySelectPage: Found ${videoLibs.length} libraries.`)
-
-      if (videoLibs.length === 0) {
-        setError('No libraries found on this server.')
+      const smStore = useServerManagerStore.getState()
+      const servers = Object.values(smStore.servers)
+      
+      if (servers.length === 0) {
+        setError('No reachable servers found.')
         setLoading(false)
         return
       }
 
-      setLibraries(videoLibs)
+      const allLibs = []
+      const initialSelected = []
+      const currentSelections = useAppStore.getState().selectedLibraries || []
+
+      // Extract existing selections to prepopulate checkboxes
+      currentSelections.forEach(sel => {
+        initialSelected.push(`${sel.serverClientId}|${sel.id}`)
+      })
+
+      const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
+
+      const promises = servers.map(async (server) => {
+        try {
+          const libs = await getLibrariesCached(server.uri, server.accessToken)
+          const videoLibs = libs.filter(l => l.type === 'movie' || l.type === 'show')
+          
+          videoLibs.forEach(l => {
+            allLibs.push({
+              ...l,
+              serverClientId: server.clientIdentifier,
+              serverName: server.name,
+              isOwned: server.owned
+            })
+          })
+        } catch (err) {
+          console.warn(`[LibrarySelectPage] Failed to load libraries for server ${server.name}`, err)
+        }
+      })
+
+      await Promise.allSettled(promises)
+
+      console.log(`[AUTH FLOW] LibrarySelectPage: Found ${allLibs.length} total libraries across servers.`)
+
+      if (allLibs.length === 0) {
+        setError('No libraries found on any server.')
+        setLoading(false)
+        return
+      }
+
+      setLibraries(allLibs)
       setSelectedIds(initialSelected)
       setLoading(false)
     } catch (err) {
@@ -97,57 +87,47 @@ function LibrarySelectPage() {
     }
   }
 
-  const toggleLibrary = async (id) => {
-    const updatedIds = selectedIds.includes(id)
-      ? selectedIds.filter(lId => lId !== id)
-      : [...selectedIds, id]
+  const toggleLibrary = async (compositeId) => {
+    const updatedIds = selectedIds.includes(compositeId)
+      ? selectedIds.filter(id => id !== compositeId)
+      : [...selectedIds, compositeId]
 
     setSelectedIds(updatedIds)
 
     try {
-      if (isShared && serverClientId) {
-        await useAppStore.getState().setSelectedLibrariesForServer(serverClientId, updatedIds)
-        
-        // Ensure shared server auth is registered persistently in cache
-        const cache = await getSharedServersCache()
-        const resolvedUri = location.state?.uri || cache[serverClientId]?.uri
-        const resolvedToken = location.state?.token || cache[serverClientId]?.token
-        
-        if (resolvedUri && resolvedToken) {
-          cache[serverClientId] = {
-            token: resolvedToken,
-            uri: resolvedUri,
-            timestamp: Date.now()
-          }
-          await saveSharedServersCache(cache)
+      // Build the unified array of selected library objects to save
+      const newSelectedLibraries = []
+      
+      updatedIds.forEach(idStr => {
+        const [clientId, libId] = idStr.split('|')
+        const libObj = libraries.find(l => l.serverClientId === clientId && l.id === libId)
+        if (libObj) {
+          newSelectedLibraries.push({
+            id: libObj.id,
+            serverClientId: libObj.serverClientId,
+            title: libObj.title,
+            type: libObj.type,
+            isOwned: libObj.isOwned
+          })
         }
-      } else {
-        await useAppStore.getState().setSelectedLibraries(updatedIds)
-      }
+      })
 
-      // Save metadata for offline fallback
-      const currentMap = await useAppStore.getState().selectedLibrariesMap || {}
-      const targetLib = libraries.find(l => l.id === id)
-      if (targetLib && !currentMap[id]) {
-        currentMap[id] = { title: targetLib.title, type: targetLib.type }
-        await useAppStore.getState().setSelectedLibrariesMap(currentMap)
-      }
-
-      console.log('[AUTH FLOW] LibrarySelectPage: Selection saved immediately:', updatedIds)
+      await useAppStore.getState().setSelectedLibraries(newSelectedLibraries)
+      console.log('[AUTH FLOW] LibrarySelectPage: Unified selection saved immediately:', newSelectedLibraries)
     } catch (err) {
       console.error('[AUTH FLOW] LibrarySelectPage: Failed to save immediately:', err)
     }
   }
 
   const handleBack = () => {
-    if (!error && !isShared && selectedIds.length === 0) {
+    if (!error && selectedIds.length === 0) {
       console.log('[AUTH FLOW] LibrarySelectPage: Back blocked. Needs at least 1 library.')
       return
     }
     if (fromSettings) {
       navigate('/browse', { replace: true })
     } else {
-      navigate('/server-select')
+      navigate('/browse', { replace: true })
     }
   }
 
@@ -183,7 +163,7 @@ function LibrarySelectPage() {
     )
   }
 
-  const isBackDisabled = !isShared && selectedIds.length === 0
+  const isBackDisabled = selectedIds.length === 0
 
   return (
     <div style={styles.container}>
@@ -221,13 +201,13 @@ function LibrarySelectPage() {
           outline: none;
         }
         .action-btn.focused {
-          transform: scale(1.08) !important;
-          box-shadow: 0 0 25px rgba(255, 255, 255, 0.4) !important;
+          transform: translateY(-6px) scale(1.05) !important;
         }
         .action-btn.focused .btn-inner {
-          background-color: #000000 !important;
-          color: #ffffff !important;
+          background-color: #ffffff !important;
+          color: #1a1a1a !important;
           border-color: #ffffff !important;
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
         }
         .action-btn.disabled {
           opacity: 0.35;
@@ -241,14 +221,15 @@ function LibrarySelectPage() {
 
         <div style={styles.grid}>
           {libraries.map((lib, index) => {
-            const isSelected = selectedIds.includes(lib.id)
+            const compositeId = `${lib.serverClientId}|${lib.id}`
+            const isSelected = selectedIds.includes(compositeId)
             return (
               <FocusableItem
-                key={lib.id}
-                id={`lib-${lib.id}`}
+                key={compositeId}
+                id={`lib-${compositeId}`}
                 rowIndex={0}
                 colIndex={index}
-                onClick={() => toggleLibrary(lib.id)}
+                onClick={() => toggleLibrary(compositeId)}
                 className="lib-item"
               >
                 <div style={{
@@ -267,6 +248,7 @@ function LibrarySelectPage() {
                   </div>
                   <h3 style={styles.libraryTitle}>{lib.title}</h3>
                   <p style={styles.libraryType}>{lib.type}</p>
+                  <p style={{...styles.libraryType, fontSize: '14px', marginTop: '4px'}}>{lib.serverName}</p>
                 </div>
               </FocusableItem>
             )
@@ -281,7 +263,7 @@ function LibrarySelectPage() {
             onClick={handleBack}
             className={`action-btn ${isBackDisabled ? 'disabled' : ''}`}
           >
-            <div style={{ ...styles.actionButton, backgroundColor: '#ffffff', borderColor: '#ffffff', color: '#000000' }} className="btn-inner">Back</div>
+            <div style={{ ...styles.actionButton, backgroundColor: '#1a1a1a', borderColor: '#1a1a1a', color: '#ffffff' }} className="btn-inner">Back</div>
           </FocusableItem>
         </div>
       </div>
@@ -342,7 +324,9 @@ const styles = {
     textAlign: 'center',
     padding: '30px 40px',
     background: 'rgba(255, 255, 255, 0.08)',
-    border: '2px solid rgba(255, 255, 255, 0.12)',
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: '20px',
     width: '280px',
     position: 'relative',
@@ -361,7 +345,9 @@ const styles = {
     width: '32px',
     height: '32px',
     borderRadius: '8px',
-    border: '2px solid rgba(255, 255, 255, 0.4)',
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

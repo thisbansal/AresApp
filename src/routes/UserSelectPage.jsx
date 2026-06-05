@@ -136,8 +136,8 @@ function UserSelectPage() {
         isProtected
       )
 
-      console.log('[AUTH FLOW] UserSelectPage: Done! Navigating to browse...')
-      navigate('/browse')
+      console.log('[AUTH FLOW] UserSelectPage: Done! Reloading app to initialize new profile...')
+      window.location.reload()
     } catch (err) {
       console.error('[AUTH FLOW] UserSelectPage: Profile sign-in failed:', err)
       setLoadingMessage('Loading profiles...')

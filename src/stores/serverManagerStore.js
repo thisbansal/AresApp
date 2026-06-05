@@ -2,8 +2,9 @@ import { create } from 'zustand'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
 import { useServerStore } from './serverStore'
+import { useAppStore } from './AppStore'
 
-const SERVERS_CACHE_KEY = 'multiServerCache'
+const getCacheKey = () => `multiServerCache_${useAppStore.getState().userProfile?.userId || 'default'}`
 
 export const useServerManagerStore = create((set, get) => ({
   servers: {}, // Map of clientIdentifier -> { name, clientIdentifier, accessToken, uri, owned, lastTested }
@@ -12,7 +13,7 @@ export const useServerManagerStore = create((set, get) => ({
   // Load from persistent storage
   loadCachedServers: async (fallbackToken = null) => {
     try {
-      const cached = await getData(DB_KINDS.SERVER, SERVERS_CACHE_KEY)
+      const cached = await getData(DB_KINDS.SERVER, getCacheKey())
       if (cached) {
         console.group('[SERVER MANAGER] Restoring cached servers...')
 
@@ -44,7 +45,7 @@ export const useServerManagerStore = create((set, get) => ({
   // Save to persistent storage
   saveServersToCache: async (serversMap) => {
     try {
-      await setData(DB_KINDS.SERVER, SERVERS_CACHE_KEY, serversMap)
+      await setData(DB_KINDS.SERVER, getCacheKey(), serversMap)
     } catch (e) {
       console.error('[SERVER MANAGER] Failed to save servers cache:', e)
     }

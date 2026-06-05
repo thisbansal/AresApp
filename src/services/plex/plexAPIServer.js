@@ -23,7 +23,7 @@ export const getServers = async (authToken, options = {}) => {
   if (!res.ok) throw new Error(`Failed to fetch servers: ${res.status}`)
 
   const rawResources = await res.json()
-  const allServers = rawResources.filter(s => s.provides === 'server')
+  const allServers = rawResources.filter(s => s.provides && s.provides.split(',').includes('server'))
 
   const mappedServers = []
 

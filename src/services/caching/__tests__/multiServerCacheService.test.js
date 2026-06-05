@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { multiServerCacheService, CACHE_KEYS_MULTI } from '../multiServerCacheService'
-import { lunaService } from '../../luna/lunaService'
+import { lunaService, getData } from '../../luna/lunaService'
 import { useServerManagerStore } from '../../../stores/serverManagerStore'
 
 vi.mock('../../luna/lunaService', () => ({
   lunaService: {
     request: vi.fn()
-  }
+  },
+  getData: vi.fn(),
+  setData: vi.fn(),
+  DB_KINDS: { PREFERENCES: 'prefs' }
 }))
 
 vi.mock('../../../stores/serverManagerStore', () => ({
@@ -65,26 +68,22 @@ describe('multiServerCacheService', () => {
 
     const mockFetchFn = vi.fn().mockRejectedValue(new Error('Network error'))
     
-    multiServerCacheService.startBackgroundSync('On Deck Error', mockFetchFn, 'cache_multiserver_error_test')
+    const cacheKey = multiServerCacheService.getProfileKey('cache_multiserver_error_test')
+    multiServerCacheService.startBackgroundSync('On Deck Error', mockFetchFn, cacheKey)
     
     await vi.advanceTimersByTimeAsync(10)
     
     // It should have caught the error and logged it
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('[MULTI CACHE] Background sync failed'), expect.any(Error))
     
-    multiServerCacheService.stopBackgroundSync('cache_multiserver_error_test')
+    multiServerCacheService.stopBackgroundSync(cacheKey)
     console.error = originalConsoleError
   })
 
   it('should handle partial server failure by caching available items and updating UI', async () => {
     // Mock the DB to return an old cache
     const oldCache = [{ id: '1', title: 'Old Item' }]
-    lunaService.request.mockImplementation((service, options) => {
-      if (options.method === 'find') {
-        return Promise.resolve({ returnValue: true, results: [{ value: JSON.stringify(oldCache) }] })
-      }
-      return Promise.resolve({ returnValue: true })
-    })
+    getData.mockResolvedValue(JSON.stringify(oldCache))
 
     const callback = vi.fn()
     multiServerCacheService.subscribe('cache_test_partial', callback)
@@ -93,24 +92,20 @@ describe('multiServerCacheService', () => {
     const freshData = [{ id: '2', title: 'New Item' }]
     const mockFetchFn = vi.fn().mockResolvedValue(freshData)
 
-    multiServerCacheService.startBackgroundSync('Partial Sync', mockFetchFn, 'cache_test_partial')
+    const cacheKey = multiServerCacheService.getProfileKey('cache_test_partial')
+    multiServerCacheService.startBackgroundSync('Partial Sync', mockFetchFn, cacheKey)
     await vi.advanceTimersByTimeAsync(10)
 
     // Should detect change and notify listeners
     expect(callback).toHaveBeenCalledWith(freshData)
 
-    multiServerCacheService.stopBackgroundSync('cache_test_partial')
+    multiServerCacheService.stopBackgroundSync(cacheKey)
   })
 
   it('should return cached data immediately when forceRefresh is true (stale-while-revalidate)', async () => {
     // Mock the DB to return a valid cache
     const oldCache = [{ id: '1', title: 'Cached Item' }]
-    lunaService.request.mockImplementation((service, options) => {
-      if (options.method === 'find') {
-        return Promise.resolve({ returnValue: true, results: [{ value: JSON.stringify(oldCache) }] })
-      }
-      return Promise.resolve({ returnValue: true })
-    })
+    getData.mockResolvedValue(JSON.stringify(oldCache))
 
     // Act
     const onDeckItems = await multiServerCacheService.getOnDeck(true)
@@ -121,7 +116,7 @@ describe('multiServerCacheService', () => {
     expect(recentlyAddedItems).toEqual(oldCache)
     
     // Clean up timers
-    multiServerCacheService.stopBackgroundSync(CACHE_KEYS_MULTI.ON_DECK)
-    multiServerCacheService.stopBackgroundSync(CACHE_KEYS_MULTI.RECENTLY_ADDED)
+    multiServerCacheService.stopBackgroundSync(multiServerCacheService.getProfileKey(CACHE_KEYS_MULTI.ON_DECK))
+    multiServerCacheService.stopBackgroundSync(multiServerCacheService.getProfileKey(CACHE_KEYS_MULTI.RECENTLY_ADDED))
   })
 })

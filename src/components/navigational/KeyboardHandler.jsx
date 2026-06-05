@@ -82,11 +82,10 @@ export function KeyboardHandler() {
         const isColdStart = !window.history.state || window.history.state.idx === 0;
 
         if (isLibrarySelectRoute) {
-          const isShared = location.state?.isShared || false;
           const fromSettings = location.state?.from === 'settings';
-          const selectedLibraryIds = useAppStore.getState().selectedLibraryIds || [];
-          if (!isShared && selectedLibraryIds.length === 0) {
-            console.log('[AUTH FLOW] KeyboardHandler: Back key blocked. Owned server needs at least 1 library.');
+          const selectedLibraries = useAppStore.getState().selectedLibraries || [];
+          if (selectedLibraries.length === 0) {
+            console.log('[AUTH FLOW] KeyboardHandler: Back key blocked. Needs at least 1 library.');
             return;
           }
           if (fromSettings) {

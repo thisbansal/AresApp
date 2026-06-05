@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { initialiseDatabase, getMainToken, saveMainToken, clearAllStoredInfo } from '../services/luna/tokenStorage'
-import { saveProfileSession, getLastProfile, updateRememberPinInSession, getSelectedLibraries, saveSelectedLibraries, getSelectedLibrariesForServer, saveSelectedLibrariesForServer } from '../services/luna/settingsStorage'
+import { saveProfileSession, getLastProfile, updateRememberPinInSession, getSelectedLibraries, saveSelectedLibraries } from '../services/luna/settingsStorage'
 import { hasCompleteSession } from '../utils/appSettings'
 import { getData, setData, DB_KINDS, initDeviceId } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
@@ -16,9 +16,7 @@ export const useAppStore = create((set, get) => ({
   isLoading: true,
   mainToken: null,
   token: null,
-  selectedLibraryIds: [],
-  selectedLibrariesByServer: {}, // Maps serverClientId -> libraryIds[]
-  selectedLibrariesMap: {}, // Maps libraryId -> { title, type }
+  selectedLibraries: [],
   userProfile: null,
 
   initializeAuth: async () => {
@@ -50,25 +48,19 @@ export const useAppStore = create((set, get) => ({
       }
 
 
-      await useServerManagerStore.getState().loadCachedServers(mainToken)
-      // Kick off background discovery so new servers are added and offline ones update their status
-      useServerManagerStore.getState().discoverAllServers(mainToken)
-
-      const selectedLibraries = await getSelectedLibraries()
-      const sessionComplete = await hasCompleteSession()
       const userProfile = await getLastProfile()
-      const selectedLibrariesMap = await (await import('../services/luna/settingsStorage')).getSelectedLibrariesMap() || {}
-
-      const sharedServersAuth = await getData(DB_KINDS.SERVER, 'plexSharedServersAuth') || {}
-      const selectedLibrariesByServer = {}
-      for (const clientId of Object.keys(sharedServersAuth)) {
-        selectedLibrariesByServer[clientId] = await getSelectedLibrariesForServer(clientId)
-      }
-
+      const profileId = userProfile?.userId || 'default'
+      const sessionComplete = await hasCompleteSession()
       const activeToken = (sessionComplete && userProfile?.userToken) ? userProfile.userToken : mainToken
-      const hasServers = Object.keys(useServerManagerStore.getState().servers).length > 0
 
-      const hasLibraries = selectedLibraries.length > 0 || Object.values(selectedLibrariesByServer).some(libs => libs.length > 0)
+      await useServerManagerStore.getState().loadCachedServers(activeToken)
+      // Kick off background discovery so new servers are added and offline ones update their status
+      useServerManagerStore.getState().discoverAllServers(activeToken)
+
+      const selectedLibraries = await getSelectedLibraries(profileId)
+
+      const hasServers = Object.keys(useServerManagerStore.getState().servers).length > 0
+      const hasLibraries = selectedLibraries.length > 0
 
       console.log('[AUTH STORE] Initialized')
 
@@ -76,9 +68,8 @@ export const useAppStore = create((set, get) => ({
         mainToken,
         token: activeToken,
         isAuthenticated: !!mainToken,
-        hasServer: hasServers || Object.keys(selectedLibrariesByServer).length > 0,
-        selectedLibraryIds: selectedLibraries,
-        selectedLibrariesByServer,
+        hasServer: hasServers,
+        selectedLibraries,
         hasLibraries,
         hasSession: sessionComplete,
         userProfile,
@@ -126,48 +117,18 @@ export const useAppStore = create((set, get) => ({
 
   // Removed setServerUri (handled by serverManagerStore)
 
-  setSelectedLibraries: async (libraryIds) => {
+  setSelectedLibraries: async (libraries) => {
     console.log('[AUTH STORE] setSelectedLibraries starting')
     try {
-      await saveSelectedLibraries(libraryIds)
+      const profileId = get().userProfile?.userId || 'default'
+      await saveSelectedLibraries(libraries, profileId)
       set({
-        selectedLibraryIds: libraryIds,
-        hasLibraries: libraryIds.length > 0 || Object.values(get().selectedLibrariesByServer).some(libs => libs.length > 0)
+        selectedLibraries: libraries,
+        hasLibraries: libraries.length > 0
       })
       console.log('[AUTH STORE] setSelectedLibraries completed')
     } catch (err) {
       console.error('[AUTH STORE] Failed to set libraries:', err)
-      throw err
-    }
-  },
-
-  setSelectedLibrariesForServer: async (serverClientId, libraryIds) => {
-    console.log(`[AUTH STORE] setSelectedLibrariesForServer starting for: ${serverClientId}`)
-    try {
-      await saveSelectedLibrariesForServer(serverClientId, libraryIds)
-      const updatedMap = {
-        ...get().selectedLibrariesByServer,
-        [serverClientId]: libraryIds
-      }
-      set({
-        selectedLibrariesByServer: updatedMap,
-        hasServer: true,
-        hasLibraries: get().selectedLibraryIds.length > 0 || Object.values(updatedMap).some(libs => libs.length > 0)
-      })
-      console.log('[AUTH STORE] setSelectedLibrariesForServer completed')
-    } catch (err) {
-      console.error('[AUTH STORE] Failed to set libraries for server:', err)
-      throw err
-    }
-  },
-
-  setSelectedLibrariesMap: async (mapData) => {
-    try {
-      const { saveSelectedLibrariesMap } = await import('../services/luna/settingsStorage')
-      await saveSelectedLibrariesMap(mapData)
-      set({ selectedLibrariesMap: mapData })
-    } catch (err) {
-      console.error('[AUTH STORE] Failed to set libraries map:', err)
       throw err
     }
   },

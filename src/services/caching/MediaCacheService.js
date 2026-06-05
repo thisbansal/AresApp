@@ -7,6 +7,7 @@
 
 import { getData, setData, DB_KINDS } from '../luna/lunaService'
 import { getLibraries, getLibraryItems } from '../plex/plexContentService'
+import { useAppStore } from '../../stores/AppStore'
 
 const CACHE_KEYS = {
   LIBRARIES: 'cache_libraries',
@@ -24,13 +25,18 @@ class MediaCacheService {
     this.imageCache = new Map() // In-memory image cache
   }
 
+  getProfileKey(baseKey) {
+    const profileId = useAppStore.getState().userProfile?.userId || 'default'
+    return `${baseKey}_${profileId}`
+  }
+
   /**
    * Get libraries with cached data
    */
   async getLibraries(serverUri, token, forceRefresh = false) {
     // Make cache key unique per server to support multiple servers
     const safeUri = serverUri ? serverUri.replace(/[^a-zA-Z0-9]/g, '_') : 'default'
-    const cacheKey = `${CACHE_KEYS.LIBRARIES}_${safeUri}`
+    const cacheKey = this.getProfileKey(`${CACHE_KEYS.LIBRARIES}_${safeUri}`)
 
     if (!forceRefresh) {
       const cached = await this.getCached(cacheKey)
@@ -50,7 +56,7 @@ class MediaCacheService {
    */
   async getLibraryItems(serverUri, token, libraryId, options = {}, forceRefresh = false) {
     const safeUri = serverUri ? serverUri.replace(/[^a-zA-Z0-9]/g, '_') : 'default'
-    const cacheKey = `${CACHE_KEYS.LIBRARY_METADATA}${safeUri}_${libraryId}`
+    const cacheKey = this.getProfileKey(`${CACHE_KEYS.LIBRARY_METADATA}${safeUri}_${libraryId}`)
     const { start = 0, size = 100 } = options
 
     if (!forceRefresh) {
@@ -224,7 +230,8 @@ class MediaCacheService {
   /**
    * Subscribe to cache updates
    */
-  subscribe(cacheKey, callback) {
+  subscribe(baseKey, callback) {
+    const cacheKey = this.getProfileKey(baseKey)
     if (!this.listeners.has(cacheKey)) {
       this.listeners.set(cacheKey, new Set())
     }

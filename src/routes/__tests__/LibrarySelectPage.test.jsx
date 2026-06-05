@@ -22,7 +22,7 @@ vi.mock('../../stores/serverManagerStore', () => ({
 vi.mock('../../stores/AppStore', () => ({
   useAppStore: {
     getState: vi.fn(() => ({
-      selectedLibraryIds: [],
+      selectedLibraries: [],
       selectedLibrariesByServer: {}
     }))
   }
