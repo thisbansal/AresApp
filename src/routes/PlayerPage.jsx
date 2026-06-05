@@ -1214,14 +1214,9 @@ export default function PlayerPage() {
         .timeline-visual-track {
           transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .timeline-track.focused .timeline-visual-track {
-          height: 16px !important;
-        }
         .timeline-track.focused .timeline-knob {
-          width: 30px !important;
-          height: 30px !important;
           transform: translate(-50%, -50%) !important;
-          box-shadow: 0 0 10px #e5a00d !important;
+          box-shadow: 0 0 12px 4px rgba(229, 160, 13, 0.6) !important;
         }
         .timeline-track, .hud-play-btn, .hud-restart-btn, .hud-stream-btn, .hud-stream-menu-item {
           transform: scale(1) !important;
