@@ -49,7 +49,8 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             id="nav-home"
             rowIndex={-1}
             colIndex={0}
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setIsNavbarExpanded(false);
               if (activeTab?.type !== 'home') {
                 onItemClick({ type: 'home' });
@@ -81,7 +82,8 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 id={`nav-lib-${uid}`}
                 rowIndex={-1}
                 colIndex={index + 1}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsNavbarExpanded(false);
                   if (!isActive) {
                     onItemClick({ type: 'library', data: lib });
@@ -107,7 +109,8 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             id="nav-settings"
             rowIndex={-1}
             colIndex={libraries.length + 1}
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setIsNavbarExpanded(false);
               if (activeTab?.type !== 'settings') {
                 onItemClick({ type: 'settings' });
