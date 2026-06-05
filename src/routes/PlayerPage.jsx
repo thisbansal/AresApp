@@ -1214,25 +1214,25 @@ export default function PlayerPage() {
         .timeline-visual-track {
           transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .timeline-track.focused .timeline-visual-track,
-        .timeline-track:hover .timeline-visual-track {
+        .timeline-track.focused .timeline-visual-track {
           height: 16px !important;
         }
-        .timeline-track.focused .timeline-knob,
-        .timeline-track:hover .timeline-knob {
+        .timeline-track.focused .timeline-knob {
           width: 30px !important;
           height: 30px !important;
-          transform: translate(-50%, -50%) scale(1.15) !important;
+          transform: translate(-50%, -50%) !important;
           box-shadow: 0 0 10px #e5a00d !important;
         }
+        .timeline-track, .hud-play-btn, .hud-restart-btn, .hud-stream-btn, .hud-stream-menu-item {
+          transform: scale(1) !important;
+        }
         .hud-play-btn, .hud-restart-btn {
-          transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease !important;
+          transition: background-color 0.15s ease !important;
         }
         .hud-play-btn.focused, .hud-play-btn:hover,
         .hud-restart-btn.focused, .hud-restart-btn:hover {
           background-color: rgba(255, 255, 255, 0.25) !important;
           border-color: rgba(255, 255, 255, 0.5) !important;
-          transform: scale(1.08) !important;
           outline: none;
         }
         .hud-play-btn.focused svg, .hud-play-btn:hover svg,
@@ -1241,10 +1241,10 @@ export default function PlayerPage() {
           stroke: #ffffff !important;
         }
         .hud-play-btn:active, .hud-restart-btn:active {
-          transform: scale(0.95) !important;
+          transform: scale(1) !important;
         }
         .hud-stream-btn {
-          transition: transform 0.15s ease, background-color 0.15s ease !important;
+          transition: background-color 0.15s ease !important;
         }
         .hud-stream-btn.focused, .hud-stream-btn:hover {
           background: rgba(255,255,255,0.25);
