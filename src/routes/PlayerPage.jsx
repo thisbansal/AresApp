@@ -5,6 +5,7 @@ import { createPlayQueue, setStreamSelection } from '../services/plex/plexPlayba
 import { useActiveServer } from '../hooks/useActiveServer'
 import { subtitleConverter } from '../utils/subtitleConverter'
 import { FocusableItem } from '../components/navigational/FocusableItem'
+import { FiTv, FiSliders, FiRewind, FiPause, FiPlay } from 'react-icons/fi'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
 
 import { PLEX_CONFIG } from '../config/app'
@@ -861,8 +862,8 @@ export default function PlayerPage() {
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
       <div
         id="bottom-gradient-mask"
+        className="player-hud-bottom-gradient"
         style={{
-          ...styles.bottomGradient,
           opacity: showHUD ? 1 : 0,
           pointerEvents: showHUD ? 'auto' : 'none'
         }}
@@ -871,61 +872,50 @@ export default function PlayerPage() {
       {/* Custom Frameless smart-TV HUD Overlay */}
       <div
         style={{
-          ...styles.hudCard,
           opacity: showHUD ? 1 : 0,
           transform: showHUD ? 'translateY(0)' : 'translateY(25px)',
           pointerEvents: showHUD ? 'auto' : 'none'
         }}
-        className="player-hud-card"
+        className="player-hud-card player-hud-container"
       >
         {/* Metadata Details */}
-        <div style={styles.hudMeta}>
-          <h1 style={styles.hudTitle}>{metaDetails.title}</h1>
-          {metaDetails.subtitle && <p style={styles.hudSubtitle}>{metaDetails.subtitle}</p>}
+        <div className="player-hud-meta">
+          <h1 className="player-hud-title">{metaDetails.title}</h1>
+          {metaDetails.subtitle && <p className="player-hud-subtitle">{metaDetails.subtitle}</p>}
         </div>
 
         {/* Stream Selection Controls */}
-        <div style={styles.streamControlsRow}>
+        <div className="player-hud-stream-row">
           { numberOfStreams?.video?.length > 1 && <FocusableItem
             id="player-stream-video"
             rowIndex={0} colIndex={0}
-            style={styles.streamBtn}
-            className="hud-stream-btn"
+            className="hud-stream-btn player-hud-stream-btn"
             onClick={() => setActiveMenu(activeMenu === 'video' ? 'none' : 'video')}
           >
             {/* Video TV icon */}
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
-              <polyline points="17 2 12 7 7 2"></polyline>
-            </svg>
+            <FiTv size={32} color="#fff" />
           </FocusableItem>}
 
           { numberOfStreams?.audio?.length > 1 && <FocusableItem
             id="player-stream-audio"
             rowIndex={0} colIndex={1}
-            style={styles.streamBtn}
-            className="hud-stream-btn"
+            className="hud-stream-btn player-hud-stream-btn"
             onClick={() => setActiveMenu(activeMenu === 'audio' ? 'none' : 'audio')}
           >
             {/* Minimal equalizer icon */}
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="6" y1="9" x2="6" y2="15"></line>
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="18" y1="11" x2="18" y2="13"></line>
-            </svg>
+            <FiSliders size={32} color="#fff" />
           </FocusableItem>}
 
           { numberOfStreams?.subtitles?.length > 0 && <FocusableItem
             id="player-stream-subtitle"
             rowIndex={0} colIndex={2}
-            style={styles.streamBtn}
-            className="hud-stream-btn"
+            className="hud-stream-btn player-hud-stream-btn"
             onClick={() => setActiveMenu(activeMenu === 'subtitle' ? 'none' : 'subtitle')}
           >
             {/* Classic Subtitle Icon */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
-                <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>CC</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px' }}>
+                <MdSubtitles size={32} color="#fff" />
               </div>
               {isSubtitleCaching && (
                 <div className="subtitle-caching-spinner"></div>
@@ -1017,14 +1007,14 @@ export default function PlayerPage() {
 
           {/* Active Menu Popover */}
           {activeMenu !== 'none' && (
-            <div style={styles.streamMenuPopover} className="stream-menu-popover">
+            <div className="player-hud-stream-popover stream-menu-popover">
               {activeMenu === 'subtitle' && (
                 <>
-                  {false && <FocusableItem
-                    id={`stream-sub-force-burn`}
+                  <FocusableItem
+                    id="stream-sub-burnin-toggle"
                     rowIndex={-1} colIndex={0}
-                    style={{...styles.streamMenuItem, borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
-                    className="hud-stream-menu-item"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
+                    className="hud-stream-menu-item player-hud-stream-menu-item"
                     onClick={() => {
                       const newValue = !forceSubtitleBurnIn
                       setForceSubtitleBurnIn(newValue)
@@ -1039,20 +1029,19 @@ export default function PlayerPage() {
                       }, 100)
                     }}
                   >
-                    <div style={{...styles.streamMenuRadio, borderRadius: '4px', backgroundColor: forceSubtitleBurnIn ? '#e50914' : 'transparent'}} />
-                    <span style={{color: forceSubtitleBurnIn ? '#fff' : '#a8a8af', fontWeight: forceSubtitleBurnIn ? '600' : '500'}}>Force Burn-in (Transcode)</span>
-                  </FocusableItem>}
+                    <div style={{ borderRadius: '4px', backgroundColor: forceSubtitleBurnIn ? '#e50914' : 'transparent'}} className="player-hud-stream-radio" />
+                    <span style={{color: forceSubtitleBurnIn ? '#fff' : '#a8a8af', fontWeight: forceSubtitleBurnIn ? '600' : '500', flex: 1}}>Force Burn-in (Transcode)</span>
+                  </FocusableItem>
+
                   <FocusableItem
-                    id={`stream-sub-visibility`}
+                    id="stream-sub-toggle"
                     rowIndex={-1} colIndex={1}
-                    style={{...styles.streamMenuItem, borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
-                    className="hud-stream-menu-item"
-                    onClick={() => {
-                      setIsSubtitleVisible(!isSubtitleVisible)
-                    }}
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
+                    className="hud-stream-menu-item player-hud-stream-menu-item"
+                    onClick={() => setIsSubtitleVisible(prev => !prev)}
                   >
-                    <div style={{...styles.streamMenuRadio, borderRadius: '2px', backgroundColor: isSubtitleVisible ? '#fff' : 'transparent'}} />
-                    <span style={{ fontWeight: 600 }}>{isSubtitleVisible ? 'Disable Subtitles' : 'Enable Subtitles'}</span>
+                    <div style={{ borderRadius: '2px', backgroundColor: isSubtitleVisible ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
+                    <span style={{ flex: 1 }}>{isSubtitleVisible ? "Hide Subtitles" : "Show Subtitles"}</span>
                   </FocusableItem>
                 </>
               )}
@@ -1066,14 +1055,13 @@ export default function PlayerPage() {
                   key={stream.id}
                   id={`stream-${activeMenu}-${stream.id}`}
                   rowIndex={-1} colIndex={activeMenu === 'subtitle' ? idx + 2 : idx}
-                  style={styles.streamMenuItem}
-                  className="hud-stream-menu-item"
+                  className="hud-stream-menu-item player-hud-stream-menu-item"
                   onClick={() => {
                     handleStreamSelect(stream.streamType, stream.id)
                     if (stream.streamType === 3) setIsSubtitleVisible(prev => !prev)
                   }}
                 >
-                  <div style={{...styles.streamMenuRadio, backgroundColor: stream.selected ? '#fff' : 'transparent'}} />
+                  <div style={{ backgroundColor: stream.selected ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
                   {/* <span>{stream.extendedDisplayTitle || stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span> */}
                   {/* <span>{stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span> */}
                   <span style={{ flex: 1 }}>
@@ -1087,33 +1075,25 @@ export default function PlayerPage() {
         </div>
 
         {/* Timeline Slider Track */}
-        <div style={styles.timelineRow}>
+        <div className="player-hud-timeline-row">
           {/* Timeline starts flush from the left edge */}
           <FocusableItem
             id="player-timeline"
             rowIndex={1}
             colIndex={0}
-            style={{
-              ...styles.timelineTrack,
-              transform: 'none', // Prevent default FocusableItem container scaling
-            }}
+            className="player-hud-timeline-track"
             onPointerDown={handleTimelinePointerDown}
-            className="timeline-track"
           >
-            <div style={styles.timelineVisualTrack} className="timeline-visual-track">
+            <div className="player-hud-timeline-visual">
               <div
-                style={{
-                  ...styles.timelineFill,
-                  width: `${progressPercent}%`
-                }}
+                className="player-hud-timeline-fill"
+                style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <div
-              style={{
-                ...styles.timelineKnob,
-                left: `${progressPercent}%`
-              }}
-              className="timeline-knob"
+            
+            <div 
+              className="player-hud-timeline-knob"
+              style={{ left: `${progressPercent}%` }}
             />
 
             {/* Floating seek target tooltip bubble directly below knob - only visible during scroll wheel seek */}
@@ -1129,26 +1109,22 @@ export default function PlayerPage() {
             )}
           </FocusableItem>
           {/* Time Remaining exclusively on the right */}
-          <span style={styles.timeText}>{formatRemainingTime(displayTime, duration)}</span>
+          <span className="player-hud-time">{formatRemainingTime(displayTime, duration)}</span>
         </div>
 
         {/* Playback Buttons Row */}
-        <div style={styles.hudControls}>
+        <div className="player-hud-controls">
           {/* Capsule-style Restart Button */}
           <FocusableItem
             id="player-restart"
             rowIndex={2}
             colIndex={0}
-            style={styles.restartBtn}
+            className="player-hud-btn-capsule restart"
             onClick={handleRestartClick}
-            className="hud-restart-btn"
           >
             {/* Double rewind arrow SVG */}
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 19 2 12 11 5 11 19"></polygon>
-              <polygon points="22 19 13 12 22 5 22 19"></polygon>
-            </svg>
-            <span style={styles.capsuleLabel}>Restart</span>
+            <FiRewind size={32} fill="#fff" color="#fff" />
+            <span className="capsuleLabel">Restart</span>
           </FocusableItem>
 
           {/* Capsule-style Continue/Pause Button */}
@@ -1156,9 +1132,8 @@ export default function PlayerPage() {
             id="player-play"
             rowIndex={2}
             colIndex={1}
-            style={styles.playPauseBtn}
+            className="player-hud-btn-capsule"
             onClick={handlePlayPauseClick}
-            className="hud-play-btn"
           >
             {isBuffering ? (
               <div className="apple-spinner">
@@ -1176,18 +1151,16 @@ export default function PlayerPage() {
                 <div className="bar12"></div>
               </div>
             ) : isPlaying ? (
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="6" y="4" width="4" height="16"></rect>
-                <rect x="14" y="4" width="4" height="16"></rect>
-              </svg>
+              <div className="hud-btn-content">
+                <FiPause size={32} fill="#fff" color="#fff" />
+                <span className="capsuleLabel">Pause</span>
+              </div>
             ) : (
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translateX(2px)' }}>
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-              </svg>
+              <div className="hud-btn-content">
+                <FiPlay size={32} fill="#fff" color="#fff" />
+                <span className="capsuleLabel">Continue</span>
+              </div>
             )}
-            <span style={styles.capsuleLabel}>
-              {isBuffering ? 'Buffering...' : isPlaying ? 'Pause' : 'Continue'}
-            </span>
           </FocusableItem>
         </div>
       </div>

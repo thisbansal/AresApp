@@ -80,7 +80,7 @@ export const getBestServerConnection = async (server, authToken) => {
   const localConns = server.connections.filter(c => c.local)
   const remoteConns = server.connections.filter(c => !c.local)
 
-  // 1. Try local connections with a 2000ms timeout concurrently (resolves instantly on first success)
+  // 1. Try local connections with a 5000ms timeout concurrently (resolves instantly on first success)
   if (localConns.length > 0) {
     const localUri = await new Promise((resolve) => {
       let failedCount = 0
@@ -92,7 +92,7 @@ export const getBestServerConnection = async (server, authToken) => {
 
       for (const conn of localConns) {
         // Try the secure .plex.direct URI first
-        testConnectionToServer(conn.uri, authToken, 2000).then(ok => {
+        testConnectionToServer(conn.uri, authToken, 5000).then(ok => {
           if (ok) {
             resolve(conn.uri)
           } else {
@@ -100,7 +100,7 @@ export const getBestServerConnection = async (server, authToken) => {
             // the router is likely blocking it. Fallback to raw HTTP IP.
             if (conn.address && conn.port) {
               const rawIpUri = `http://${conn.address}:${conn.port}`
-              testConnectionToServer(rawIpUri, authToken, 2000).then(rawOk => {
+              testConnectionToServer(rawIpUri, authToken, 5000).then(rawOk => {
                 if (rawOk) resolve(rawIpUri)
                 else checkDone()
               })

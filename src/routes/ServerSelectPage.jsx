@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
-import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
+import { getServers, getBestServerConnection, testConnectionToServer } from '../services/plex/plexAPIServer'
+import { getLibraries } from '../services/plex/plexContentService'
 import { useAppStore } from '../stores/AppStore'
 import { useServerManagerStore } from '../stores/serverManagerStore'
+import { FiAlertCircle, FiMonitor, FiCheck } from 'react-icons/fi'
 import { getSharedServerToken, discoverSharedServer, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
 
 function ServerSelectPage() {
@@ -156,11 +158,7 @@ function ServerSelectPage() {
       <div style={styles.container}>
         <div style={styles.errorCard}>
           <div style={styles.errorIcon}>
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ea4335" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
+            <FiAlertCircle size={64} color="#ea4335" strokeWidth={2} />
           </div>
           <p style={styles.errorText}>{error}</p>
           <FocusableItem
@@ -269,17 +267,11 @@ function ServerSelectPage() {
               >
                 <div style={styles.serverCard}>
                   <div style={styles.serverIcon} className="server-icon">
-                    <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: '0 auto', transition: 'stroke 0.25s ease, transform 0.25s ease' }}>
-                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                      <line x1="8" y1="21" x2="16" y2="21"></line>
-                      <line x1="12" y1="17" x2="12" y2="21"></line>
-                    </svg>
+                    <FiMonitor size={100} color="rgba(255, 255, 255, 0.6)" strokeWidth={1.5} style={{ display: 'block', margin: '0 auto', transition: 'stroke 0.25s ease, transform 0.25s ease' }} />
                   </div>
                   {hasLibsSelected && (
                     <div style={styles.selectionTickBadge}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
+                      <FiCheck size={18} color="#2e7d32" strokeWidth={3} />
                     </div>
                   )}
                   {!server.owned && <div style={styles.sharedBadge}>Shared</div>}

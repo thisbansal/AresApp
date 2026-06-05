@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
 import { FallbackImage } from '../components/media/FallbackImage'
+import { MediaCard } from '../components/media/MediaCard'
 import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
@@ -19,7 +20,7 @@ import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { useServerManagerStore } from '../stores/serverManagerStore'
-
+import { FiCheck, FiX, FiLock, FiUnlock, FiUsers, FiEye, FiEyeOff, FiGrid, FiMonitor, FiLogOut } from 'react-icons/fi'
 
 // Module-level cache to persist clicked item ID across route transitions (for back morph animations)
 let globalClickedItemId = null
@@ -609,95 +610,18 @@ function ContentBrowserPage() {
   }
 
   const renderCard = (item, rowIndex, colIndex, prefix) => {
-    let isUnwatched = false;
-
-    // Never show the unwatched ribbon on items in the "Continue Watching" (cw) row,
-    // or items that are partially watched (have a viewOffset).
-    if (prefix !== 'cw') {
-      isUnwatched = !isMediaWatched(item) && !item.viewOffset
-    }
-
-    const uid = `${prefix}-${item.id}`
-
-    let thumbUrl = item.thumb
-    if (item._serverContext?.clientId && item.rawThumb) {
-      const s = useServerManagerStore.getState().servers[item._serverContext.clientId]
-      if (s && s.uri && s.accessToken) {
-        thumbUrl = buildImageUrl(s.uri, item.rawThumb, s.accessToken, 400, 600)
-      }
-    }
-
     return (
-      <FocusableItem
+      <MediaCard
         key={`${prefix}-${item.id}-${colIndex}`}
-        id={`poster-${prefix}-${item.id}`}
+        item={item}
         rowIndex={rowIndex}
         colIndex={colIndex}
-        onClick={() => handleItemClick(item, prefix === 'cw', uid)}
-        style={{ flexShrink: 0 }}
-      >
-        <div 
-          style={{
-            ...styles.card,
-            viewTransitionName: clickedItemId === uid ? 'active-poster' : 'none'
-          }}
-        >
-          <FallbackImage
-            src={thumbUrl}
-            itemId={item.id}
-            alt={item.grandparentTitle || item.title}
-            style={styles.poster}
-            loading="lazy"
-            decoding="async"
-          />
-          {showUnwatchedIndicator && (
-            (prefix === 'cw' || isUnwatched) ? (
-              <div
-                style={prefix === 'cw' ? styles.unwatchedEpisodeRibbonBottomLeft : styles.unwatchedEpisodeRibbon}
-                className={`unwatched-episode-ribbon ${prefix === 'cw' ? 'ribbon-bottom-left' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleToggleWatched(item)
-                }}
-              >
-                {/* Tick checkmark (Shown on hover/cursor) */}
-                <svg className="unwatched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: prefix === 'cw' ? '0' : '6px', marginTop: prefix === 'cw' ? '14px' : '0' }}>
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-            ) : (
-              <div
-                style={styles.watchedRibbon}
-                className="watched-ribbon"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleToggleWatched(item)
-                }}
-              >
-                {/* Tick checkmark (Shown by default) */}
-                <svg className="watched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }}>
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                {/* Cross X (Shown on hover) */}
-                <svg className="watched-cross" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'none', transform: 'rotate(-45deg)', marginBottom: '6px' }}>
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </div>
-            )
-          )}
-          {!!item.viewOffset && item.duration && (
-            <div style={styles.progressBarContainer}>
-              <div
-                style={{
-                  ...styles.progressBarFill,
-                  width: `${(item.viewOffset / item.duration) * 100}%`
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </FocusableItem>
+        prefix={prefix}
+        showUnwatchedIndicator={showUnwatchedIndicator}
+        handleItemClick={handleItemClick}
+        handleToggleWatched={handleToggleWatched}
+        clickedItemId={clickedItemId}
+      />
     )
   }
 
@@ -973,7 +897,7 @@ function ContentBrowserPage() {
                 <>
                   {libraryContent.all.length > 0 && (
                     <div style={styles.section} className="row">
-                      <div style={styles.grid}>
+                      <div className="content-browser-grid">
                         {libraryContent.all.map((item, index) => {
                           const rowIndex = Math.floor(index / ITEMS_PER_ROW) + 1
                           const colIndex = index % ITEMS_PER_ROW
@@ -1044,20 +968,11 @@ function ContentBrowserPage() {
 
                           {/* Right Toggler Section */}
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '12px' }}>
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: currentProfile?.rememberPin !== false ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>
-                              {currentProfile?.rememberPin !== false ? (
-                                <>
-                                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                </>
-                              ) : (
-                                <>
-                                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                  <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                                  <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" />
-                                </>
-                              )}
-                            </svg>
+                            {currentProfile?.rememberPin !== false ? (
+                              <FiLock size={48} color="#ffffff" strokeWidth={2.5} />
+                            ) : (
+                              <FiUnlock size={48} color="rgba(255, 255, 255, 0.4)" strokeWidth={2.5} />
+                            )}
                             <div style={{ fontSize: '22px', fontWeight: '600', color: '#a8a8af', textAlign: 'center', lineHeight: '1.2' }}>
                               {currentProfile?.isProtected ? 'Remember PIN' : 'Auto-Login'}
                             </div>
@@ -1075,12 +990,7 @@ function ContentBrowserPage() {
                     style={{ flexShrink: 0 }}
                   >
                     <div className="setting-card">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      </svg>
+                      <FiUsers size={48} strokeWidth={2.5} />
                       <div className="setting-card-title">Switch Profile</div>
                       <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                         Go to profile selection
@@ -1112,19 +1022,11 @@ function ContentBrowserPage() {
                     style={{ flexShrink: 0 }}
                   >
                     <div className="setting-card">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: showUnwatchedIndicator ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>
-                        {showUnwatchedIndicator ? (
-                          <>
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </>
-                        ) : (
-                          <>
-                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                            <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" />
-                          </>
-                        )}
-                      </svg>
+                      {showUnwatchedIndicator ? (
+                        <FiEye size={48} color="#ffffff" strokeWidth={2.5} />
+                      ) : (
+                        <FiEyeOff size={48} color="rgba(255, 255, 255, 0.4)" strokeWidth={2.5} />
+                      )}
                       <div className="setting-card-title">Unwatched Ribbon</div>
                     </div>
                   </FocusableItem>
@@ -1250,12 +1152,7 @@ function ContentBrowserPage() {
                     style={{ flexShrink: 0 }}
                   >
                     <div className="setting-card">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff' }}>
-                        <rect x="3" y="3" width="7" height="7" />
-                        <rect x="14" y="3" width="7" height="7" />
-                        <rect x="14" y="14" width="7" height="7" />
-                        <rect x="3" y="14" width="7" height="7" />
-                      </svg>
+                      <FiGrid size={48} color="#ffffff" strokeWidth={2.5} />
                       <div className="setting-card-title">Manage Libraries</div>
                     </div>
                   </FocusableItem>
@@ -1289,11 +1186,7 @@ function ContentBrowserPage() {
                           style={{ flexShrink: 0 }}
                         >
                           <div className="setting-card" style={{ position: 'relative' }}>
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff' }}>
-                              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                              <line x1="8" y1="21" x2="16" y2="21"></line>
-                              <line x1="12" y1="17" x2="12" y2="21"></line>
-                            </svg>
+                            <FiMonitor size={48} color="#ffffff" strokeWidth={2.5} />
                             <div className="setting-card-title">{server.name}</div>
                             <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                               {hasSelectedLibs ? `${selectedIds.length} libraries pinned` : 'None pinned'}
@@ -1328,9 +1221,7 @@ function ContentBrowserPage() {
                                 }}
                                 title="Click to deselect all libraries"
                               >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
+                                <FiCheck size={18} color="#ffffff" strokeWidth={4.5} />
                               </div>
                             )}
                           </div>
@@ -1354,11 +1245,7 @@ function ContentBrowserPage() {
                     style={{ flexShrink: 0 }}
                   >
                     <div className="setting-card">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
-                      </svg>
+                      <FiLogOut size={40} strokeWidth={2.5} />
                       <div className="setting-card-title">Sign Out</div>
                       <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                         Back to login screen
@@ -1415,10 +1302,7 @@ function ContentBrowserPage() {
                         style={styles.pinAvatar}
                       />
                       <div style={styles.pinLockBadge}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" style={{ display: 'block' }}>
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
+                        <FiLock size={18} color="#ffffff" strokeWidth={2.5} style={{ display: 'block' }} />
                       </div>
                     </div>
                     <h2 style={styles.pinTitle}>Enter PIN for {pinDialogUser.name}</h2>
@@ -1661,95 +1545,6 @@ const styles = {
     msOverflowStyle: 'none',
     scrollSnapType: 'x mandatory',
     scrollBehavior: 'smooth',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(6, 240px)', // Beautiful centered 6 columns
-    justifyContent: 'center',
-    gap: '45px',
-    padding: '20px 0',
-  },
-  card: {
-    position: 'relative',
-    cursor: 'pointer',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    flexShrink: 0,
-    scrollSnapAlign: 'start end',
-    scrollMarginLeft: '45px',
-    scrollMarginRight: '120px',
-  },
-  poster: {
-    width: '240px',
-    height: '360px',
-    objectFit: 'cover',
-    borderRadius: '12px',
-    background: '#222',
-    display: 'block',
-    transition: 'border-color 0.15s ease',
-  },
-  progressBarContainer: {
-    position: 'absolute',
-    bottom: '0',
-    left: '0',
-    right: '0',
-    height: '6px',
-    background: 'rgba(255, 255, 255, 0.3)',
-    borderBottomLeftRadius: '12px',
-    borderBottomRightRadius: '12px',
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    background: '#e5a00d',
-  },
-  watchedRibbon: {
-    position: 'absolute',
-    top: '-70px',
-    right: '-70px',
-    width: '140px',
-    height: '140px',
-    backgroundColor: 'rgba(229, 160, 13, 0.75)', // Elegant Plex Gold translucent glass (0.75 opacity)
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    transform: 'rotate(45deg)',
-    zIndex: 5,
-    display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    paddingBottom: '16px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-  },
-  unwatchedEpisodeRibbon: {
-    position: 'absolute',
-    top: '-70px',
-    right: '-70px',
-    width: '140px',
-    height: '140px',
-    backgroundColor: 'rgba(90, 90, 90, 0.75)', // Matte slate grey translucent glass (0.75 opacity)
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    transform: 'rotate(45deg)',
-    zIndex: 5,
-    display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    paddingBottom: '16px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-  },
-  unwatchedEpisodeRibbonBottomLeft: {
-    position: 'absolute',
-    bottom: '-70px',
-    left: '-70px',
-    width: '140px',
-    height: '140px',
-    backgroundColor: 'rgba(90, 90, 90, 0.75)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    transform: 'rotate(45deg)',
-    zIndex: 5,
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    paddingTop: '16px',
-    boxShadow: '0 -4px 12px rgba(0,0,0,0.4)',
   },
   exitOverlay: {
     position: 'fixed',

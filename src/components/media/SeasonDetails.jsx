@@ -7,6 +7,7 @@ import { useEpisodes } from '../../hooks/useEpisodes'
 import { FallbackImage } from './FallbackImage'
 import ActionButtons from './ActionButtons'
 import { useBrowserStore } from '../../stores/browserStore'
+import { FiPlay, FiRefreshCw, FiCheck, FiX } from 'react-icons/fi'
 
 export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
   const navigate = useNavigate()
@@ -70,9 +71,7 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
                         navigate(`/play/${episode.id}`, { state: { serverInfo } })
                       }}
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#000000">
-                        <polygon points="6 3 20 12 6 21 6 3"></polygon>
-                      </svg>
+                      <FiPlay size={18} color="#000000" fill="#000000" />
                     </div>
 
                     {episode.viewOffset > 0 && (
@@ -83,10 +82,7 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
                           navigate(`/play/${episode.id}`, { state: { serverInfo, startOver: true } })
                         }}
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                          <polyline points="3 3 3 8 8 8"></polyline>
-                        </svg>
+                        <FiRefreshCw size={16} color="#ffffff" strokeWidth={2.5} />
                       </div>
                     )}
 
@@ -101,14 +97,9 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
                           }}
                         >
                           {/* Tick checkmark (Shown by default) */}
-                          <svg className="watched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }}>
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
+                          <FiCheck size={24} className="watched-tick" color="#fff" strokeWidth={4.5} style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }} />
                           {/* Cross X (Shown on hover) */}
-                          <svg className="watched-cross" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'none', transform: 'rotate(-45deg)', marginBottom: '6px' }}>
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                          </svg>
+                          <FiX size={24} className="watched-cross" color="#fff" strokeWidth={4.5} style={{ display: 'none', transform: 'rotate(-45deg)', marginBottom: '6px' }} />
                         </div>
                       ) : (
                         <div 
@@ -120,9 +111,7 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
                           }}
                         >
                           {/* Tick checkmark (Shown on hover/cursor) */}
-                          <svg className="unwatched-tick" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }}>
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
+                          <FiCheck size={24} className="unwatched-tick" color="#fff" strokeWidth={4.5} style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }} />
                         </div>
                       )
                     )}

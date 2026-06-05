@@ -7,6 +7,7 @@ import { getSharedServerToken, getSharedServersCache, saveSharedServersCache } f
 import { getMainToken } from '../services/luna/tokenStorage'
 import { useServerStore } from '../stores/serverStore'
 import { useServerManagerStore } from '../stores/serverManagerStore'
+import { FiCheck } from 'react-icons/fi'
 
 function LibrarySelectPage() {
   const navigate = useNavigate()
@@ -254,9 +255,7 @@ function LibrarySelectPage() {
                       ...(isSelected ? styles.checkboxChecked : {})
                     }}>
                       {isSelected && (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
+                        <FiCheck size={24} color="#000" strokeWidth={3} />
                       )}
                     </div>
                   </div>

@@ -4,6 +4,7 @@ import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { useAppStore } from '../stores/AppStore'
 import { getMainToken } from '../services/luna/tokenStorage'
+import { FiLock, FiDelete } from 'react-icons/fi'
 
 function UserSelectPage() {
   const navigate = useNavigate()
@@ -255,10 +256,7 @@ function UserSelectPage() {
             />
             {selectedUser.protected && (
               <div style={styles.pinLockBadge}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" style={{ display: 'block' }}>
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
+                <FiLock size={22} color="#ffffff" strokeWidth={2.5} style={{ display: 'block' }} />
               </div>
             )}
           </div>
@@ -374,11 +372,7 @@ function UserSelectPage() {
                 borderColor: 'rgba(234, 67, 53, 0.25)',
                 color: '#ff8080'
               }}>
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-                  <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
-                  <line x1="18" y1="9" x2="12" y2="15"></line>
-                  <line x1="12" y1="9" x2="18" y2="15"></line>
-                </svg>
+                <FiDelete size={34} strokeWidth={2.5} style={{ display: 'block' }} />
               </div>
             </FocusableItem>
           </div>
@@ -459,10 +453,7 @@ function UserSelectPage() {
                   />
                   {user.protected && (
                     <div style={styles.lockIcon}>
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={PLEX_YELLOW} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                      </svg>
+                      <FiLock size={26} color={PLEX_YELLOW} strokeWidth={2.5} style={{ display: 'block' }} />
                     </div>
                   )}
                 </div>

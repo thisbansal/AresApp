@@ -15,7 +15,7 @@ export const plexBridge = {
       store.log('INFO', 'Pinging Plex Media Server...', activeServer.uri)
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
 
       const response = await fetch(`${activeServer.uri}/`, {
         method: 'GET',

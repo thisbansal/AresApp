@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { generatePin, checkPinAuth } from '../services/plex/plexAuthService'
 import { useAppStore } from '../stores/AppStore'
+import { FiAlertCircle } from 'react-icons/fi'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -105,11 +106,7 @@ function LoginPage() {
         `}</style>
         <div style={styles.errorCard}>
           <div style={styles.errorIcon}>
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ea4335" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
+            <FiAlertCircle size={64} color="#ea4335" strokeWidth={2} />
           </div>
           <p style={styles.errorText}>{error}</p>
           <FocusableItem
