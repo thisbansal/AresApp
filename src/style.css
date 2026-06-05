@@ -715,6 +715,11 @@ video::-webkit-media-controls-text-track-display {
     height: 96px; /* 64 * 1.5 */
   }
 
+  .nav-wrapper.collapsed .nav-item.active.focused {
+    background-color: rgba(25, 25, 30, 0.85) !important; /* Do not change color when hovered/focused while collapsed */
+    box-shadow: none !important;
+  }
+
   .nav-wrapper.collapsed .nav-chevron {
     margin-left: 0px; /* Reset negative margin so it doesn't clip off screen */
     margin-right: 20px;

@@ -51,7 +51,9 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             colIndex={0}
             onClick={() => {
               setIsNavbarExpanded(false);
-              onItemClick({ type: 'home' });
+              if (activeTab?.type !== 'home') {
+                onItemClick({ type: 'home' });
+              }
             }}
             className={`nav-item ${activeTab?.type === 'home' ? 'active' : ''}`}
           >
@@ -81,7 +83,9 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 colIndex={index + 1}
                 onClick={() => {
                   setIsNavbarExpanded(false);
-                  onItemClick({ type: 'library', data: lib });
+                  if (!isActive) {
+                    onItemClick({ type: 'library', data: lib });
+                  }
                 }}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
@@ -105,7 +109,9 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             colIndex={libraries.length + 1}
             onClick={() => {
               setIsNavbarExpanded(false);
-              onItemClick({ type: 'settings' });
+              if (activeTab?.type !== 'settings') {
+                onItemClick({ type: 'settings' });
+              }
             }}
             className={`nav-item ${activeTab?.type === 'settings' ? 'active' : ''}`}
           >
