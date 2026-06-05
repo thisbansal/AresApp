@@ -670,7 +670,7 @@ video::-webkit-media-controls-text-track-display {
     padding-top: 20px; /* Reduced from 60px to next to none */
     pointer-events: none; /* Let clicks pass through the invisible 100vh wrapper... */
   }
-  
+
   .nav-capsule {
     flex-direction: column;
     border-radius: 30px;
@@ -713,7 +713,7 @@ video::-webkit-media-controls-text-track-display {
   .nav-wrapper.collapsed {
     /* Padding is inherited from .nav-wrapper now */
   }
-  
+
   .nav-wrapper.collapsed .nav-capsule {
     width: auto;
     background-color: transparent;
@@ -795,12 +795,12 @@ video::-webkit-media-controls-text-track-display {
     overflow-x: hidden;
     max-height: 80vh;
   }
-  
+
   .nav-item {
     height: 68px; /* Reduced from 90px */
     justify-content: flex-start;
     border-radius: 0; /* Removed so active background touches edges flush */
-    margin-bottom: 9px; /* Reduced from 12px */
+    margin-bottom: 0px;
     padding: 0;
   }
 
@@ -824,9 +824,9 @@ video::-webkit-media-controls-text-track-display {
   .nav-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 34px; /* Reduced from 45px */
-    padding-bottom: 22px; /* Reduced from 30px */
+    align-items: baseline;
+    /* margin-bottom: 34px; Reduced from 45px */
+    padding: 5% 0%;
     padding-left: 22px; /* Add horizontal padding back to header */
     padding-right: 22px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -875,8 +875,8 @@ video::-webkit-media-controls-text-track-display {
     padding-top: 30px;
   }
   .nav-wrapper.expanded .nav-capsule {
-    width: 600px;
-    padding: 45px;
+    min-width: 100%;
+    padding: 0%;
   }
   .nav-text-label {
     font-size: 42px;
