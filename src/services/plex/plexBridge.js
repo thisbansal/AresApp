@@ -94,63 +94,76 @@ export const plexBridge = {
     const timeoutMs = options.timeout || 30000
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-        signal: options.signal || controller.signal
-      })
-      clearTimeout(timeoutId)
+    let lastErr = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers,
+          signal: options.signal || controller.signal
+        })
+        clearTimeout(timeoutId)
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          store.handleServerAuthError()
+        if (!response.ok) {
+          if (response.status === 401) {
+            useAppStore.getState().handleServerAuthError()
+          }
+          if (!options.silent) {
+            store.log('ERROR', `Server returned status ${response.status} on ${endpoint}`)
+          }
+          throw new Error(`HTTP ${response.status}`)
         }
-        if (!options.silent) {
-          store.log('ERROR', `Server returned status ${response.status} on ${endpoint}`)
+
+        // If we got a successful response for the main server, ensure server status is set back to online
+        const currentState = useServerStore.getState()
+        const isMainServer = currentState.activeServer?.uri && url.startsWith(currentState.activeServer.uri)
+        if (isMainServer && !currentState.isOnline) {
+          currentState.setServerState(true)
+          if (!options.silent) {
+            currentState.log('INFO', 'Server connection recovered.')
+          }
         }
-        throw new Error(`HTTP ${response.status}`)
+
+        return response
+      } catch (err) {
+        lastErr = err;
+        // Only retry on network errors (TypeError), not HTTP errors or AbortErrors
+        if (err instanceof TypeError && attempt < 3) {
+          store.log('WARN', `Request failed (attempt ${attempt}/3). Retrying in 500ms...`)
+          await new Promise(res => setTimeout(res, 500))
+          continue;
+        }
+        break; // Break on AbortError, HTTP errors, or if out of retries
       }
+    }
 
-      // If we got a successful response for the main server, ensure server status is set back to online
-      const currentState = useServerStore.getState()
-      const isMainServer = currentState.activeServer?.uri && url.startsWith(currentState.activeServer.uri)
-      if (isMainServer && !currentState.isOnline) {
-        currentState.setServerState(true)
-        if (!options.silent) {
-          currentState.log('INFO', 'Server connection recovered.')
-        }
-      }
+    clearTimeout(timeoutId)
+    const err = lastErr;
+    const isNetworkError = err.name === 'AbortError' || err instanceof TypeError
+    
+    const currentState = useServerStore.getState()
+    const isMainServer = currentState.activeServer?.uri && url.startsWith(currentState.activeServer.uri)
 
-      return response
-    } catch (err) {
-      clearTimeout(timeoutId)
-      const isNetworkError = err.name === 'AbortError' || err instanceof TypeError
+    if (isNetworkError) {
+      const errorMsg = err.name === 'AbortError' ? 'Request timeout' : err.message
       
-      const currentState = useServerStore.getState()
-      const isMainServer = currentState.activeServer?.uri && url.startsWith(currentState.activeServer.uri)
-
-      if (isNetworkError) {
-        const errorMsg = err.name === 'AbortError' ? 'Request timeout' : err.message
-        
-        if (isMainServer) {
-          currentState.setServerState(false, errorMsg)
-          if (!options.silent) {
-            currentState.log('FATAL', `Network failure on request to ${endpoint}: ${errorMsg}`)
-          }
-        } else {
-          if (!options.silent) {
-            currentState.log('WARN', `Network failure on secondary server request to ${endpoint}: ${errorMsg}`)
-          }
+      if (isMainServer) {
+        currentState.setServerState(false, errorMsg)
+        if (!options.silent) {
+          currentState.log('FATAL', `Network failure on request to ${endpoint}: ${errorMsg}`)
         }
-        
       } else {
         if (!options.silent) {
-          store.log('ERROR', `Request error on ${endpoint}: ${err.message}`)
+          currentState.log('WARN', `Network failure on secondary server request to ${endpoint}: ${errorMsg}`)
         }
       }
       
-      throw err
+    } else {
+      if (!options.silent) {
+        store.log('ERROR', `Request error on ${endpoint}: ${err.message}`)
+      }
     }
+    
+    throw err
   }
 }

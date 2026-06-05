@@ -62,10 +62,7 @@ function ContentBrowserPage() {
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
 
   const selectedLibraries = useAppStore((state) => state.selectedLibraries)
-  const allServersOffline = useServerManagerStore(state => {
-    const servers = Object.values(state.servers)
-    return servers.length > 0 && servers.every(s => !s.isOnline)
-  })
+  const allServersOffline = false; // We don't track per-server offline state globally. Let the multi-server cache resolve what it can.
 
   const [loading, setLoading] = useState(true)
   const [libraryOffline, setLibraryOffline] = useState(false)
