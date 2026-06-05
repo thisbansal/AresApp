@@ -6,6 +6,7 @@ import { useActiveServer } from '../hooks/useActiveServer'
 import { subtitleConverter } from '../utils/subtitleConverter'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { FiTv, FiSliders, FiRewind, FiPause, FiPlay } from 'react-icons/fi'
+import { MdSubtitles } from 'react-icons/md'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
 
 import { PLEX_CONFIG } from '../config/app'
