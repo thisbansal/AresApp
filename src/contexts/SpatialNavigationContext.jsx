@@ -6,6 +6,7 @@ export const SpatialNavigationProvider = ({ children }) => {
   const nodesRef = useRef(new Map());
   const [navigationMode, setNavigationMode] = useState('remote'); // 'remote' or 'cursor'
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [isNavbarExpanded, setIsNavbarExpanded] = useState(false);
   const lastRemoteActionRef = useRef(0);
   const lastNavDirectionRef = useRef(null);
 
@@ -153,6 +154,8 @@ export const SpatialNavigationProvider = ({ children }) => {
     setNavigationMode,
     showExitDialog,
     setShowExitDialog,
+    isNavbarExpanded,
+    setIsNavbarExpanded,
     lastRemoteActionRef,
     lastNavDirectionRef
   };

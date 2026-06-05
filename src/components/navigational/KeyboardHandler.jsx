@@ -5,7 +5,7 @@ import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
 
 export function KeyboardHandler() {
-  const { navigate: spatialNavigate, showExitDialog, setShowExitDialog } = useSpatialNavigation();
+  const { navigate: spatialNavigate, showExitDialog, setShowExitDialog, isNavbarExpanded, setIsNavbarExpanded } = useSpatialNavigation();
   const navigateReactRouter = useNavigate();
   const location = useLocation();
 
@@ -100,13 +100,22 @@ export function KeyboardHandler() {
         }
 
         if (isLoginRoute || isServerSelectRoute || isHomeRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
-          console.log('[AUTH FLOW] Back button triggered on entry/exit route or cold start. Showing global ExitDialog.');
-          setShowExitDialog(true);
-          // Focus the cancel button after a brief delay to let modal render
-          setTimeout(() => {
-             const cancelBtn = document.getElementById('exit-cancel');
-             if (cancelBtn) cancelBtn.focus({ preventScroll: true });
-          }, 100);
+          console.log('[AUTH FLOW] Back button triggered on entry/exit route or cold start. Handling Navbar/Exit.');
+          if (!isNavbarExpanded) {
+            setIsNavbarExpanded(true);
+            // Focus the home button on expansion
+            setTimeout(() => {
+              const navHome = document.getElementById('nav-home');
+              if (navHome) navHome.focus({ preventScroll: true });
+            }, 100);
+          } else {
+            setIsNavbarExpanded(false);
+            setShowExitDialog(true);
+            setTimeout(() => {
+               const cancelBtn = document.getElementById('exit-cancel');
+               if (cancelBtn) cancelBtn.focus({ preventScroll: true });
+            }, 100);
+          }
         } else if (hash.includes('/play') || path.includes('/play')) {
           // Let video player internal back capture handle it
           return;
@@ -178,7 +187,7 @@ export function KeyboardHandler() {
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('keyup', handleKeyUp, true);
     };
-  }, [navigateReactRouter, spatialNavigate, showExitDialog, setShowExitDialog]);
+  }, [navigateReactRouter, spatialNavigate, showExitDialog, setShowExitDialog, isNavbarExpanded, setIsNavbarExpanded]);
 
   return null;
 }
