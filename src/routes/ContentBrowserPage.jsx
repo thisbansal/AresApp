@@ -62,7 +62,10 @@ function ContentBrowserPage() {
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
 
   const selectedLibraries = useAppStore((state) => state.selectedLibraries)
-  const isOnline = useServerStore(state => state.isOnline)
+  const allServersOffline = useServerManagerStore(state => {
+    const servers = Object.values(state.servers)
+    return servers.length > 0 && servers.every(s => !s.isOnline)
+  })
 
   const [loading, setLoading] = useState(true)
   const [libraryOffline, setLibraryOffline] = useState(false)
@@ -848,7 +851,7 @@ function ContentBrowserPage() {
         onItemClick={handleNavClick}
       />
 
-      {(!isOnline || libraryOffline) ? (
+      {((activeTab.type === 'home' && allServersOffline) || libraryOffline) ? (
         <div style={{...styles.offlineContainer, marginTop: '80px'}}>
           <ServerOfflineMessage />
         </div>

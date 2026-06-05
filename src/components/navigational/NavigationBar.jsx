@@ -37,9 +37,12 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
     <div 
       className={`nav-wrapper ${isNavbarExpanded ? 'expanded' : 'collapsed'}`} 
       onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) {
-          setIsNavbarExpanded(false);
-        }
+        const currentTarget = e.currentTarget;
+        setTimeout(() => {
+          if (!currentTarget.contains(document.activeElement)) {
+            setIsNavbarExpanded(false);
+          }
+        }, 0);
       }}
     >
       <div 

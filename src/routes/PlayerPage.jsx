@@ -1193,6 +1193,10 @@ export default function PlayerPage() {
           opacity: 0.15;
           animation: fade 1.2s linear infinite;
         }
+        .focused .apple-spinner div,
+        :focus .apple-spinner div {
+          background: #1a1a1a;
+        }
         .apple-spinner .bar1 { transform: rotate(0deg) translate(0, -130%); animation-delay: 0s; }
         .apple-spinner .bar2 { transform: rotate(30deg) translate(0, -130%); animation-delay: -1.1s; }
         .apple-spinner .bar3 { transform: rotate(60deg) translate(0, -130%); animation-delay: -1.0s; }

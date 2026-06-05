@@ -4,7 +4,7 @@ import { useSpatialNavigation } from '../contexts/SpatialNavigationContext';
 export function useFocusable({ id, onFocus, onBlur, onClick }) {
   const ref = useRef(null);
   const [focused, setFocused] = useState(false);
-  const { registerNode, unregisterNode, setNavigationMode, lastRemoteActionRef, lastNavDirectionRef } = useSpatialNavigation();
+  const { registerNode, unregisterNode, setNavigationMode, lastRemoteActionRef, lastNavDirectionRef, isNavbarExpanded } = useSpatialNavigation();
 
   useEffect(() => {
     const node = ref.current;
@@ -96,6 +96,11 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
 
     // Ignore hover if D-pad was used recently
     if (Date.now() - lastRemoteActionRef.current < 500) {
+      return;
+    }
+    
+    // Prevent focus stealing by elements outside the navbar when the navbar is expanded
+    if (isNavbarExpanded && ref.current && !ref.current.closest('.nav-wrapper')) {
       return;
     }
     setNavigationMode('cursor');
