@@ -14,7 +14,7 @@ import { useServerStore } from '../../stores/serverStore'
 export const getActiveServerInfo = async (localServerInfo = null) => {
   const appState = useAppStore.getState()
   const activeServer = useServerStore.getState().activeServer
-  let uri = localServerInfo?.uri || activeServer?.uri || appState.serverUri
+  let uri = localServerInfo?.uri || activeServer?.uri
   let token = localServerInfo?.token || activeServer?.token || appState.token
 
   if (!uri || !token) {

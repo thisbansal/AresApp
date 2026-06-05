@@ -23,20 +23,30 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
           </FocusableItem>
 
           {/* Library Items */}
-          {libraries.map((lib, index) => (
-            <FocusableItem
-              key={`nav-lib-${lib.id}`}
-              id={`nav-lib-${lib.id}`}
-              rowIndex={-1}
-              colIndex={index + 1}
-              onClick={() => onItemClick({ type: 'library', data: lib })}
-              className={`nav-item ${activeTab?.type === 'library' && activeTab?.data?.id === lib.id ? 'active' : ''}`}
-            >
-              <div style={styles.textContainer}>
-                {lib.title}
-              </div>
-            </FocusableItem>
-          ))}
+          {libraries.map((lib, index) => {
+            const uid = lib.serverClientId ? `${lib.serverClientId}-${lib.id}` : `own-${lib.id}`
+            const isActive = activeTab?.type === 'library' && 
+                             activeTab?.data?.id === lib.id && 
+                             activeTab?.data?.serverClientId === lib.serverClientId
+            
+            return (
+              <FocusableItem
+                key={`nav-lib-${uid}`}
+                id={`nav-lib-${uid}`}
+                rowIndex={-1}
+                colIndex={index + 1}
+                onClick={() => {
+                  console.log('[NAV BAR] library clicked:', lib.title)
+                  onItemClick({ type: 'library', data: lib })
+                }}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+              >
+                <div style={styles.textContainer}>
+                  {lib.title}
+                </div>
+              </FocusableItem>
+            )
+          })}
 
           {/* Settings Icon */}
           <FocusableItem

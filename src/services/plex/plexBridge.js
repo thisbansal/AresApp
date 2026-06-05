@@ -1,7 +1,6 @@
 import { getActiveServerInfo } from './plexConnectionService'
 import { useServerStore } from '../../stores/serverStore'
 import { useAppStore } from '../../stores/AppStore'
-import { useNotificationStore } from '../notifications/notificationStore'
 import { PLEX_CONFIG } from '../../config/app'
 import { getPlatformInfo } from '../../utils/platformInfo'
 
@@ -43,10 +42,6 @@ export const plexBridge = {
       store.setServerState(false, errorMsg)
       store.log('FATAL', `Plex Media Server went offline: ${errorMsg}`)
       
-      useNotificationStore.getState().addNotification(
-        `Server Offline: Check connection`, 
-        { level: 'error' }
-      )
       return false
     }
   },
@@ -131,10 +126,6 @@ export const plexBridge = {
         store.setServerState(false, errorMsg)
         store.log('FATAL', `Network failure on request to ${endpoint}: ${errorMsg}`)
         
-        useNotificationStore.getState().addNotification(
-          'Plex Server disconnected.', 
-          { level: 'error' }
-        )
       } else {
         store.log('ERROR', `Request error on ${endpoint}: ${err.message}`)
       }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getActiveServerInfo } from '../services/plex/plexConnectionService'
 import { useAppStore } from '../stores/AppStore'
+import { useServerStore } from '../stores/serverStore'
+import { useServerManagerStore } from '../stores/serverManagerStore'
 
 /**
  * Custom hook to resolve active server credentials.
@@ -12,8 +14,8 @@ import { useAppStore } from '../stores/AppStore'
  */
 export function useActiveServer(initialServerInfo = null, navigate = null) {
   const storeToken = useAppStore(state => state.token)
-  const storeServerUri = useAppStore(state => state.serverUri)
-  const storeIsLoading = useAppStore(state => state.isLoading)
+  const activeServer = useServerStore(state => state.activeServer)
+  const hasServers = Object.keys(useServerManagerStore(state => state.servers)).length > 0
 
   const [serverInfo, setServerInfo] = useState(initialServerInfo)
   const [loading, setLoading] = useState(!initialServerInfo)
@@ -25,12 +27,12 @@ export function useActiveServer(initialServerInfo = null, navigate = null) {
       return
     }
 
-    if (!storeIsLoading && storeToken && storeServerUri) {
-      setServerInfo({ uri: storeServerUri, token: storeToken })
+    if (activeServer?.uri && activeServer?.token) {
+      setServerInfo(activeServer)
       setLoading(false)
       return
     }
-  }, [initialServerInfo, storeToken, storeServerUri, storeIsLoading])
+  }, [initialServerInfo, activeServer])
 
   useEffect(() => {
     if (serverInfo?.uri && serverInfo?.token) {
@@ -62,7 +64,7 @@ export function useActiveServer(initialServerInfo = null, navigate = null) {
     return () => {
       active = false
     }
-  }, [serverInfo, navigate, storeToken, storeServerUri, storeIsLoading])
+  }, [serverInfo, navigate, storeToken, hasServers])
 
   return [serverInfo, loading]
 }

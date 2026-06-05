@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { getMetadata } from '../services/plex/plexContentService'
 import { createPlayQueue, setStreamSelection } from '../services/plex/plexPlaybackService'
 import { useActiveServer } from '../hooks/useActiveServer'
-import { useNotificationStore } from '../services/notifications/notificationStore'
 import { subtitleConverter } from '../utils/subtitleConverter'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
@@ -47,7 +46,6 @@ export default function PlayerPage() {
   const [isSubtitleVisible, setIsSubtitleVisible] = useState(true)
 
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
-  const showNotifications = useBrowserStore((state) => state.showNotifications)
   const subtitleColor = useBrowserStore((state) => state.subtitleColor)
   const setSubtitleColor = useBrowserStore((state) => state.setSubtitleColor)
   const subtitleSize = useBrowserStore((state) => state.subtitleSize)
@@ -211,7 +209,6 @@ export default function PlayerPage() {
         setStreamUrl(optimalUrl)
       } catch (err) {
         console.error('[PlayerPage] Playback startup failure:', err)
-        useNotificationStore.getState().addNotification(`Playback error: ${err.message}`, { level: 'error' })
         navigate(-1)
       } finally {
         setLoading(false)
@@ -612,7 +609,6 @@ export default function PlayerPage() {
     setDragTime(0)
     await executeSeek(0)
     videoEl.play().catch(err => console.error('Restart play failed:', err))
-    useNotificationStore.getState().addNotification('Restarted from beginning', { level: 'info' })
   }
 
   const handleSeek = (direction) => {
@@ -731,7 +727,6 @@ export default function PlayerPage() {
       setAvailableStreams(updatedStreams)
 
       if (switchedNatively) {
-        useNotificationStore.getState().addNotification('Track switched natively', { level: 'info' })
         return
       }
 
@@ -786,10 +781,7 @@ export default function PlayerPage() {
         // Append cache buster to force hard reload of the stream
         newUrl += `#t=${Date.now()}`
         setStreamUrl(newUrl)
-        useNotificationStore.getState().addNotification('Reloading stream...', { level: 'info', duration: 1500 })
       }, 300)
-    } else {
-      useNotificationStore.getState().addNotification('Failed to change stream', { level: 'error' })
     }
   }
 
@@ -835,10 +827,8 @@ export default function PlayerPage() {
     if (isBackgroundClick && videoRef.current) {
       if (videoRef.current.paused) {
         videoRef.current.play().catch(err => console.error(err))
-        useNotificationStore.getState().addNotification('Play', { level: 'success' })
       } else {
         videoRef.current.pause()
-        useNotificationStore.getState().addNotification('Pause', { level: 'success' })
       }
     }
   }
@@ -959,7 +949,6 @@ export default function PlayerPage() {
                   setSubtitleColor(newColor)
                   setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                     showUnwatchedIndicator,
-                    showNotifications,
                     subtitleColor: newColor,
                     subtitleSize,
                     subtitleWeight,
@@ -986,7 +975,6 @@ export default function PlayerPage() {
                   setSubtitleSize(newSize)
                   setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                     showUnwatchedIndicator,
-                    showNotifications,
                     subtitleColor,
                     subtitleSize: newSize,
                     subtitleWeight,
@@ -1013,7 +1001,6 @@ export default function PlayerPage() {
                   setSubtitleWeight(newWeight)
                   setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                     showUnwatchedIndicator,
-                    showNotifications,
                     subtitleColor,
                     subtitleSize,
                     subtitleWeight: newWeight,
@@ -1041,7 +1028,6 @@ export default function PlayerPage() {
                     onClick={() => {
                       const newValue = !forceSubtitleBurnIn
                       setForceSubtitleBurnIn(newValue)
-                      useNotificationStore.getState().addNotification(newValue ? 'Burn-In Forced (Requires Transcode)' : 'Burn-In Disabled (Sidecar Allowed)', { level: 'info', duration: 2000 })
 
                       // Trigger a stream reload with the active streams, but now using the new forceSubtitleBurnIn value
                       const activeVideo = availableStreams.find(s => s.streamType === 1 && s.selected)
@@ -1063,7 +1049,6 @@ export default function PlayerPage() {
                     className="hud-stream-menu-item"
                     onClick={() => {
                       setIsSubtitleVisible(!isSubtitleVisible)
-                      useNotificationStore.getState().addNotification(isSubtitleVisible ? 'Subtitles Disabled' : 'Subtitles Enabled', { level: 'info' })
                     }}
                   >
                     <div style={{...styles.streamMenuRadio, borderRadius: '2px', backgroundColor: isSubtitleVisible ? '#fff' : 'transparent'}} />

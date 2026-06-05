@@ -8,19 +8,7 @@ const getHeaders = (authToken) => ({
   'X-Plex-Version': '1.0.0'
 })
 
-// Function to convert plex.direct URIs to plain local IP addresses (vital for WebOS reliability)
-const normalizeConnectionUri = (conn) => {
-  if (conn.local && conn.uri.includes('plex.direct')) {
-    try {
-      const url = new URL(conn.uri)
-      const ipPart = url.hostname.split('.')[0].replace(/-/g, '.')
-      return `http://${ipPart}:${url.port}`
-    } catch (e) {
-      return conn.uri
-    }
-  }
-  return conn.uri
-}
+// Removed normalizeConnectionUri to preserve native .plex.direct URIs
 
 export const getServers = async (authToken, options = {}) => {
   const { ownedOnly = false } = options
@@ -45,7 +33,7 @@ export const getServers = async (authToken, options = {}) => {
 
     const connections = (server.connections || [])
       .map(conn => ({
-        uri: normalizeConnectionUri(conn),
+        uri: conn.uri,
         local: !!conn.local,
         relay: !!conn.relay
       }))
@@ -60,7 +48,7 @@ export const getServers = async (authToken, options = {}) => {
     mappedServers.push({
       name: server.name,
       clientIdentifier: server.clientIdentifier,
-      accessToken: server.accessToken,
+      accessToken: server.accessToken || authToken,
       owned: !isShared,
       connections
     })
@@ -96,12 +84,29 @@ export const getBestServerConnection = async (server, authToken) => {
   if (localConns.length > 0) {
     const localUri = await new Promise((resolve) => {
       let failedCount = 0
+      
+      const checkDone = () => {
+        failedCount++
+        if (failedCount === localConns.length) resolve(null)
+      }
+
       for (const conn of localConns) {
+        // Try the secure .plex.direct URI first
         testConnectionToServer(conn.uri, authToken, 2000).then(ok => {
-          if (ok) resolve(conn.uri)
-          else {
-            failedCount++
-            if (failedCount === localConns.length) resolve(null)
+          if (ok) {
+            resolve(conn.uri)
+          } else {
+            // DNS Rebinding Fallback: If .plex.direct fails on the local network, 
+            // the router is likely blocking it. Fallback to raw HTTP IP.
+            if (conn.address && conn.port) {
+              const rawIpUri = `http://${conn.address}:${conn.port}`
+              testConnectionToServer(rawIpUri, authToken, 2000).then(rawOk => {
+                if (rawOk) resolve(rawIpUri)
+                else checkDone()
+              })
+            } else {
+              checkDone()
+            }
           }
         })
       }

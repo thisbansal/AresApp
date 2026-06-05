@@ -17,7 +17,7 @@ export function EdgeScrollTriggers() {
       window.isHorizontalScrolling = false;
     }, 350);
 
-    console.log(`[EdgeScroll] Cursor hit ${direction} edge. Scrolling...`);
+    // console.log(`[EdgeScroll] Cursor hit ${direction} edge. Scrolling...`);
 
     if (direction === 'left') {
       navigate('left');
@@ -28,7 +28,7 @@ export function EdgeScrollTriggers() {
 
   const handleMouseEnter = (direction) => {
     scrollOneItem(direction);
-    
+
     if (scrollInterval.current) clearInterval(scrollInterval.current);
     scrollInterval.current = setInterval(() => {
       scrollOneItem(direction);

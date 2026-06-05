@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useNotificationStore } from '../../services/notifications/notificationStore'
 import { SimpleCachedImage } from '../../pages/CachedImage'
 
 export function FallbackImage({ src, itemId, alt, style, className, loading, decoding, ...props }) {
@@ -30,7 +29,7 @@ export function FallbackImage({ src, itemId, alt, style, className, loading, dec
 
   if (!src || error) {
     return (
-      <div 
+      <div
         style={{
           ...style,
           display: 'flex',
@@ -62,7 +61,6 @@ export function FallbackImage({ src, itemId, alt, style, className, loading, dec
       decoding={decoding}
       onError={(e) => {
         console.error('[FallbackImage] Failed to load image:', src)
-        useNotificationStore.getState().addNotification(`Image Load Failed: ${src}`, { level: 'dev' })
         setError(true)
       }}
       {...props}

@@ -12,7 +12,6 @@ export default defineConfig({
     })
   ],
   build: {
-    minify: false, // Disabled minification for insanely fast builds
     target: 'es2015', // Use older JS target for better compatibility
     rollupOptions: {
       // output: {
@@ -21,5 +20,10 @@ export default defineConfig({
       //   }
       // }
     }
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/setupTests.js']
   }
 })

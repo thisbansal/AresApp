@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
-import { useNotificationStore } from '../services/notifications/notificationStore'
+
 
 /**
  * Custom hook to abstract all player input controls (D-Pad, Magic Remote Wheel, Return keys).
@@ -145,10 +145,8 @@ export function usePlayerControls({
             if (videoEl) {
               if (videoEl.paused) {
                 videoEl.play().catch(err => console.error('Play failed:', err))
-                useNotificationStore.getState().addNotification('Play', { level: 'success' })
               } else {
                 videoEl.pause()
-                useNotificationStore.getState().addNotification('Pause', { level: 'success' })
               }
             }
             return
@@ -184,7 +182,6 @@ export function usePlayerControls({
                 const newTime = Math.max(0, currentTimeRef.current - 10)
                 executeSeek(newTime)
                 setCurrentTime(newTime)
-                useNotificationStore.getState().addNotification('Seek -10s', { level: 'info' })
                 const tl = document.getElementById('player-timeline')
                 if (tl) tl.focus({ preventScroll: true })
               }
@@ -195,7 +192,6 @@ export function usePlayerControls({
                 const newTime = Math.min(durationRef.current || 0, currentTimeRef.current + 30)
                 executeSeek(newTime)
                 setCurrentTime(newTime)
-                useNotificationStore.getState().addNotification('Seek +30s', { level: 'info' })
                 const tl = document.getElementById('player-timeline')
                 if (tl) tl.focus({ preventScroll: true })
               }
@@ -218,10 +214,8 @@ export function usePlayerControls({
                 // Fallback direct toggle
                 if (videoEl.paused) {
                   videoEl.play().catch(err => console.error('Play failed:', err))
-                  useNotificationStore.getState().addNotification('Play', { level: 'success' })
                 } else {
                   videoEl.pause()
-                  useNotificationStore.getState().addNotification('Pause', { level: 'success' })
                 }
               }
               break

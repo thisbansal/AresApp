@@ -47,10 +47,10 @@ describe('Plex Content Service - Image URL Token Isolation', () => {
     expect(items).toHaveLength(1)
     const item = items[0]
     
-    expect(item.thumb).toContain('X-Plex-Token=admin-token-xyz')
-    expect(item.thumb).not.toContain('X-Plex-Token=profile-token-abc')
-    expect(item.art).toContain('X-Plex-Token=admin-token-xyz')
-    expect(item.art).not.toContain('X-Plex-Token=profile-token-abc')
+    expect(item.thumb).not.toContain('X-Plex-Token=admin-token-xyz')
+    expect(item.thumb).toContain('X-Plex-Token=profile-token-abc')
+    expect(item.art).not.toContain('X-Plex-Token=admin-token-xyz')
+    expect(item.art).toContain('X-Plex-Token=profile-token-abc')
   })
 
   it('should fallback to passed token if mainToken is not set in AppStore', async () => {

@@ -4,7 +4,6 @@ import { WebOSInputProvider } from './services/navigation/WebOSInputProvider'
 import { EdgeScrollTriggers } from './components/navigational/EdgeScrollTriggers'
 import { KeyboardHandler } from './components/navigational/KeyboardHandler'
 import { ExitDialog } from './components/navigational/ExitDialog'
-import { SystemToaster } from './components/navigational/SystemToaster'
 import { useServerStore } from './stores/serverStore'
 import { useAppStore } from './stores/AppStore'
 import { plexBridge } from './services/plex/plexBridge'
@@ -75,7 +74,6 @@ function App() {
         <KeyboardHandler />
         <ExitDialog />
         <EdgeScrollTriggers />
-        <SystemToaster />
 
       <div className="app">
         <Routes>

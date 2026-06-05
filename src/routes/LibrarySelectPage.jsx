@@ -6,6 +6,7 @@ import { useAppStore } from '../stores/AppStore'
 import { getSharedServerToken, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { useServerStore } from '../stores/serverStore'
+import { useServerManagerStore } from '../stores/serverManagerStore'
 
 function LibrarySelectPage() {
   const navigate = useNavigate()
@@ -39,19 +40,33 @@ function LibrarySelectPage() {
         } else {
           initialSelected = useAppStore.getState().selectedLibraryIds || []
         }
-      } else if (isShared && serverClientId) {
-        // Dynamic lookup fallback (e.g. from Settings panel)
-        const mainToken = useAppStore.getState().mainToken || await getMainToken()
-        const activeOwnServer = useServerStore.getState().activeServer
-        const sharedInfo = await getSharedServerToken(mainToken, serverClientId, activeOwnServer)
-        targetUri = sharedInfo.uri
-        targetToken = sharedInfo.token
-        initialSelected = useAppStore.getState().selectedLibrariesByServer[serverClientId] || []
       } else {
-        const { serverUri, token, setupServerToken, selectedLibraryIds } = useAppStore.getState()
-        targetUri = serverUri
-        targetToken = setupServerToken || token
-        initialSelected = selectedLibraryIds || []
+        // Look up the server in the new multi-server cache
+        const smStore = useServerManagerStore.getState()
+        
+        if (isShared && serverClientId) {
+          const sharedServer = smStore.servers[serverClientId]
+          if (sharedServer) {
+            targetUri = sharedServer.uri
+            targetToken = sharedServer.accessToken
+          } else {
+            // Dynamic lookup fallback via network
+            const mainToken = useAppStore.getState().mainToken || await getMainToken()
+            const activeOwnServer = useServerStore.getState().activeServer
+            const sharedInfo = await getSharedServerToken(mainToken, serverClientId, activeOwnServer)
+            targetUri = sharedInfo.uri
+            targetToken = sharedInfo.token
+          }
+          initialSelected = useAppStore.getState().selectedLibrariesByServer[serverClientId] || []
+        } else {
+          // Look for the owned server
+          const ownedServer = Object.values(smStore.servers).find(s => s.owned)
+          if (ownedServer) {
+            targetUri = ownedServer.uri
+            targetToken = ownedServer.accessToken
+          }
+          initialSelected = useAppStore.getState().selectedLibraryIds || []
+        }
       }
 
       if (!targetUri || !targetToken) {
@@ -111,7 +126,7 @@ function LibrarySelectPage() {
   }
 
   const handleBack = () => {
-    if (!isShared && selectedIds.length === 0) {
+    if (!error && !isShared && selectedIds.length === 0) {
       console.log('[AUTH FLOW] LibrarySelectPage: Back blocked. Needs at least 1 library.')
       return
     }

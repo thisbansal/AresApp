@@ -5,7 +5,7 @@
  * so they display instantly on next launch
  */
 
-import { getConfig, setConfig } from '../luna/lunaService'
+import { getData, setData, DB_KINDS } from '../luna/lunaService'
 import { getLibraries, getLibraryItems } from '../plex/plexContentService'
 
 const CACHE_KEYS = {
@@ -256,7 +256,7 @@ class MediaCacheService {
    */
   async getCached(key) {
     try {
-      const cached = await getConfig(key, null)
+      const cached = await getData(DB_KINDS.PREFERENCES, key, null)
       if (!cached) return null
 
       const data = JSON.parse(cached)
@@ -272,7 +272,7 @@ class MediaCacheService {
    */
   async setCache(key, data) {
     try {
-      await setConfig(key, JSON.stringify(data))
+      await setData(DB_KINDS.PREFERENCES, key, JSON.stringify(data))
     } catch (err) {
       console.error('[Cache] Failed to set cache:', err)
     }
@@ -283,7 +283,7 @@ class MediaCacheService {
    */
   async updateLastSync(key) {
     const syncKey = `${CACHE_KEYS.LAST_SYNC}${key}`
-    await setConfig(syncKey, Date.now().toString())
+    await setData(DB_KINDS.PREFERENCES, syncKey, Date.now().toString())
   }
 
   /**
@@ -291,7 +291,7 @@ class MediaCacheService {
    */
   async getLastSync(key) {
     const syncKey = `${CACHE_KEYS.LAST_SYNC}${key}`
-    const timestamp = await getConfig(syncKey, null)
+    const timestamp = await getData(DB_KINDS.PREFERENCES, syncKey, null)
     return timestamp ? parseInt(timestamp) : null
   }
 
@@ -307,8 +307,8 @@ class MediaCacheService {
    * Clear specific cache
    */
   async clearCacheForKey(key) {
-    await setConfig(key, null)
-    await setConfig(`${CACHE_KEYS.LAST_SYNC}${key}`, null)
+    await setData(DB_KINDS.PREFERENCES, key, null)
+    await setData(DB_KINDS.PREFERENCES, `${CACHE_KEYS.LAST_SYNC}${key}`, null)
   }
 
   /**

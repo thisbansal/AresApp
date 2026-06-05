@@ -1,5 +1,5 @@
 import { markAsWatched, markAsUnwatched } from './plexContentService'
-import { useNotificationStore } from '../notifications/notificationStore'
+
 
 /**
  * Determine if a media item is considered watched.
@@ -36,16 +36,8 @@ export const toggleWatchedState = async (serverUri, token, item) => {
 
   if (currentlyWatched) {
     await markAsUnwatched(serverUri, token, item.id)
-    useNotificationStore.getState().addNotification(
-      `Marked as unwatched: ${item.title}`,
-      { level: 'success' }
-    )
   } else {
     await markAsWatched(serverUri, token, item.id)
-    useNotificationStore.getState().addNotification(
-      `Marked as watched: ${item.title}`,
-      { level: 'success' }
-    )
   }
 
   return targetWatchedState

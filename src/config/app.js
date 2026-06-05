@@ -6,7 +6,8 @@ export const PLEX_CONFIG = {
   appID: 'com.nookbyte.aresapp',
   version: '1.0.0',
   features: {
-    enableSmartTranscoding: true // Set to false to disable smart transcode fallback
+    enableSmartTranscoding: true, // Set to false to disable smart transcode fallback
+    enableImageCaching: false // Set to false to disable Base64 storage caching and fallback to native browser loading
   }
 };
 

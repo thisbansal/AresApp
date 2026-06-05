@@ -61,6 +61,20 @@ vi.mock('../src/stores/AppStore', () => {
   }
 })
 
+vi.mock('../src/stores/serverStore', () => {
+  const mockState = { activeServer: null }
+  return {
+    useServerStore: vi.fn().mockImplementation((selector) => selector(mockState))
+  }
+})
+
+vi.mock('../src/stores/serverManagerStore', () => {
+  const mockState = { servers: {} }
+  return {
+    useServerManagerStore: vi.fn().mockImplementation((selector) => selector(mockState))
+  }
+})
+
 // Mock plexConnectionService
 vi.mock('../src/services/plex/plexConnectionService', () => ({
   getActiveServerInfo: vi.fn()

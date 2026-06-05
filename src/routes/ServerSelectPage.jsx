@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getServers, getBestServerConnection } from '../services/plex/plexAPIServer'
 import { useAppStore } from '../stores/AppStore'
+import { useServerManagerStore } from '../stores/serverManagerStore'
 import { getSharedServerToken, discoverSharedServer, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
 
 function ServerSelectPage() {
@@ -64,7 +65,24 @@ function ServerSelectPage() {
 
         if (bestUri) {
           console.log(`[AUTH FLOW] ServerSelectPage: Connection resolved! Saving working connection URI: "${bestUri}"`)
-          await useAppStore.getState().setServerUri(bestUri, server.accessToken)
+          
+          // Save to new multi-server architecture
+          const smStore = useServerManagerStore.getState()
+          const newServers = {
+            ...smStore.servers,
+            [server.clientIdentifier]: {
+              name: server.name,
+              clientIdentifier: server.clientIdentifier,
+              accessToken: server.accessToken,
+              uri: bestUri,
+              owned: true,
+              connections: server.connections || []
+            }
+          }
+          useServerManagerStore.setState({ servers: newServers })
+          smStore.saveServersToCache(newServers)
+
+          useAppStore.setState({ hasServer: true })
 
           console.log('[AUTH FLOW] ServerSelectPage: Done! Navigating to library select (/library-select)...')
           navigate('/library-select', {

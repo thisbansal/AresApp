@@ -6,6 +6,7 @@ import { getData, setData, DB_KINDS, initDeviceId } from '../services/luna/lunaS
 import { KINDS } from '../config/app'
 import { useServerStore } from './serverStore'
 import { verifyGlobalToken } from '../services/plex/tokenVerificationService'
+import { useServerManagerStore } from './serverManagerStore'
 
 export const useAppStore = create((set, get) => ({
   isAuthenticated: false,
@@ -15,8 +16,6 @@ export const useAppStore = create((set, get) => ({
   isLoading: true,
   mainToken: null,
   token: null,
-  serverUri: null,
-  setupServerToken: null,
   selectedLibraryIds: [],
   selectedLibrariesByServer: {}, // Maps serverClientId -> libraryIds[]
   userProfile: null,
@@ -39,8 +38,6 @@ export const useAppStore = create((set, get) => ({
             mainToken: null,
             token: null,
             isAuthenticated: false,
-            serverUri: null,
-            setupServerToken: null,
             hasServer: false,
             hasSession: false,
             userProfile: null,
@@ -51,9 +48,10 @@ export const useAppStore = create((set, get) => ({
         }
       }
 
-      const serverData = await getData(DB_KINDS.SERVER, KINDS.server)
-      const serverUri = typeof serverData === 'string' ? serverData : serverData?.uri
-      const setupServerToken = typeof serverData === 'object' ? serverData?.token : null
+
+      await useServerManagerStore.getState().loadCachedServers(mainToken)
+      // Kick off background discovery so new servers are added and offline ones update their status
+      useServerManagerStore.getState().discoverAllServers(mainToken)
       
       const selectedLibraries = await getSelectedLibraries()
       const sessionComplete = await hasCompleteSession()
@@ -66,15 +64,13 @@ export const useAppStore = create((set, get) => ({
       }
 
       const activeToken = (sessionComplete && userProfile?.userToken) ? userProfile.userToken : mainToken
-      const activeServer = (sessionComplete && userProfile?.serverUri && userProfile?.serverToken)
-        ? { uri: userProfile.serverUri, token: userProfile.serverToken, owned: userProfile.serverOwned ?? true }
-        : null
+      const hasServers = Object.keys(useServerManagerStore.getState().servers).length > 0
 
       const hasLibraries = selectedLibraries.length > 0 || Object.values(selectedLibrariesByServer).some(libs => libs.length > 0)
 
       console.log('[AUTH STORE] Initialized:', {
         isAuthenticated: !!mainToken,
-        hasServer: !!serverUri,
+        hasServer: hasServers,
         hasLibraries,
         hasSession: sessionComplete,
         userProfile,
@@ -85,9 +81,7 @@ export const useAppStore = create((set, get) => ({
         mainToken,
         token: activeToken,
         isAuthenticated: !!mainToken,
-        serverUri,
-        setupServerToken,
-        hasServer: !!serverUri || Object.keys(selectedLibrariesByServer).length > 0,
+        hasServer: hasServers || Object.keys(selectedLibrariesByServer).length > 0,
         selectedLibraryIds: selectedLibraries,
         selectedLibrariesByServer,
         hasLibraries,
@@ -95,15 +89,12 @@ export const useAppStore = create((set, get) => ({
         userProfile,
         isLoading: false
       })
-      useServerStore.setState({ activeServer })
     } catch (err) {
       console.error('[AUTH STORE] Error during initializeAuth:', err)
       set({
         mainToken: null,
         token: null,
         isAuthenticated: false,
-        serverUri: null,
-        setupServerToken: null,
         hasServer: false,
         hasSession: false,
         userProfile: null,
@@ -117,7 +108,7 @@ export const useAppStore = create((set, get) => ({
     console.log('[AUTH STORE] setMainToken starting...')
     try {
       await saveMainToken(token)
-      const serverUri = await getData(DB_KINDS.SERVER, KINDS.server)
+      const hasServers = Object.keys(useServerManagerStore.getState().servers).length > 0
       const sessionComplete = await hasCompleteSession()
       const userProfile = await getLastProfile()
 
@@ -127,8 +118,7 @@ export const useAppStore = create((set, get) => ({
         mainToken: token,
         token: activeToken,
         isAuthenticated: !!token,
-        serverUri,
-        hasServer: !!serverUri,
+        hasServer: hasServers,
         hasSession: sessionComplete,
         userProfile
       })
@@ -139,29 +129,7 @@ export const useAppStore = create((set, get) => ({
     }
   },
 
-  setServerUri: async (uri, setupServerToken = null) => {
-    console.log('[AUTH STORE] setServerUri starting for:', uri)
-    try {
-      if (get().serverUri === uri) {
-        console.log('[AUTH STORE] Server URI is identical. Skipping library selection reset.')
-        return
-      }
-      const serverData = setupServerToken ? { uri, token: setupServerToken } : uri
-      await setData(DB_KINDS.SERVER, KINDS.server, serverData)
-      set({
-        serverUri: uri,
-        setupServerToken,
-        hasServer: !!uri,
-        hasLibraries: false, // Reset libraries when server changes
-        selectedLibraryIds: []
-      })
-      await saveSelectedLibraries([])
-      console.log('[AUTH STORE] setServerUri completed')
-    } catch (err) {
-      console.error('[AUTH STORE] Failed to set server URI:', err)
-      throw err
-    }
-  },
+  // Removed setServerUri (handled by serverManagerStore)
 
   setSelectedLibraries: async (libraryIds) => {
     console.log('[AUTH STORE] setSelectedLibraries starting')
@@ -199,10 +167,10 @@ export const useAppStore = create((set, get) => ({
   },
 
 
-  setProfileSession: async (profileId, userName, token, pin = null, rememberPin = true, isProtected = false, serverConnection = null) => {
+  setProfileSession: async (profileId, userName, token, pin = null, rememberPin = true, isProtected = false) => {
     console.log('[AUTH STORE] setProfileSession starting for:', userName)
     try {
-      await saveProfileSession(profileId, userName, token, pin, rememberPin, isProtected, serverConnection)
+      await saveProfileSession(profileId, userName, token, pin, rememberPin, isProtected)
       const userProfile = await getLastProfile()
       const sessionComplete = await hasCompleteSession()
 
@@ -211,9 +179,10 @@ export const useAppStore = create((set, get) => ({
         userProfile,
         hasSession: sessionComplete
       })
-      if (serverConnection) {
-        useServerStore.setState({ activeServer: { uri: serverConnection.uri, token: serverConnection.token, owned: serverConnection.owned ?? true } })
-      }
+      
+      // Kick off server discovery on profile switch
+      useServerManagerStore.getState().discoverAllServers(token)
+      
       console.log('[AUTH STORE] setProfileSession completed')
     } catch (err) {
       console.error('[AUTH STORE] Failed to set profile session:', err)
@@ -236,8 +205,6 @@ export const useAppStore = create((set, get) => ({
     } else {
       console.log('[AUTH STORE] Global token valid, but server access lost. Clearing active server.')
       set({
-        serverUri: null,
-        setupServerToken: null,
         hasServer: false,
         token: mainToken
       })
@@ -255,8 +222,6 @@ export const useAppStore = create((set, get) => ({
         mainToken: null,
         token: null,
         isAuthenticated: false,
-        serverUri: null,
-        setupServerToken: null,
         hasServer: false,
         hasSession: false,
         userProfile: null

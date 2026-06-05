@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
-import { resolveAccessibleServer } from '../services/plex/plexAccessService'
 import { useAppStore } from '../stores/AppStore'
 import { getMainToken } from '../services/luna/tokenStorage'
 
@@ -125,14 +124,7 @@ function UserSelectPage() {
         throw new Error('Profile token was not returned by Plex.')
       }
 
-      const preferredUri = useAppStore.getState().serverUri
-      const resolvedServer = await resolveAccessibleServer(userToken, preferredUri)
-      const serverConnection = resolvedServer ? { uri: resolvedServer.uri, token: resolvedServer.token, owned: resolvedServer.server?.owned } : null
-
       sessionStorage.setItem('activeSession', 'true')
-      if (resolvedServer?.uri && resolvedServer.uri !== preferredUri) {
-        await useAppStore.getState().setServerUri(resolvedServer.uri)
-      }
 
       await useAppStore.getState().setProfileSession(
         user.id,
@@ -140,8 +132,7 @@ function UserSelectPage() {
         userToken,
         pinValue,
         false,
-        isProtected,
-        serverConnection
+        isProtected
       )
 
       console.log('[AUTH FLOW] UserSelectPage: Done! Navigating to browse...')

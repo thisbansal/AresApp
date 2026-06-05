@@ -5,28 +5,27 @@ import { useServerStore } from '../../stores/serverStore'
 /**
  * Build optimized image URL with specific size and format
  */
-const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
+export const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
   if (!path) return null
   const separator = path.includes('?') ? '&' : '?'
-  
+
   const imgToken = token
   const innerUrl = `${serverUri}${path}${separator}X-Plex-Token=${imgToken}`
 
   const activeServer = useServerStore.getState().activeServer
   const isShared = activeServer && activeServer.owned === false
-  const mainToken = useAppStore.getState().mainToken
+  const userProfile = useAppStore.getState().userProfile
 
-  if (isShared && mainToken) {
-    // For shared servers, use the global plex.tv proxy transcoder to avoid 401s
-    return `https://images.plex.tv/photo?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${mainToken}`
-  }
+  // if (isShared && mainToken) {
+  //   // For shared servers, use the global plex.tv proxy transcoder to avoid 401s
+  //   return `https://images.plex.tv/photo?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${mainToken}`
+  // }
 
-  // Use the admin/main token for image transcode authorization if available, fallback to the current session token
-  const transcodeToken = useAppStore.getState().mainToken || token
-  const transcodeInnerUrl = `${serverUri}${path}${separator}X-Plex-Token=${transcodeToken}`
+  // Use the explicitly provided token for image transcode authorization
+  const transcodeToken = token
 
   // WebOS TVs often struggle with WebP or complex formats, forcing jpeg ensures compatibility
-  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(transcodeInnerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${transcodeToken}`
+  return `${serverUri}/photo/:/transcode?url=${path}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${transcodeToken}`
 }
 
 const buildServerContext = (serverUri, token) => ({ uri: serverUri, token })
@@ -64,7 +63,9 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
     type: item.type,
     year: item.year,
     thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Grid thumbnail
+    rawThumb: item.thumb,
     art: buildImageUrl(serverUri, item.art, token, 800, 450), // Detail view
+    rawArt: item.art,
     rating: item.contentRating,
     summary: item.summary,
     duration: item.duration,
@@ -100,7 +101,9 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
     type: item.type,
     year: item.year,
     thumb: buildImageUrl(serverUri, item.type === 'episode' ? (item.grandparentThumb || item.thumb) : item.thumb, token, 400, 600),
+    rawThumb: item.type === 'episode' ? (item.grandparentThumb || item.thumb) : item.thumb,
     art: buildImageUrl(serverUri, item.art, token, 800, 450),
+    rawArt: item.art,
     viewOffset: item.viewOffset,
     duration: item.duration,
     grandparentTitle: item.grandparentTitle,
@@ -128,6 +131,7 @@ export const getLibraryItems = async (serverUri, token, libraryId) => {
     type: item.type,
     year: item.year,
     thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600),
+    rawThumb: item.thumb,
     rating: item.contentRating,
     summary: item.summary,
     // View state
@@ -206,7 +210,7 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
 export const getChildren = async (serverUri, token, ratingKey) => {
   const response = await plexBridge.request(`/library/metadata/${ratingKey}/children`, {}, buildServerContext(serverUri, token))
   const data = await response.json()
-  
+
   const items = (data.MediaContainer.Metadata || []).map(item => ({
     id: item.ratingKey,
     title: item.title,

@@ -16,8 +16,6 @@ export const useBrowserStore = create((set) => ({
   libraryContent: { all: [] },
   setLibraryContent: (data) => set({ libraryContent: data }),
 
-  showNotifications: true,
-  setShowNotifications: (val) => set({ showNotifications: val }),
 
   showUnwatchedIndicator: true,
   setShowUnwatchedIndicator: (val) => set({ showUnwatchedIndicator: val }),

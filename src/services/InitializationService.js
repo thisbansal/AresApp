@@ -3,12 +3,12 @@
  */
 
 import { universalStorage } from './UniversalStorage/universalStorage'
-import { putImage, getImage } from './luna/mediaDBService'
 import { getSetting } from './luna/settingsStorage'
 import { getMainToken } from './luna/tokenStorage'
 import { getLibraries, getLibraryItems } from './plex/plexContentService'
 import { isWebOS } from './Environment/environment'
 import { DB_KINDS } from './luna/lunaService'
+import { imageCacheService } from './caching/ImageCacheService'
 
 const CACHE_KEYS = {
   LIBRARIES: 'init_libraries',
@@ -89,7 +89,7 @@ class InitializationService {
       const movie = visibleMovies[i]
 
       if (movie.thumb) {
-        await this.downloadAndCacheImage(movie.thumb, movie.id)
+        await imageCacheService.getCachedImage(movie.thumb, movie.id)
       }
 
       const progress = 50 + Math.floor((i / totalImages) * 40)
@@ -112,36 +112,7 @@ class InitializationService {
     }
   }
 
-  async downloadAndCacheImage(url, itemId) {
-    try {
-      console.log('[Init] [DOWNLOADING] Downloading image:', itemId)
 
-      const response = await fetch(url)
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-
-      const blob = await response.blob()
-      const sizeKB = Math.round(blob.size / 1024)
-      console.log('[Init] Downloaded', sizeKB, 'KB for item:', itemId)
-
-      const base64 = await this.blobToBase64(blob)
-      const dataUrl = `data:${blob.type};base64,${base64}`
-
-      if (this.useWebOS) {
-        // Use MediaDB on webOS
-        console.log('[Init] Storing to MediaDB...')
-        await putImage(itemId, dataUrl)
-        console.log('[Init] [OK] Cached to MediaDB:', itemId)
-      } else {
-        // Use IndexedDB on browser
-        console.log('[Init] Storing to IndexedDB...')
-        await universalStorage.set(`image_${itemId}`, blob)
-        console.log('[Init] [OK] Cached to IndexedDB:', itemId)
-      }
-
-    } catch (err) {
-      console.error('[Init] [ERROR] Failed to cache image:', itemId, err)
-    }
-  }
 
   async loadCachedData() {
     const [librariesStr, moviesStr] = await Promise.all([
@@ -174,38 +145,19 @@ class InitializationService {
     const visibleMovies = movies.slice(0, 24)
 
     for (const movie of visibleMovies) {
-      const cached = await this.getCachedImage(movie.id)
-      if (!cached) {
-        console.log('[Init] Image not cached:', movie.id)
-        return false
+      if (movie.thumb) {
+        const cached = await imageCacheService.getCachedImage(movie.thumb, movie.id)
+        if (!cached) {
+          console.log('[Init] Image not cached:', movie.id)
+          return false
+        }
       }
     }
 
     return true
   }
 
-  async getCachedImage(itemId) {
-    console.log('[Init] [SEARCH] Looking for cached image:', itemId)
 
-    if (this.useWebOS) {
-      // Get from MediaDB
-      const dataUrl = await getImage(itemId)
-      if (dataUrl) {
-        console.log('[Init] [OK] Found in MediaDB:', itemId)
-        return dataUrl
-      }
-    } else {
-      // Get from IndexedDB
-      const blob = await universalStorage.get(`image_${itemId}`)
-      if (blob) {
-        console.log('[Init] [OK] Found in IndexedDB:', itemId)
-        return URL.createObjectURL(blob)
-      }
-    }
-
-    console.log('[Init] [NOT_FOUND] No cached image:', itemId)
-    return null
-  }
 
   async backgroundSync(onProgress) {
     setTimeout(async () => {
@@ -237,7 +189,7 @@ class InitializationService {
           const newMovies = this.getNewMovies(cachedMovies.items, freshMovies.items)
           for (const movie of newMovies) {
             if (movie.thumb) {
-              await this.downloadAndCacheImage(movie.thumb, movie.id)
+              await imageCacheService.getCachedImage(movie.thumb, movie.id)
             }
           }
 
@@ -271,17 +223,7 @@ class InitializationService {
     return newItems.filter(item => !oldIds.has(item.id))
   }
 
-  blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64 = reader.result.split(',')[1]
-        resolve(base64)
-      }
-      reader.onerror = reject
-      reader.readAsDataURL(blob)
-    })
-  }
+
 
   updateProgress(progress, status, callback) {
     this.progress = progress
@@ -309,9 +251,7 @@ export const initializeApp = (onProgress) => {
   return initService.initialize(onProgress)
 }
 
-export const getCachedImage = (itemId) => {
-  return initService.getCachedImage(itemId)
-}
+
 
 export const clearAppCache = () => {
   return initService.clearCache()

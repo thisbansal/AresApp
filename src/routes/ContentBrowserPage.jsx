@@ -8,17 +8,17 @@ import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS } from '../config/app'
 import { testConnectionToServer, getServers } from '../services/plex/plexAPIServer'
 import { resolveAccessibleServer } from '../services/plex/plexAccessService'
-import { getOnDeck, getRecentlyAdded, getLibraries, getLibraryItems } from '../services/plex/plexContentService'
+import { getLibraries, getLibraryItems, buildImageUrl } from '../services/plex/plexContentService'
+import { multiServerCacheService, CACHE_KEYS_MULTI } from '../services/caching/multiServerCacheService'
 import { isMediaWatched } from '../services/plex/plexWatchedService'
 import { useToggleWatched } from '../hooks/useToggleWatched'
-import { useNotificationStore } from '../services/notifications/notificationStore'
 import { useBrowserStore } from '../stores/browserStore'
 import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
 import { useServerStore } from '../stores/serverStore'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
 import { getMainToken } from '../services/luna/tokenStorage'
-import { getSharedServerToken } from '../services/plex/sharedServerService'
+import { useServerManagerStore } from '../stores/serverManagerStore'
 
 
 // Module-level cache to persist clicked item ID across route transitions (for back morph animations)
@@ -48,8 +48,6 @@ function ContentBrowserPage() {
   const setLibraryContent = useBrowserStore((state) => state.setLibraryContent)
 
   // Settings State from Store
-  const showNotifications = useBrowserStore((state) => state.showNotifications)
-  const setShowNotifications = useBrowserStore((state) => state.setShowNotifications)
   const subtitleWeight = useBrowserStore((state) => state.subtitleWeight)
   const setSubtitleWeight = useBrowserStore((state) => state.setSubtitleWeight)
   const subtitleColor = useBrowserStore((state) => state.subtitleColor)
@@ -281,17 +279,17 @@ function ContentBrowserPage() {
         for (const [clientId, selectedIds] of sortedServerEntries) {
           if (selectedIds && selectedIds.length > 0) {
             try {
-              const ownInfo = activeOwnUri ? { uri: activeOwnUri, token: activeOwnToken } : null
-              const sharedInfo = await getSharedServerToken(mainToken, clientId, ownInfo)
-              if (sharedInfo && sharedInfo.uri && sharedInfo.token) {
-                const sharedLibs = await getLibraries(sharedInfo.uri, sharedInfo.token)
+              const servers = useServerManagerStore.getState().servers
+              const sharedInfo = servers[clientId]
+              if (sharedInfo && sharedInfo.uri && sharedInfo.accessToken) {
+                const sharedLibs = await getLibraries(sharedInfo.uri, sharedInfo.accessToken)
                 const sharedFiltered = sharedLibs.filter(l => selectedIds.includes(l.id))
                 allNavLibs.push(...sharedFiltered.map(l => ({
                   ...l,
                   isShared: true,
                   serverClientId: clientId,
                   serverUri: sharedInfo.uri,
-                  token: sharedInfo.token
+                  token: sharedInfo.accessToken
                 })))
               }
             } catch (err) {
@@ -327,7 +325,6 @@ function ContentBrowserPage() {
         let prefs = await getData(DB_KINDS.PREFERENCES, KINDS.preferences)
         if (prefs) {
           if (prefs.showUnwatchedIndicator !== undefined) setShowUnwatchedIndicator(prefs.showUnwatchedIndicator)
-          if (prefs.showNotifications !== undefined) setShowNotifications(prefs.showNotifications)
           if (prefs.subtitleWeight !== undefined) setSubtitleWeight(prefs.subtitleWeight)
           if (prefs.subtitleColor !== undefined) setSubtitleColor(prefs.subtitleColor)
           if (prefs.subtitleSize !== undefined) setSubtitleSize(prefs.subtitleSize)
@@ -408,7 +405,6 @@ function ContentBrowserPage() {
         img.onload = resolve
         img.onerror = (e) => {
           console.error('[ContentBrowser] Preload failed for:', url)
-          useNotificationStore.getState().addNotification(`Image Load Failed: ${url}`, { level: 'dev' })
           resolve()
         } // Resolve even on error to prevent hanging
         img.src = url
@@ -424,11 +420,10 @@ function ContentBrowserPage() {
       setLoading(true)
       try {
         if (activeTab.type === 'home') {
-          const targetUri = serverInfo.uri
-          const targetToken = serverInfo.token
+          // Fire off requests to the local cache instantly
           const [onDeckData, recentData] = await Promise.all([
-            getOnDeck(targetUri, targetToken, 20),
-            getRecentlyAdded(targetUri, targetToken, null, 40) // Fetch more to ensure we have enough for both rows
+            multiServerCacheService.getOnDeck(),
+            multiServerCacheService.getRecentlyAdded()
           ])
 
           await preloadImages([onDeckData, recentData])
@@ -436,6 +431,25 @@ function ContentBrowserPage() {
           setContinueWatching(onDeckData)
           setRecentMovies(recentData.filter(i => i.type === 'movie'))
           setRecentTv(recentData.filter(i => ['show', 'season', 'episode'].includes(i.type)))
+
+          // Subscribe to background sync updates
+          const unsubOnDeck = multiServerCacheService.subscribe(CACHE_KEYS_MULTI.ON_DECK, async (newData) => {
+            await preloadImages([newData])
+            setContinueWatching(newData)
+          })
+          const unsubRecent = multiServerCacheService.subscribe(CACHE_KEYS_MULTI.RECENTLY_ADDED, async (newData) => {
+            await preloadImages([newData])
+            setRecentMovies(newData.filter(i => i.type === 'movie'))
+            setRecentTv(newData.filter(i => ['show', 'season', 'episode'].includes(i.type)))
+          })
+
+          return () => {
+            unsubOnDeck()
+            unsubRecent()
+            multiServerCacheService.stopBackgroundSync(CACHE_KEYS_MULTI.ON_DECK)
+            multiServerCacheService.stopBackgroundSync(CACHE_KEYS_MULTI.RECENTLY_ADDED)
+          }
+
         } else if (activeTab.type === 'library') {
           const libId = activeTab.data.id
           const targetUri = activeTab.data.serverUri || serverInfo.uri
@@ -481,9 +495,15 @@ function ContentBrowserPage() {
     console.log('Selected item:', item, 'isContinueWatching:', isContinueWatching)
     const { path } = resolveMediaNavigation(item, isContinueWatching)
 
-    const targetServerInfo = activeTab.type === 'library' && activeTab.data?.isShared
-      ? { uri: activeTab.data.serverUri, token: activeTab.data.token, owned: false }
-      : serverInfo
+    let targetServerInfo = serverInfo
+    if (item._serverContext?.clientId) {
+      const s = useServerManagerStore.getState().servers[item._serverContext.clientId]
+      if (s) {
+        targetServerInfo = { uri: s.uri, token: s.accessToken, owned: s.owned }
+      }
+    } else if (activeTab.type === 'library' && activeTab.data?.isShared) {
+      targetServerInfo = { uri: activeTab.data.serverUri, token: activeTab.data.token, owned: false }
+    }
 
     if (document.startViewTransition) {
       globalClickedItemId = uid
@@ -502,9 +522,15 @@ function ContentBrowserPage() {
   }
 
   const handleToggleWatched = async (item) => {
-    const targetServerInfo = activeTab.type === 'library' && activeTab.data?.isShared
-      ? { uri: activeTab.data.serverUri, token: activeTab.data.token }
-      : serverInfo
+    let targetServerInfo = serverInfo
+    if (item._serverContext?.clientId) {
+      const s = useServerManagerStore.getState().servers[item._serverContext.clientId]
+      if (s) {
+        targetServerInfo = { uri: s.uri, token: s.accessToken, owned: s.owned }
+      }
+    } else if (activeTab.type === 'library' && activeTab.data?.isShared) {
+      targetServerInfo = { uri: activeTab.data.serverUri, token: activeTab.data.token }
+    }
     const newWatchedState = await toggleWatched(item, targetServerInfo)
     if (newWatchedState !== null) {
       const updateItem = (i) => {
@@ -540,9 +566,7 @@ function ContentBrowserPage() {
 
       // Fetch latest On Deck to populate the next episode or updated state
       try {
-        const targetUri = targetServerInfo?.uri || serverInfo.uri
-        const targetToken = targetServerInfo?.token || serverInfo.token
-        const onDeckData = await getOnDeck(targetUri, targetToken, 20)
+        const onDeckData = await multiServerCacheService.getOnDeck(true)
         // Preload only the new images to avoid pop-in
         const existingThumbs = new Set((continueWatching || []).map(i => i.thumb))
         const newUrls = onDeckData.map(i => i.thumb).filter(url => url && !existingThumbs.has(url))
@@ -569,14 +593,18 @@ function ContentBrowserPage() {
   }
 
   const handleNavClick = (navItem) => {
+    console.log('[NAV] Clicked:', navItem, 'Current active:', activeTab)
     if (activeTab.type === navItem.type) {
-      if (navItem.type === 'library' && activeTab.data?.id === navItem.data?.id) {
+      if (navItem.type === 'library' && activeTab.data?.id === navItem.data?.id && activeTab.data?.serverClientId === navItem.data?.serverClientId) {
+        console.log('[NAV] Ignored click on already active library tab')
         return; // Ignore clicks on the already active library tab
       }
       if (navItem.type === 'home' || navItem.type === 'settings') {
+        console.log('[NAV] Ignored click on already active home/settings tab')
         return; // Ignore clicks on the already active home/settings tab
       }
     }
+    console.log('[NAV] Setting active tab to:', navItem)
     setActiveTab(navItem)
   }
 
@@ -590,6 +618,14 @@ function ContentBrowserPage() {
     }
 
     const uid = `${prefix}-${item.id}`
+
+    let thumbUrl = item.thumb
+    if (item._serverContext?.clientId && item.rawThumb) {
+      const s = useServerManagerStore.getState().servers[item._serverContext.clientId]
+      if (s && s.uri && s.accessToken) {
+        thumbUrl = buildImageUrl(s.uri, item.rawThumb, s.accessToken, 400, 600)
+      }
+    }
 
     return (
       <FocusableItem
@@ -607,7 +643,7 @@ function ContentBrowserPage() {
           }}
         >
           <FallbackImage
-            src={item.thumb}
+            src={thumbUrl}
             itemId={item.id}
             alt={item.grandparentTitle || item.title}
             style={styles.poster}
@@ -1067,7 +1103,6 @@ function ContentBrowserPage() {
                       setShowUnwatchedIndicator(newValue)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator: newValue,
-                        showNotifications,
                         subtitleWeight,
                         subtitleColor,
                         subtitleSize,
@@ -1107,7 +1142,6 @@ function ContentBrowserPage() {
                       setSubtitleWeight(newWeight)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator,
-                        showNotifications,
                         subtitleWeight: newWeight,
                         subtitleColor,
                         subtitleSize,
@@ -1135,7 +1169,6 @@ function ContentBrowserPage() {
                       setSubtitleColor(newColor)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator,
-                        showNotifications,
                         subtitleWeight,
                         subtitleColor: newColor,
                         subtitleSize,
@@ -1163,7 +1196,6 @@ function ContentBrowserPage() {
                       setSubtitleSize(newSize)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator,
-                        showNotifications,
                         subtitleWeight,
                         subtitleColor,
                         subtitleSize: newSize,
@@ -1188,7 +1220,6 @@ function ContentBrowserPage() {
                       setShowSubtitleHUDControls(newValue)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator,
-                        showNotifications,
                         subtitleWeight,
                         subtitleColor,
                         subtitleSize,
