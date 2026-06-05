@@ -1226,24 +1226,39 @@ export default function PlayerPage() {
         }
         .hud-play-btn.focused, .hud-play-btn:hover,
         .hud-restart-btn.focused, .hud-restart-btn:hover {
-          background-color: rgba(255, 255, 255, 0.25) !important;
-          border-color: rgba(255, 255, 255, 0.5) !important;
+          background-color: #ffffff !important;
+          border-color: #ffffff !important;
+          color: #000000 !important;
           outline: none;
         }
         .hud-play-btn.focused svg, .hud-play-btn:hover svg,
         .hud-restart-btn.focused svg, .hud-restart-btn:hover svg {
-          fill: #ffffff !important;
-          stroke: #ffffff !important;
+          fill: #000000 !important;
+          stroke: #000000 !important;
+          color: #000000 !important;
+        }
+        .hud-play-btn.focused .capsuleLabel, .hud-play-btn:hover .capsuleLabel,
+        .hud-restart-btn.focused .capsuleLabel, .hud-restart-btn:hover .capsuleLabel {
+          color: #000000 !important;
         }
         .hud-play-btn:active, .hud-restart-btn:active {
           transform: scale(1) !important;
         }
         .hud-stream-btn {
-          transition: background-color 0.15s ease !important;
+          transition: background-color 0.15s ease, color 0.15s ease !important;
         }
         .hud-stream-btn.focused, .hud-stream-btn:hover {
-          background: rgba(255,255,255,0.25);
-          border-color: rgba(255,255,255,0.4);
+          background-color: #ffffff !important;
+          border-color: #ffffff !important;
+          color: #000000 !important;
+        }
+        .hud-stream-btn.focused svg, .hud-stream-btn:hover svg {
+          fill: #000000 !important;
+          stroke: #000000 !important;
+          color: #000000 !important;
+        }
+        .hud-stream-btn.focused span, .hud-stream-btn:hover span {
+          color: #000000 !important;
         }
 
         .subtitle-caching-spinner {
