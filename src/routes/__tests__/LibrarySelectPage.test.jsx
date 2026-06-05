@@ -73,7 +73,7 @@ describe('LibrarySelectPage', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to load libraries/i)).toBeInTheDocument()
+      expect(screen.getByText(/Plex Server Took a Nap/i)).toBeInTheDocument()
     })
   })
 

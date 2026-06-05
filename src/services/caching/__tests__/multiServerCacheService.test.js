@@ -58,4 +58,47 @@ describe('multiServerCacheService', () => {
     
     unsubscribe()
   })
+
+  it('should not update cache if fetch fails completely', async () => {
+    const originalConsoleError = console.error
+    console.error = vi.fn()
+
+    const mockFetchFn = vi.fn().mockRejectedValue(new Error('Network error'))
+    
+    multiServerCacheService.startBackgroundSync('On Deck Error', mockFetchFn, 'cache_multiserver_error_test')
+    
+    await vi.advanceTimersByTimeAsync(10)
+    
+    // It should have caught the error and logged it
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('[MULTI CACHE] Background sync failed'), expect.any(Error))
+    
+    multiServerCacheService.stopBackgroundSync('cache_multiserver_error_test')
+    console.error = originalConsoleError
+  })
+
+  it('should handle partial server failure by caching available items and updating UI', async () => {
+    // Mock the DB to return an old cache
+    const oldCache = [{ id: '1', title: 'Old Item' }]
+    lunaService.request.mockImplementation((service, options) => {
+      if (options.method === 'find') {
+        return Promise.resolve({ returnValue: true, results: [{ value: JSON.stringify(oldCache) }] })
+      }
+      return Promise.resolve({ returnValue: true })
+    })
+
+    const callback = vi.fn()
+    multiServerCacheService.subscribe('cache_test_partial', callback)
+
+    // Simulate fetch returning new data from available servers
+    const freshData = [{ id: '2', title: 'New Item' }]
+    const mockFetchFn = vi.fn().mockResolvedValue(freshData)
+
+    multiServerCacheService.startBackgroundSync('Partial Sync', mockFetchFn, 'cache_test_partial')
+    await vi.advanceTimersByTimeAsync(10)
+
+    // Should detect change and notify listeners
+    expect(callback).toHaveBeenCalledWith(freshData)
+
+    multiServerCacheService.stopBackgroundSync('cache_test_partial')
+  })
 })

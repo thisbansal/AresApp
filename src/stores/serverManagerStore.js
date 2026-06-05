@@ -26,8 +26,6 @@ export const useServerManagerStore = create((set, get) => ({
             if (isMissingToken && s.owned) {
               s.accessToken = fallbackToken
               console.log(`[Heal] Repaired missing token for owned server "${s.name}".`, s)
-            } else {
-              console.log(`[Restore] "${s.name}"`, s)
             }
           }
         } else {

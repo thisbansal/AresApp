@@ -70,20 +70,23 @@ function LibrarySelectPage() {
         }
       }
 
+      const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
       if (!targetUri || !targetToken) {
         throw new Error('Missing server connection details.')
       }
 
-      const libs = await getLibraries(targetUri, targetToken)
-      console.log(`[AUTH FLOW] LibrarySelectPage: Found ${libs.length} libraries.`)
+      const libs = await getLibrariesCached(targetUri, targetToken)
+      // Filter to only show movie and show libraries
+      const videoLibs = libs.filter(l => l.type === 'movie' || l.type === 'show')
+      console.log(`[AUTH FLOW] LibrarySelectPage: Found ${videoLibs.length} libraries.`)
 
-      if (libs.length === 0) {
+      if (videoLibs.length === 0) {
         setError('No libraries found on this server.')
         setLoading(false)
         return
       }
 
-      setLibraries(libs)
+      setLibraries(videoLibs)
       setSelectedIds(initialSelected)
       setLoading(false)
     } catch (err) {
@@ -120,6 +123,15 @@ function LibrarySelectPage() {
       } else {
         await useAppStore.getState().setSelectedLibraries(updatedIds)
       }
+
+      // Save metadata for offline fallback
+      const currentMap = await useAppStore.getState().selectedLibrariesMap || {}
+      const targetLib = libraries.find(l => l.id === id)
+      if (targetLib && !currentMap[id]) {
+        currentMap[id] = { title: targetLib.title, type: targetLib.type }
+        await useAppStore.getState().setSelectedLibrariesMap(currentMap)
+      }
+
       console.log('[AUTH FLOW] LibrarySelectPage: Selection saved immediately:', updatedIds)
     } catch (err) {
       console.error('[AUTH FLOW] LibrarySelectPage: Failed to save immediately:', err)
@@ -152,26 +164,32 @@ function LibrarySelectPage() {
   if (error) {
     return (
       <div style={styles.container}>
-        <div style={styles.errorCard}>
-          <p style={styles.errorText}>{error}</p>
-          <FocusableItem
-            id="error-retry-btn"
-            rowIndex={0}
-            colIndex={0}
-            onClick={loadLibraries}
-            className="retry-btn"
-          >
-            <div style={styles.actionButton}>Try Again</div>
-          </FocusableItem>
-          <FocusableItem
-            id="error-back-btn"
-            rowIndex={0}
-            colIndex={1}
-            onClick={handleBack}
-            className="retry-btn"
-          >
-            <div style={styles.actionButton}>Go Back</div>
-          </FocusableItem>
+        <div style={{ ...styles.errorCard, backgroundColor: 'rgba(20, 20, 20, 0.85)', border: 'none', padding: '60px 80px', borderRadius: '30px', textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+          <h2 style={{ fontSize: '42px', fontWeight: '800', color: '#ffffff', marginBottom: '15px', fontFamily: '"Outfit", "Inter", sans-serif' }}>Plex Server Took a Nap 😴</h2>
+          <p style={{ fontSize: '22px', color: '#a8a8af', marginBottom: '40px', maxWidth: '500px', lineHeight: '1.4' }}>We lost connection to your server. It's either updating, offline, or just ignoring us.</p>
+          
+          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
+            <FocusableItem
+              id="error-retry-btn"
+              rowIndex={0}
+              colIndex={0}
+              onClick={loadLibraries}
+            >
+              <div className="player-hud-stream-btn" style={{ padding: '16px 36px', fontSize: '20px' }}>
+                Try Again
+              </div>
+            </FocusableItem>
+            <FocusableItem
+              id="error-back-btn"
+              rowIndex={0}
+              colIndex={1}
+              onClick={handleBack}
+            >
+              <div className="player-hud-stream-btn" style={{ padding: '16px 36px', fontSize: '20px' }}>
+                Go Back
+              </div>
+            </FocusableItem>
+          </div>
         </div>
       </div>
     )

@@ -65,6 +65,7 @@ function ContentBrowserPage() {
   const isOnline = useServerStore(state => state.isOnline)
 
   const [loading, setLoading] = useState(true)
+  const [libraryOffline, setLibraryOffline] = useState(false)
   const toggleWatched = useToggleWatched(serverInfo)
 
   // Settings-specific and Profile Switcher State
@@ -254,9 +255,11 @@ function ContentBrowserPage() {
 
       // 1. Load own libraries
       const ownSelectedIds = useAppStore.getState().selectedLibraryIds || []
+      const selectedLibrariesMap = useAppStore.getState().selectedLibrariesMap || {}
       if (activeOwnUri && activeOwnToken) {
         try {
-          const ownLibs = await getLibraries(activeOwnUri, activeOwnToken)
+          const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
+          const ownLibs = await getLibrariesCached(activeOwnUri, activeOwnToken)
           const ownFiltered = ownLibs.filter(l => ownSelectedIds.includes(l.id))
             
           allNavLibs.push(...ownFiltered.map(l => ({
@@ -269,8 +272,8 @@ function ContentBrowserPage() {
           console.warn('[init] Failed to get own libraries, using offline placeholders:', e)
           allNavLibs.push(...ownSelectedIds.map(id => ({
             id,
-            title: 'Offline', // Placeholder title since server is offline
-            type: 'offline',
+            title: selectedLibrariesMap[id]?.title || 'Offline',
+            type: selectedLibrariesMap[id]?.type || 'offline',
             isShared: false,
             serverUri: activeOwnUri,
             token: activeOwnToken,
@@ -299,7 +302,8 @@ function ContentBrowserPage() {
               const servers = useServerManagerStore.getState().servers
               const sharedInfo = servers[clientId]
               if (sharedInfo && sharedInfo.uri && sharedInfo.accessToken) {
-                const sharedLibs = await getLibraries(sharedInfo.uri, sharedInfo.accessToken)
+                const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
+                const sharedLibs = await getLibrariesCached(sharedInfo.uri, sharedInfo.accessToken)
                 const sharedFiltered = sharedLibs.filter(l => selectedIds.includes(l.id))
                 allNavLibs.push(...sharedFiltered.map(l => ({
                   ...l,
@@ -312,8 +316,8 @@ function ContentBrowserPage() {
                 // Shared server info is missing (likely offline), push placeholders
                 allNavLibs.push(...selectedIds.map(id => ({
                   id,
-                  title: 'Offline',
-                  type: 'offline',
+                  title: selectedLibrariesMap[id]?.title || 'Offline',
+                  type: selectedLibrariesMap[id]?.type || 'offline',
                   isShared: true,
                   serverClientId: clientId,
                   isOffline: true
@@ -323,8 +327,8 @@ function ContentBrowserPage() {
               console.error(`[init] Failed to load shared libraries for server ${clientId}, using offline placeholders:`, err)
               allNavLibs.push(...selectedIds.map(id => ({
                 id,
-                title: 'Offline',
-                type: 'offline',
+                title: selectedLibrariesMap[id]?.title || 'Offline',
+                type: selectedLibrariesMap[id]?.type || 'offline',
                 isShared: true,
                 serverClientId: clientId,
                 isOffline: true
@@ -452,30 +456,51 @@ function ContentBrowserPage() {
     if (!serverInfo) return
 
     const fetchContent = async () => {
-      setLoading(true)
       try {
-        if (activeTab.type === 'home') {
-          // Fire off requests to the local cache instantly
-          const [onDeckData, recentData] = await Promise.all([
-            multiServerCacheService.getOnDeck(),
-            multiServerCacheService.getRecentlyAdded()
-          ])
+        setLoading(true)
+        setLibraryOffline(false)
 
-          await preloadImages([onDeckData, recentData])
+        if (activeTab.type === 'home') {
+          const activeServer = useServerStore.getState().activeServer
+          if (!activeServer) return
+          
+          try {
+            const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
+            const libs = await getLibrariesCached(activeServer.uri, activeServer.token)
+            const videoLibs = libs.filter(l => l.type === 'movie' || l.type === 'show')
+            if (videoLibs.length > 0) {
+              setLibraryContent({
+                movies: videoLibs.filter(l => l.type === 'movie'),
+                shows: videoLibs.filter(l => l.type === 'show'),
+                all: []
+              })
+            }
+          } catch (e) {
+            console.warn('[fetchContent] Failed to fetch home libraries:', e)
+          }
+
+          // Force fresh fetch for onDeck and recentlyAdded
+          const onDeckData = await multiServerCacheService.getOnDeck(true)
+          const recentAddedData = await multiServerCacheService.getRecentlyAdded(true)
+          
+          const recentMovies = recentAddedData.filter(item => item.type === 'movie')
+          const recentTv = recentAddedData.filter(item => item.type === 'show')
 
           setContinueWatching(onDeckData)
-          setRecentMovies(recentData.filter(i => i.type === 'movie'))
-          setRecentTv(recentData.filter(i => ['show', 'season', 'episode'].includes(i.type)))
+          setRecentMovies(recentMovies)
+          setRecentTv(recentTv)
 
-          // Subscribe to background sync updates
           const unsubOnDeck = multiServerCacheService.subscribe(CACHE_KEYS_MULTI.ON_DECK, async (newData) => {
-            await preloadImages([newData])
+            console.log('[ContentBrowser] On Deck background update received')
             setContinueWatching(newData)
           })
+
           const unsubRecent = multiServerCacheService.subscribe(CACHE_KEYS_MULTI.RECENTLY_ADDED, async (newData) => {
-            await preloadImages([newData])
-            setRecentMovies(newData.filter(i => i.type === 'movie'))
-            setRecentTv(newData.filter(i => ['show', 'season', 'episode'].includes(i.type)))
+            console.log('[ContentBrowser] Recently Added background update received')
+            const rm = newData.filter(item => item.type === 'movie')
+            const rtv = newData.filter(item => item.type === 'show')
+            setRecentMovies(rm)
+            setRecentTv(rtv)
           })
 
           return () => {
@@ -486,10 +511,20 @@ function ContentBrowserPage() {
           }
 
         } else if (activeTab.type === 'library') {
+          // Clear previous library content immediately so it doesn't bleed over
+          setLibraryContent({ all: [] })
+          
+          if (activeTab.data?.isOffline) {
+             setLibraryOffline(true)
+             setLoading(false)
+             return
+          }
+
           const libId = activeTab.data.id
           const targetUri = activeTab.data.serverUri || serverInfo.uri
           const targetToken = activeTab.data.token || serverInfo.token
-          const allData = await getLibraryItems(targetUri, targetToken, libId)
+          const { getLibraryItemsCached } = await import('../services/caching/MediaCacheService')
+          const allData = await getLibraryItemsCached(targetUri, targetToken, libId)
 
           await preloadImages([allData])
 
@@ -497,6 +532,9 @@ function ContentBrowserPage() {
         }
       } catch (error) {
         console.error('[fetchContent] Error:', error)
+        if (activeTab.type === 'library') {
+           setLibraryOffline(true)
+        }
       } finally {
         setLoading(false)
       }
@@ -876,11 +914,11 @@ function ContentBrowserPage() {
         onItemClick={handleNavClick}
       />
 
-      {(!isOnline) ? (
+      {(!isOnline || libraryOffline) ? (
         <div style={styles.offlineContainer}>
           <div style={styles.offlineText}>
             <h2>Plex Server Took a Nap 😴</h2>
-            <p>We lost connection to your server. It's either updating, offline, or just ignoring us.</p>
+            <p>We lost connection to this server. It's either updating, offline, or just ignoring us.</p>
           </div>
         </div>
       ) : loading ? (

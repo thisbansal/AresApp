@@ -28,18 +28,20 @@ class MediaCacheService {
    * Get libraries with cached data
    */
   async getLibraries(serverUri, token, forceRefresh = false) {
-    const cacheKey = CACHE_KEYS.LIBRARIES
+    // Make cache key unique per server to support multiple servers
+    const safeUri = serverUri ? serverUri.replace(/[^a-zA-Z0-9]/g, '_') : 'default'
+    const cacheKey = `${CACHE_KEYS.LIBRARIES}_${safeUri}`
 
     if (!forceRefresh) {
       const cached = await this.getCached(cacheKey)
       if (cached) {
-        console.log('[Cache] Returning cached libraries:', cached.length)
+        console.log(`[Cache] Returning cached libraries for ${serverUri}:`, cached.length)
         this.syncLibraries(serverUri, token, cacheKey)
         return cached
       }
     }
 
-    console.log('[Cache] No cached libraries, fetching from server...')
+    console.log(`[Cache] No cached libraries for ${serverUri}, fetching from server...`)
     return await this.fetchAndCacheLibraries(serverUri, token, cacheKey)
   }
 
