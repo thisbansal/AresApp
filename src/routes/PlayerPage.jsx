@@ -544,7 +544,7 @@ export default function PlayerPage() {
 
     const handlePointerMove = (e) => {
       triggerHUD()
-      const trackEl = document.querySelector('.timeline-track')
+      const trackEl = document.querySelector('.player-hud-timeline-track')
       if (!trackEl) return
 
       const rect = trackEl.getBoundingClientRect()
@@ -557,7 +557,7 @@ export default function PlayerPage() {
     const handlePointerUp = async (e) => {
       // Calculate final time based on where the pointer was released
       let finalTime = 0
-      const trackEl = document.querySelector('.timeline-track')
+      const trackEl = document.querySelector('.player-hud-timeline-track')
       if (trackEl) {
         const rect = trackEl.getBoundingClientRect()
         const clickX = e.clientX - rect.left
@@ -1208,17 +1208,17 @@ export default function PlayerPage() {
         .player-hud-card {
           transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .timeline-track {
+        .player-hud-timeline-track {
           cursor: pointer;
         }
         .timeline-visual-track {
           transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .timeline-track.focused .timeline-knob {
+        .player-hud-timeline-track.focused .player-hud-timeline-knob {
           transform: translate(-50%, -50%) !important;
           box-shadow: 0 0 12px 4px rgba(229, 160, 13, 0.6) !important;
         }
-        .timeline-track, .hud-play-btn, .hud-restart-btn, .hud-stream-btn, .hud-stream-menu-item {
+        .player-hud-timeline-track, .hud-play-btn, .hud-restart-btn, .hud-stream-btn, .hud-stream-menu-item {
           transform: scale(1) !important;
         }
         .hud-play-btn, .hud-restart-btn {
