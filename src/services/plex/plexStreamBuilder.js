@@ -35,8 +35,16 @@ class PlexStreamBuilder {
     let profileExtra = '';
     if (capabilities) {
       const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
+      const isHevcSupported = typeof MediaSource !== 'undefined' &&
+        (MediaSource.isTypeSupported('video/mp4; codecs="hev1"') ||
+         MediaSource.isTypeSupported('video/mp4; codecs="hvc1"'));
+
       if (selectedVideo && selectedVideo.supported && (selectedVideo.codec === 'hevc' || selectedVideo.codec === 'h265' || selectedVideo.codec === 'dovi')) {
-        profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
+        if (isHevcSupported) {
+          profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
+        } else {
+          console.log('[plexStreamBuilder] Original video is HEVC, but current browser lacks MSE HEVC support. Falling back to H.264 transcode.');
+        }
       }
 
       // Check if the browser supports AC3/EAC3 (Dolby Digital) natively. WebOS TVs do, Chrome Desktop does not.
@@ -209,8 +217,14 @@ class PlexStreamBuilder {
     let profileExtra = '';
     if (capabilities) {
       const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
+      const isHevcSupported = typeof MediaSource !== 'undefined' &&
+        (MediaSource.isTypeSupported('video/mp4; codecs="hev1"') ||
+         MediaSource.isTypeSupported('video/mp4; codecs="hvc1"'));
+
       if (selectedVideo && selectedVideo.supported && (selectedVideo.codec === 'hevc' || selectedVideo.codec === 'h265' || selectedVideo.codec === 'dovi')) {
-        profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
+        if (isHevcSupported) {
+          profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
+        }
       }
     }
 
