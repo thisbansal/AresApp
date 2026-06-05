@@ -1218,30 +1218,27 @@ export default function PlayerPage() {
           transform: translate(-50%, -50%) !important;
           box-shadow: 0 0 12px 4px rgba(229, 160, 13, 0.6) !important;
         }
-        .player-hud-timeline-track, .hud-play-btn, .hud-restart-btn, .hud-stream-btn, .hud-stream-menu-item {
+        .player-hud-timeline-track, .player-hud-btn-capsule, .hud-stream-btn, .hud-stream-menu-item {
           transform: scale(1) !important;
         }
-        .hud-play-btn, .hud-restart-btn {
-          transition: background-color 0.15s ease !important;
+        .player-hud-btn-capsule {
+          transition: background-color 0.15s ease, color 0.15s ease !important;
         }
-        .hud-play-btn.focused, .hud-play-btn:hover,
-        .hud-restart-btn.focused, .hud-restart-btn:hover {
+        .player-hud-btn-capsule.focused, .player-hud-btn-capsule:hover {
           background-color: #ffffff !important;
           border-color: #ffffff !important;
           color: #000000 !important;
           outline: none;
         }
-        .hud-play-btn.focused svg, .hud-play-btn:hover svg,
-        .hud-restart-btn.focused svg, .hud-restart-btn:hover svg {
+        .player-hud-btn-capsule.focused svg, .player-hud-btn-capsule:hover svg {
           fill: #000000 !important;
           stroke: #000000 !important;
           color: #000000 !important;
         }
-        .hud-play-btn.focused .capsuleLabel, .hud-play-btn:hover .capsuleLabel,
-        .hud-restart-btn.focused .capsuleLabel, .hud-restart-btn:hover .capsuleLabel {
+        .player-hud-btn-capsule.focused .capsuleLabel, .player-hud-btn-capsule:hover .capsuleLabel {
           color: #000000 !important;
         }
-        .hud-play-btn:active, .hud-restart-btn:active {
+        .player-hud-btn-capsule:active {
           transform: scale(1) !important;
         }
         .hud-stream-btn {
