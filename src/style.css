@@ -786,7 +786,7 @@ video::-webkit-media-controls-text-track-display {
   /* Expanded sidebar */
   .nav-wrapper.expanded .nav-capsule {
     width: 360px; /* Reduced by ~25% from 480px */
-    padding: 22px; /* Reduced by ~25% from 30px */
+    padding: 22px 0; /* Removed horizontal padding so items touch edges */
   }
 
   .nav-scroll-container {
@@ -799,7 +799,7 @@ video::-webkit-media-controls-text-track-display {
   .nav-item {
     height: 68px; /* Reduced from 90px */
     justify-content: flex-start;
-    border-radius: 14px; /* Reduced from 18px */
+    border-radius: 0; /* Removed so active background touches edges flush */
     margin-bottom: 9px; /* Reduced from 12px */
     padding: 0;
   }
@@ -818,7 +818,7 @@ video::-webkit-media-controls-text-track-display {
     white-space: nowrap;
     opacity: 1;
     margin-left: 0px; /* Reset because icons are hidden in expanded view */
-    padding-left: 15px; /* Add padding so it's not flush against the active background edge */
+    padding-left: 22px; /* Matched to header padding so text aligns beautifully */
   }
 
   .nav-header {
@@ -827,6 +827,8 @@ video::-webkit-media-controls-text-track-display {
     align-items: center;
     margin-bottom: 34px; /* Reduced from 45px */
     padding-bottom: 22px; /* Reduced from 30px */
+    padding-left: 22px; /* Add horizontal padding back to header */
+    padding-right: 22px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
