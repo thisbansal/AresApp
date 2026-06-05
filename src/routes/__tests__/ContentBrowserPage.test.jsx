@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import ContentBrowserPage from '../ContentBrowserPage'
 import { useServerManagerStore } from '../../stores/serverManagerStore'
 import { useBrowserStore } from '../../stores/browserStore'
+import { useServerStore } from '../../stores/serverStore'
 
 // Mock styles and context to prevent syntax errors
 vi.mock('../../contexts/SpatialNavigationContext', () => ({
@@ -29,7 +30,7 @@ vi.mock('../../stores/serverManagerStore', () => ({
 }))
 
 vi.mock('../../stores/serverStore', () => ({
-  useServerStore: () => ({ uri: 'http://local', token: 'token' })
+  useServerStore: vi.fn()
 }))
 
 vi.mock('../../stores/browserStore', () => ({
@@ -39,11 +40,14 @@ vi.mock('../../stores/browserStore', () => ({
 describe('ContentBrowserPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useServerStore.mockImplementation((selector) => {
+      if (selector) return selector({ isOnline: true })
+      return { uri: 'http://local', token: 'token' }
+    })
   })
 
   it('renders NavigationBar correctly with active tab', () => {
     useBrowserStore.mockImplementation((selector) => {
-      // Mock the browser store state hook selector
       const state = {
         activeTab: { type: 'home' },
         continueWatching: [],
@@ -62,6 +66,39 @@ describe('ContentBrowserPage', () => {
       </MemoryRouter>
     )
 
+    expect(container.querySelector('.nav-scroll-container')).toBeInTheDocument()
+    // By default, online, so offline message should not be there
+    expect(screen.queryByText(/Plex Server Took a Nap/i)).not.toBeInTheDocument()
+  })
+
+  it('renders offline message and keeps navigation accessible when server is unreachable', () => {
+    useServerStore.mockImplementation((selector) => {
+      if (selector) return selector({ isOnline: false })
+      return { uri: 'http://local', token: 'token' }
+    })
+
+    useBrowserStore.mockImplementation((selector) => {
+      const state = {
+        activeTab: { type: 'home' },
+        continueWatching: [],
+        recentMovies: [],
+        recentTv: [],
+        libraryContent: { all: [] },
+        showUnwatchedIndicator: true,
+        subtitleWeight: 400
+      }
+      return selector(state)
+    })
+
+    const { container } = render(
+      <MemoryRouter>
+        <ContentBrowserPage />
+      </MemoryRouter>
+    )
+
+    // Offline message should be displayed
+    expect(screen.getByText(/Plex Server Took a Nap/i)).toBeInTheDocument()
+    // Navigation bar MUST still be accessible
     expect(container.querySelector('.nav-scroll-container')).toBeInTheDocument()
   })
 })

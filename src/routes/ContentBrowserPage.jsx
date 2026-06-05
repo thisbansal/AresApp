@@ -62,6 +62,7 @@ function ContentBrowserPage() {
 
   const selectedLibraryIds = useAppStore((state) => state.selectedLibraryIds)
   const selectedLibrariesByServer = useAppStore((state) => state.selectedLibrariesByServer)
+  const isOnline = useServerStore(state => state.isOnline)
 
   const [loading, setLoading] = useState(true)
   const toggleWatched = useToggleWatched(serverInfo)
@@ -842,7 +843,14 @@ function ContentBrowserPage() {
         onItemClick={handleNavClick}
       />
 
-      {loading ? (
+      {(!isOnline) ? (
+        <div style={styles.offlineContainer}>
+          <div style={styles.offlineText}>
+            <h2>Plex Server Took a Nap 😴</h2>
+            <p>We lost connection to your server. It's either updating, offline, or just ignoring us.</p>
+          </div>
+        </div>
+      ) : loading ? (
         <div style={styles.emptyContainer}>
           <div style={styles.loadingText}></div>
         </div>
@@ -1511,6 +1519,18 @@ const styles = {
     justifyContent: 'center',
     flex: 1,
     padding: '100px 0',
+  },
+  offlineContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    padding: '100px 0',
+  },
+  offlineText: {
+    textAlign: 'center',
+    color: '#888',
+    fontFamily: "'Outfit', 'Inter', sans-serif",
   },
   loadingText: {
     fontSize: '3rem',

@@ -153,24 +153,7 @@ function App() {
         </Routes>
       </div>
 
-      {/* Modern, glassmorphic Offline recovery modal */}
-      {!isOnline && (
-        <div style={styles.offlineOverlay}>
-          <div style={styles.offlineCard}>
-            <div style={styles.offlinePulse}></div>
-            <h2 style={styles.offlineTitle}>Plex Connection Lost</h2>
-            <p style={styles.offlineSubtitle}>
-              We lost our connection to your Plex Media Server. Please make sure your server is running and connected to the same network.
-            </p>
-            <button
-              onClick={() => plexBridge.ping()}
-              style={styles.retryButton}
-            >
-              Retry Connection
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Offline state is now handled gracefully inside the views without blocking navigation */}
       </SpatialNavigationProvider>
     </WebOSInputProvider>
   )
