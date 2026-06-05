@@ -23,14 +23,21 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
   return (
     <div 
       className={`nav-wrapper ${isNavbarExpanded ? 'expanded' : 'collapsed'}`} 
-      onClick={() => setIsNavbarExpanded(true)}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) {
           setIsNavbarExpanded(false);
         }
       }}
     >
-      <div className="nav-capsule">
+      <div 
+        className="nav-capsule"
+        onClick={(e) => {
+          // Only expand if clicking the capsule or its dead space, not an item.
+          if (!isNavbarExpanded) {
+             setIsNavbarExpanded(true);
+          }
+        }}
+      >
         {isNavbarExpanded && (
           <div className="nav-header">
             <div className="nav-profile">
@@ -51,6 +58,10 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             colIndex={0}
             onClick={(e) => {
               e.stopPropagation();
+              if (!isNavbarExpanded) {
+                setIsNavbarExpanded(true);
+                return;
+              }
               setIsNavbarExpanded(false);
               if (activeTab?.type !== 'home') {
                 onItemClick({ type: 'home' });
@@ -88,6 +99,10 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 colIndex={index + 1}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (!isNavbarExpanded) {
+                    setIsNavbarExpanded(true);
+                    return;
+                  }
                   setIsNavbarExpanded(false);
                   if (!isActive) {
                     onItemClick({ type: 'library', data: lib });
@@ -120,6 +135,10 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             colIndex={libraries.length + 1}
             onClick={(e) => {
               e.stopPropagation();
+              if (!isNavbarExpanded) {
+                setIsNavbarExpanded(true);
+                return;
+              }
               setIsNavbarExpanded(false);
               if (activeTab?.type !== 'settings') {
                 onItemClick({ type: 'settings' });

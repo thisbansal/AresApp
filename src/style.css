@@ -668,6 +668,7 @@ video::-webkit-media-controls-text-track-display {
     justify-content: flex-start; /* Fix to the top */
     padding-left: 20px; /* Reduced from 60px to next to none */
     padding-top: 20px; /* Reduced from 60px to next to none */
+    pointer-events: none; /* Let clicks pass through the invisible 100vh wrapper... */
   }
   
   .nav-capsule {
@@ -680,6 +681,7 @@ video::-webkit-media-controls-text-track-display {
     will-change: transform;
     /* Animate transform for width expansion for GPU performance */
     transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto; /* ...but capture clicks on the capsule itself */
   }
 
   /* Collapsed sidebar (Default) */
