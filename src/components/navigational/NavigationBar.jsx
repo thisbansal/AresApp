@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FocusableItem } from './FocusableItem';
-import { FiHome, FiSettings, FiUser, FiChevronLeft } from 'react-icons/fi';
+import { FiHome, FiSettings, FiUser } from 'react-icons/fi';
+import { MdKeyboardArrowLeft } from 'react-icons/md';
 import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
 
@@ -69,7 +70,7 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             }}
             className={`nav-item ${activeTab?.type === 'home' ? 'active' : ''}`}
           >
-            {!isNavbarExpanded && activeTab?.type === 'home' && <FiChevronLeft size={33} className="nav-chevron" />}
+            {!isNavbarExpanded && activeTab?.type === 'home' && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
             
             {!isNavbarExpanded && (
               <div className="nav-icon-container">
@@ -110,7 +111,7 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 }}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
-                {!isNavbarExpanded && isActive && <FiChevronLeft size={33} className="nav-chevron" />}
+                {!isNavbarExpanded && isActive && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
                 
                 {/* Only show library icon in collapsed mode */}
                 {!isNavbarExpanded && (
@@ -146,7 +147,7 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             }}
             className={`nav-item ${activeTab?.type === 'settings' ? 'active' : ''}`}
           >
-            {!isNavbarExpanded && activeTab?.type === 'settings' && <FiChevronLeft size={33} className="nav-chevron" />}
+            {!isNavbarExpanded && activeTab?.type === 'settings' && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
             
             {!isNavbarExpanded && (
               <div className="nav-icon-container">

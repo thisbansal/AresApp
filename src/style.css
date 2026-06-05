@@ -643,15 +643,15 @@ video::-webkit-media-controls-text-track-display {
   height: 100%;
 }
 .nav-item.active {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: #333333; /* Solid color for performance */
   color: #fff;
-  box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 8px #222222;
 }
 .nav-item[style] {
   transform: scale(1) !important;
 }
 .nav-item.focused {
-  background-color: rgba(255, 255, 255, 0.25) !important;
+  background-color: #444444 !important; /* Solid color for performance */
   color: #fff !important;
   /* NO transform scale to prevent growing on focus */
 }
@@ -675,8 +675,8 @@ video::-webkit-media-controls-text-track-display {
     flex-direction: column;
     border-radius: 30px;
     height: auto;
-    background-color: rgba(25, 25, 30, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #19191e; /* Solid color for performance */
+    border: 1px solid #333333; /* Solid color */
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
     will-change: transform;
     /* Animate transform for width expansion for GPU performance */
@@ -743,31 +743,30 @@ video::-webkit-media-controls-text-track-display {
     display: flex;
     flex-direction: row;
     align-items: center;
-    background-color: rgba(25, 25, 30, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 9999px; /* Full pill shape */
-    padding: 0 45px 0 15px; /* 50% bigger */
+    background-color: #19191e;
+    border: 1px solid #333333;
+    border-radius: 50%; /* Perfect circle */
+    padding: 0;
     margin: 0;
-    width: auto;
+    width: 96px;
     height: 96px; /* 64 * 1.5 */
+    justify-content: center;
   }
 
   .nav-wrapper.collapsed .nav-item.active.focused {
-    background-color: rgba(25, 25, 30, 0.85) !important; /* Do not change color when hovered/focused while collapsed */
+    background-color: #19191e !important; /* Do not change color when hovered/focused while collapsed */
     box-shadow: none !important;
   }
 
   .nav-wrapper.collapsed .nav-chevron {
-    margin-left: 0px; /* Reset negative margin so it doesn't clip off screen */
-    margin-right: 20px;
-    color: white;
+    display: none;
   }
 
   .nav-wrapper.collapsed .nav-icon-container {
     width: 66px; /* 44 * 1.5 */
     height: 66px;
     border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: transparent; /* No inner background needed for circle */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -777,16 +776,11 @@ video::-webkit-media-controls-text-track-display {
     opacity: 0;
     max-width: 0;
     padding-left: 0;
+    display: none;
   }
 
   .nav-wrapper.collapsed .collapsed-label {
-    opacity: 1;
-    max-width: 200px;
-    display: block;
-    margin-left: 22px;
-    font-size: 39px; /* 26 * 1.5 */
-    font-weight: 600;
-    color: white;
+    display: none;
   }
 
   /* Expanded sidebar */
