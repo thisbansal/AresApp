@@ -853,10 +853,11 @@ video::-webkit-media-controls-text-track-display {
     object-fit: cover;
   }
 
-  .nav-username {
-    font-size: 28px; /* Increased from 22px */
+  .nav-avatar-initials {
+    font-size: 32px;
     font-weight: 600;
     color: white;
+    letter-spacing: 1px;
   }
 
   .nav-time {

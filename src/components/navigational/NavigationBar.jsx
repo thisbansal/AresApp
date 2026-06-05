@@ -10,6 +10,18 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
   const { userProfile } = useAppStore();
   const [timeStr, setTimeStr] = useState('');
 
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const username = userProfile?.userName || 'User';
+  const initials = getInitials(username);
+
   useEffect(() => {
     if (!isNavbarExpanded) return;
     const updateTime = () => {
@@ -43,9 +55,8 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
           <div className="nav-header">
             <div className="nav-profile">
               <div className="nav-avatar">
-                {userProfile?.thumb ? <img src={userProfile.thumb} alt="Avatar" /> : <FiUser size={24} />}
+                {userProfile?.thumb ? <img src={userProfile.thumb} alt="Avatar" /> : <div className="nav-avatar-initials">{initials}</div>}
               </div>
-              <div className="nav-username">{userProfile?.userName || 'User'}</div>
             </div>
             <div className="nav-time">{timeStr}</div>
           </div>
