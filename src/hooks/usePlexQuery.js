@@ -53,12 +53,20 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
       // Execute the fetch function
       const freshData = await fetchFnRef.current();
       
+      // Prevent race conditions: check if key is still the active one
+      if (cacheKey !== getSafeCacheKey()) {
+        return;
+      }
+      
       // Save to cache
       await setData(DB_KINDS.PREFERENCES, cacheKey, JSON.stringify(freshData));
       
       setLocalData(freshData);
       setError(null);
     } catch (err) {
+      if (cacheKey !== getSafeCacheKey()) {
+        return;
+      }
       console.warn(`[usePlexQuery] Revalidation failed for key ${cacheKey}:`, err.message);
       setError(err);
       
@@ -68,17 +76,23 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
         useServerStore.getState().setServerState(false, err.message);
       }
     } finally {
-      setLoading(false);
-      setIsRevalidating(false);
+      if (cacheKey === getSafeCacheKey()) {
+        setLoading(false);
+        setIsRevalidating(false);
+      }
     }
   }, [enabled, getSafeCacheKey]);
 
-  // 1. Initial Cache Load
+  // 1. Initial Cache Load & Key Changes
   useEffect(() => {
     if (!enabled) return;
 
     let active = true;
     const cacheKey = getSafeCacheKey();
+
+    // Reset local state for the new key so we do not show stale data from the previous key
+    setLocalData(initialData);
+    setLoading(true);
 
     const loadInitialCache = async () => {
       try {
@@ -103,7 +117,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
     return () => {
       active = false;
     };
-  }, [enabled, getSafeCacheKey, revalidate]);
+  }, [enabled, getSafeCacheKey, revalidate, initialData]);
 
   // 2. Reactive Auto-Refetch when connection is restored
   useEffect(() => {
