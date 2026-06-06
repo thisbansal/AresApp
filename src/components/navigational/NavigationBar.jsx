@@ -11,6 +11,8 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
   const { userProfile } = useAppStore();
   const [timeStr, setTimeStr] = useState('');
   const isOnline = useServerStore(state => state.isOnline);
+  const [showDynamicIslandAlert, setShowDynamicIslandAlert] = useState(false);
+  const [wasOnline, setWasOnline] = useState(isOnline);
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -35,6 +37,17 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
     return () => clearInterval(interval);
   }, [isNavbarExpanded]);
 
+  useEffect(() => {
+    if (wasOnline && !isOnline) {
+      setShowDynamicIslandAlert(true);
+      const timer = setTimeout(() => {
+        setShowDynamicIslandAlert(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+    setWasOnline(isOnline);
+  }, [isOnline, wasOnline]);
+
   return (
     <FocusLayer id="navbar" isActive={isNavbarExpanded}>
       <div 
@@ -57,6 +70,11 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             }
           }}
         >
+        <div className={`nav-dynamic-island ${showDynamicIslandAlert ? 'active' : ''}`}>
+          <div className="dynamic-island-pulse-dot" />
+          <span className="dynamic-island-text">Offline Mode</span>
+        </div>
+
         {!isOnline && !isNavbarExpanded && (
           <div className="nav-collapsed-offline-icon" />
         )}

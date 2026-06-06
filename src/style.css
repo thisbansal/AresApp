@@ -961,3 +961,50 @@ video::-webkit-media-controls-text-track-display {
   100% { border-color: rgba(255, 255, 255, 0.08); }
 }
 
+/* Dynamic Island Offline Notification Styles */
+.nav-dynamic-island {
+  position: absolute;
+  top: -55px; /* Floats right above the capsule */
+  left: 50%;
+  transform: translate3d(-50%, 15px, 0) scale3d(0.8, 0.8, 1);
+  transform-origin: bottom center;
+  background-color: #19191e;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  gap: 8px;
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 101;
+  will-change: transform, opacity;
+}
+
+.nav-dynamic-island.active {
+  transform: translate3d(-50%, 0, 0) scale3d(1, 1, 1);
+  opacity: 1;
+}
+
+.dynamic-island-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  animation: pulse-opacity-offline 1.5s infinite ease-in-out;
+}
+
+.dynamic-island-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.5px;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  text-transform: uppercase;
+}
+
