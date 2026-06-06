@@ -8,16 +8,22 @@ import { useBrowserStore } from '../../stores/browserStore'
 import { useServerStore } from '../../stores/serverStore'
 
 // Mock styles and context to prevent syntax errors
-vi.mock('../../contexts/SpatialNavigationContext', () => ({
-  useSpatialNavigation: () => ({
-    registerNode: vi.fn(),
-    unregisterNode: vi.fn(),
-    setNavigationMode: vi.fn(),
-    lastRemoteActionRef: { current: 0 },
-    lastNavDirectionRef: { current: 'down' }
-  }),
-  SpatialNavigationProvider: ({ children }) => <div>{children}</div>
-}))
+vi.mock('../../contexts/SpatialNavigationContext', () => {
+  const React = require('react');
+  const LayerContext = React.createContext('base');
+  return {
+    useSpatialNavigation: () => ({
+      registerNode: vi.fn(),
+      unregisterNode: vi.fn(),
+      setNavigationMode: vi.fn(),
+      lastRemoteActionRef: { current: 0 },
+      lastNavDirectionRef: { current: 'down' }
+    }),
+    SpatialNavigationProvider: ({ children }) => <div>{children}</div>,
+    LayerContext,
+    FocusLayer: ({ children }) => <div>{children}</div>
+  };
+})
 
 vi.mock('../../stores/serverManagerStore', () => ({
   useServerManagerStore: {

@@ -28,16 +28,22 @@ vi.mock('../../stores/AppStore', () => ({
   }
 }))
 
-vi.mock('../../contexts/SpatialNavigationContext', () => ({
-  useSpatialNavigation: () => ({
-    registerNode: vi.fn(),
-    unregisterNode: vi.fn(),
-    setNavigationMode: vi.fn(),
-    lastRemoteActionRef: { current: 0 },
-    lastNavDirectionRef: { current: 'down' }
-  }),
-  SpatialNavigationProvider: ({ children }) => <div>{children}</div>
-}))
+vi.mock('../../contexts/SpatialNavigationContext', () => {
+  const React = require('react');
+  const LayerContext = React.createContext('base');
+  return {
+    useSpatialNavigation: () => ({
+      registerNode: vi.fn(),
+      unregisterNode: vi.fn(),
+      setNavigationMode: vi.fn(),
+      lastRemoteActionRef: { current: 0 },
+      lastNavDirectionRef: { current: 'down' }
+    }),
+    SpatialNavigationProvider: ({ children }) => <div>{children}</div>,
+    LayerContext,
+    FocusLayer: ({ children }) => <div>{children}</div>
+  };
+})
 
 describe('LibrarySelectPage', () => {
   beforeEach(() => {
