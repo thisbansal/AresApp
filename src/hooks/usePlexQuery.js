@@ -128,12 +128,14 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
     };
   }, [enabled, cacheKey, revalidate]);
 
-  // 2. Reactive Auto-Refetch when connection is restored
+  // 2. Reactive Auto-Refetch when connection is restored (from offline back to online)
+  const wasOnlineRef = useRef(isOnline);
   useEffect(() => {
-    if (enabled && isOnline) {
+    if (enabled && isOnline && !wasOnlineRef.current) {
       console.log('[usePlexQuery] Reconnection detected. Auto-revalidating...', queryKey);
       revalidate();
     }
+    wasOnlineRef.current = isOnline;
   }, [isOnline, enabled]);
 
   return {
