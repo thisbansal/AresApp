@@ -356,10 +356,11 @@ function ContentBrowserPage() {
           const offlineServer = { uri: currentUri, token: currentToken }
           setServerInfo(offlineServer)
           useServerStore.setState({ activeServer: offlineServer })
-          loadAllSelectedLibraries(currentUri, currentToken).catch(e => console.warn('Offline fallback loadAllSelectedLibraries failed:', e))
         }
       } catch (error) {
         console.error('[initServerAndNav] Error:', error)
+      } finally {
+        loadAllSelectedLibraries().catch(e => console.warn('Initialization loadAllSelectedLibraries failed:', e))
       }
     }
     initServerAndNav()
@@ -368,9 +369,7 @@ function ContentBrowserPage() {
   // 1b. Reload libraries dynamically if selections change (e.g. from Settings Library Select)
   const selectedLibrariesStr = JSON.stringify(selectedLibraries)
   useEffect(() => {
-    if (serverInfo?.uri && serverInfo?.token) {
-      loadAllSelectedLibraries(serverInfo.uri, serverInfo.token).catch(e => console.warn('[init] Reactive reload failed:', e))
-    }
+    loadAllSelectedLibraries().catch(e => console.warn('[init] Reactive reload failed:', e))
   }, [selectedLibrariesStr, serverInfo])
 
   // Helper to preload images before showing content
