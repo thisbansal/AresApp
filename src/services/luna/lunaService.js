@@ -62,7 +62,6 @@ const initializedKinds = new Set()
  * Generic promise wrapper for LS2Request
  */
 const lunaCall = ({ service, method, parameters }) => {
-  console.log(`[LUNA DB8] CALL -> Service: ${service} | Method: ${method} | Parameters:`, JSON.stringify(parameters))
   return new Promise((resolve, reject) => {
     const request = createRequest()
 
@@ -71,7 +70,6 @@ const lunaCall = ({ service, method, parameters }) => {
       method,
       parameters,
       onSuccess: (res) => {
-        console.log(`[LUNA DB8] SUCCESS -> Method: ${method} | Response:`, JSON.stringify(res))
         resolve(res)
       },
       onFailure: (err) => {
@@ -185,7 +183,6 @@ export const setData = async (kind, key, value, isRetry = false) => {
     // 2. If it exists, delete it by _id (which is guaranteed to succeed and never requires queries/indexes)
     if (findRes && findRes.results && findRes.results.length > 0) {
       const idsToDelete = findRes.results.map(r => r._id)
-      console.log(`[LUNA DB8] Found existing record(s) to upsert. Deleting by _id:`, idsToDelete)
       await lunaCall({
         service: DB8_URL,
         method: "del",
@@ -234,10 +231,8 @@ export const getData = async (kind, key, defaultValue = null, isRetry = false) =
     })
 
     if (res?.results?.length > 0) {
-      console.log("getData returning value: ", res)
       return res.results[0].value
     }
-    console.log("getData returning defaultValue: ", defaultValue)
     return defaultValue
   } catch (err) {
     if (!isRetry && isIndexError(err)) {
@@ -274,7 +269,6 @@ export const deleteData = async (kind, key, isRetry = false) => {
     // 2. If it exists, delete by _id (which is guaranteed to succeed and never requires queries/indexes)
     if (findRes && findRes.results && findRes.results.length > 0) {
       const idsToDelete = findRes.results.map(r => r._id)
-      console.log(`[LUNA DB8] Deleting data by _id:`, idsToDelete)
       const res = await lunaCall({
         service: DB8_URL,
         method: "del",

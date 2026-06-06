@@ -860,8 +860,9 @@ function ContentBrowserPage() {
           <ServerOfflineMessage />
         </div>
       ) : loading ? (
-        <div style={styles.emptyContainer}>
-          <div style={styles.loadingText}></div>
+        <div style={{ ...styles.emptyContainer, flexDirection: 'column', gap: '20px', height: '60vh' }}>
+          <div className="spinner" style={{ borderLeftColor: '#ffffff', width: '50px', height: '50px', borderWidth: '3px' }}></div>
+          <div style={{ ...styles.loadingText, fontSize: '24px', color: '#88888f' }}>Loading Content...</div>
         </div>
       ) : (
         <>
