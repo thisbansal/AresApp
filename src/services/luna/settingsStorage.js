@@ -1,5 +1,5 @@
 import { DB_KINDS, getData, setData } from './lunaService'
-import { deleteUserData, saveUserProfile, getUserToken } from './tokenStorage'
+import { deleteUserData, saveUserProfile, getUserToken, getUserProfile } from './tokenStorage'
 import { KINDS } from '../../config/app'
 import { isWebOS } from '../Environment/environment'
 
@@ -31,18 +31,21 @@ export const getSetting = async (kind, defaultValue = null) => {
   return await getData(kind, undefined, defaultValue)
 }
 
+
 // Batch save profile data
 export const saveProfileSession = async (profileId, userName, token, pin = null, rememberPin = true, isProtected = false) => {
+  const existingProfile = await getUserProfile(profileId)
+  const finalRememberPin = existingProfile !== null ? existingProfile.rememberPin : rememberPin
+
   const userProfileKeyDetails = {
     userId: profileId,
     userName: userName,
     userToken: token,
-    userPin: pin,
-    rememberPin: rememberPin,
+    userPin: pin || (existingProfile ? existingProfile.userPin : null),
+    rememberPin: finalRememberPin,
     isProtected: isProtected
   }
 
-  await deleteUserData()
   await saveUserProfile(userProfileKeyDetails)
 }
 

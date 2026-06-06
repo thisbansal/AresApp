@@ -131,14 +131,14 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 {/* Only show library icon in collapsed mode */}
                 {!isNavbarExpanded && (
                   <div className="nav-icon-container lib-icon">
-                    {lib.title.charAt(0).toUpperCase()}
+                    {lib?.title ? lib.title.charAt(0).toUpperCase() : '?'}
                   </div>
                 )}
 
                 {isNavbarExpanded ? (
-                  <div className="nav-text-label">{lib.title}</div>
+                  <div className="nav-text-label">{lib?.title || 'Library'}</div>
                 ) : (
-                  isActive && <div className="nav-text-label collapsed-label">{lib.title}</div>
+                  isActive && <div className="nav-text-label collapsed-label">{lib?.title || 'Library'}</div>
                 )}
               </FocusableItem>
             );

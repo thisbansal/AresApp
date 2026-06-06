@@ -5,6 +5,7 @@ import { KINDS } from '../src/config/app'
 
 vi.mock('../src/services/luna/lunaService', () => ({
   deleteData: vi.fn().mockResolvedValue({ success: true }),
+  getData: vi.fn().mockResolvedValue([]),
   DB_KINDS: {
     CONFIG: 'config',
     USER: 'user',
@@ -18,12 +19,12 @@ describe('Sign Out Stored Data Cleansing Service', () => {
     vi.clearAllMocks()
   })
 
-  it('should clear main token, user token, server address, and preferences from DB8 storage', async () => {
+  it('should clear main token, user tokens, server address, and preferences from DB8 storage', async () => {
     await clearAllStoredInfo()
 
-    expect(deleteData).toHaveBeenCalledTimes(5)
     expect(deleteData).toHaveBeenCalledWith('config', 'plexMainToken')
-    expect(deleteData).toHaveBeenCalledWith('user', 'plexMainUser')
+    expect(deleteData).toHaveBeenCalledWith('config', 'lastActiveProfileId')
+    expect(deleteData).toHaveBeenCalledWith('config', 'storedProfilesList')
     expect(deleteData).toHaveBeenCalledWith('servers', KINDS.server)
     expect(deleteData).toHaveBeenCalledWith('servers', 'plexSharedServersAuth')
     expect(deleteData).toHaveBeenCalledWith('preferences', KINDS.preferences)

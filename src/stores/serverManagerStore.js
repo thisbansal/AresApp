@@ -4,16 +4,19 @@ import { getServers, getBestServerConnection } from '../services/plex/plexAPISer
 import { useServerStore } from './serverStore'
 import { useAppStore } from './AppStore'
 
-const getCacheKey = () => `multiServerCache_${useAppStore.getState().userProfile?.userId || 'default'}`
+const getCacheKey = (profileId = null) => {
+  const pId = profileId || useAppStore.getState().userProfile?.userId || 'default'
+  return `multiServerCache_${pId}`
+}
 
 export const useServerManagerStore = create((set, get) => ({
   servers: {}, // Map of clientIdentifier -> { name, clientIdentifier, accessToken, uri, owned, lastTested }
   isDiscovering: false,
 
   // Load from persistent storage
-  loadCachedServers: async (fallbackToken = null) => {
+  loadCachedServers: async (fallbackToken = null, profileId = null) => {
     try {
-      const cached = await getData(DB_KINDS.SERVER, getCacheKey())
+      const cached = await getData(DB_KINDS.SERVER, getCacheKey(profileId))
       if (cached) {
         console.group('[SERVER MANAGER] Restoring cached servers...')
 
@@ -43,9 +46,9 @@ export const useServerManagerStore = create((set, get) => ({
   },
 
   // Save to persistent storage
-  saveServersToCache: async (serversMap) => {
+  saveServersToCache: async (serversMap, profileId = null) => {
     try {
-      await setData(DB_KINDS.SERVER, getCacheKey(), serversMap)
+      await setData(DB_KINDS.SERVER, getCacheKey(profileId), serversMap)
     } catch (e) {
       console.error('[SERVER MANAGER] Failed to save servers cache:', e)
     }

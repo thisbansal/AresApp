@@ -53,7 +53,7 @@ export const useAppStore = create((set, get) => ({
       const sessionComplete = await hasCompleteSession()
       const activeToken = (sessionComplete && userProfile?.userToken) ? userProfile.userToken : mainToken
 
-      await useServerManagerStore.getState().loadCachedServers(activeToken)
+      await useServerManagerStore.getState().loadCachedServers(activeToken, profileId)
       // Kick off background discovery so new servers are added and offline ones update their status
       useServerManagerStore.getState().discoverAllServers(activeToken)
 

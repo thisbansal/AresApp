@@ -9,6 +9,22 @@ vi.mock('react-router-dom', () => ({
   Navigate: vi.fn().mockImplementation((props) => ({ type: 'Navigate', props }))
 }))
 
+vi.mock('../src/stores/AppStore', () => {
+  const mockStore = () => ({
+    isAuthenticated: true,
+    hasServer: true,
+    hasLibraries: true,
+    hasSession: true
+  })
+  mockStore.getState = () => ({
+    isAuthenticated: true,
+    hasServer: true,
+    hasLibraries: true,
+    hasSession: true
+  })
+  return { useAppStore: mockStore }
+})
+
 describe('AuthRoute Routing Gate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
