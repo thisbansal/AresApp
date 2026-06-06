@@ -445,29 +445,45 @@ function ContentBrowserPage() {
           }
 
         } else if (activeTab.type === 'library') {
-          // Clear previous library content immediately so it doesn't bleed over
-          setLibraryContent({ all: [] })
+          const libId = activeTab.data.id
+          const targetUri = activeTab.data.serverUri || serverInfo.uri
+          const targetToken = activeTab.data.token || serverInfo.token
+          const { getLibraryItemsCached, mediaCacheService } = await import('../services/caching/MediaCacheService')
+
+          // Check if we have cached library metadata to display immediately
+          const safeUri = targetUri ? targetUri.replace(/[^a-zA-Z0-9]/g, '_') : 'default'
+          const profileId = useAppStore.getState().userProfile?.userId || 'default'
+          const cacheKey = `cache_library_meta_${safeUri}_${libId}_${profileId}`
+          const cachedData = await mediaCacheService.getCached(cacheKey)
+
+          if (cachedData && cachedData.items && cachedData.items.length > 0) {
+            setLibraryContent({ all: cachedData.items })
+            preloadImages([cachedData.items]).catch(() => {})
+          } else {
+            setLibraryContent({ all: [] })
+          }
           
           if (activeTab.data?.isOffline) {
-             setLibraryOffline(true)
+             // Only show offline screen if we have absolutely no cache
+             if (!cachedData || !cachedData.items || cachedData.items.length === 0) {
+                setLibraryOffline(true)
+             }
              setLoading(false)
              return
           }
 
-          const libId = activeTab.data.id
-          const targetUri = activeTab.data.serverUri || serverInfo.uri
-          const targetToken = activeTab.data.token || serverInfo.token
-          const { getLibraryItemsCached } = await import('../services/caching/MediaCacheService')
           const allData = await getLibraryItemsCached(targetUri, targetToken, libId)
-
           await preloadImages([allData])
-
           setLibraryContent({ all: allData })
         }
       } catch (error) {
         console.error('[fetchContent] Error:', error)
         if (activeTab.type === 'library') {
-           setLibraryOffline(true)
+           // Decouple: only show full-screen offline message if we have no cached data to display
+           const currentItems = useBrowserStore.getState().libraryContent?.all || []
+           if (currentItems.length === 0) {
+              setLibraryOffline(true)
+           }
         }
       } finally {
         setLoading(false)

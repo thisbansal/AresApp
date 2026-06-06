@@ -4,11 +4,13 @@ import { FiHome, FiSettings, FiUser } from 'react-icons/fi';
 import { MdKeyboardArrowLeft } from 'react-icons/md';
 import { useSpatialNavigation, FocusLayer } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
+import { useServerStore } from '../../stores/serverStore';
 
 export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
   const { isNavbarExpanded, setIsNavbarExpanded } = useSpatialNavigation();
   const { userProfile } = useAppStore();
   const [timeStr, setTimeStr] = useState('');
+  const isOnline = useServerStore(state => state.isOnline);
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -36,7 +38,7 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
   return (
     <FocusLayer id="navbar" isActive={isNavbarExpanded}>
       <div 
-        className={`nav-wrapper ${isNavbarExpanded ? 'expanded' : 'collapsed'}`} 
+        className={`nav-wrapper ${isNavbarExpanded ? 'expanded' : 'collapsed'} ${!isOnline ? 'offline' : ''}`} 
         onBlur={(e) => {
           const currentTarget = e.currentTarget;
           setTimeout(() => {
@@ -55,14 +57,25 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             }
           }}
         >
+        {!isOnline && !isNavbarExpanded && (
+          <div className="nav-collapsed-offline-icon" />
+        )}
+
         {isNavbarExpanded && (
           <div className="nav-header">
-            <div className="nav-profile">
-              <div className="nav-avatar">
-                {userProfile?.thumb ? <img src={userProfile.thumb} alt="Avatar" /> : <div className="nav-avatar-initials">{initials}</div>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div className="nav-profile">
+                <div className="nav-avatar">
+                  {userProfile?.thumb ? <img src={userProfile.thumb} alt="Avatar" /> : <div className="nav-avatar-initials">{initials}</div>}
+                </div>
               </div>
+              <div className="nav-time">{timeStr}</div>
             </div>
-            <div className="nav-time">{timeStr}</div>
+            {!isOnline && (
+              <div className="nav-offline-status">
+                Offline Mode
+              </div>
+            )}
           </div>
         )}
 
