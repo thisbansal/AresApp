@@ -30,6 +30,9 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
     fetchFnRef.current = fetchFn;
   }, [fetchFn]);
 
+  // Track the last key loaded to avoid loop-triggering resets when initialData object reference changes
+  const lastKeyRef = useRef('');
+
   // Generate a deterministic safe cache key string
   const getSafeCacheKey = useCallback(() => {
     const keyStr = Array.isArray(queryKey) 
@@ -90,12 +93,15 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
       return;
     }
 
-    let active = true;
     const cacheKey = getSafeCacheKey();
+    let active = true;
 
-    // Reset local state for the new key so we do not show stale data from the previous key
-    setLocalData(initialData);
-    setLoading(!initialData);
+    // Reset local state only if the key has actually changed!
+    if (lastKeyRef.current !== cacheKey) {
+      lastKeyRef.current = cacheKey;
+      setLocalData(initialData);
+      setLoading(!initialData);
+    }
 
     const loadInitialCache = async () => {
       try {
@@ -120,7 +126,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
     return () => {
       active = false;
     };
-  }, [enabled, getSafeCacheKey, revalidate, initialData]);
+  }, [enabled, getSafeCacheKey, revalidate]);
 
   // 2. Reactive Auto-Refetch when connection is restored
   useEffect(() => {
