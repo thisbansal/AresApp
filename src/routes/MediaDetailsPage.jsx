@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useActiveServer } from '../hooks/useActiveServer'
 import { getMetadata, formatDuration } from '../services/plex/plexContentService'
 import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
+import { usePlexQuery } from '../hooks/usePlexQuery'
 
 import MovieDetails from '../components/media/MovieDetails'
 import ShowDetails from '../components/media/ShowDetails'
@@ -76,41 +77,48 @@ function MediaDetailsPage() {
     }
   }, [])
 
+  // Fetch Details using usePlexQuery
+  const {
+    data: queryMetadata,
+    loading: queryLoading,
+  } = usePlexQuery(
+    ['media_metadata', ratingKey, serverInfo?.uri],
+    async () => {
+      if (!serverInfo || !ratingKey) return null;
+      const metadata = await getMetadata(serverInfo.uri, serverInfo.token, ratingKey)
+      return metadata;
+    },
+    { enabled: !serverLoading && !!serverInfo && !!ratingKey }
+  );
+
+  // Sync / Process redirect or local update
   useEffect(() => {
-    if (serverLoading || !serverInfo) return
+    if (!queryMetadata) return;
 
-    const fetchDetails = async () => {
-      if (!stateItem) {
-        setLoading(true)
-      }
-      try {
-        const metadata = await getMetadata(serverInfo.uri, serverInfo.token, ratingKey)
-        
-        // Unified Details: Redirect season/episode views to the main parent/grandparent Show details page
-        if (metadata.type === 'episode' && metadata.grandparentRatingKey) {
-          console.log(`[MediaDetailsPage] Unified Redirect: episode ${ratingKey} -> show ${metadata.grandparentRatingKey}`)
-          navigate(`/details/${metadata.grandparentRatingKey}`, { replace: true, state: { serverInfo } })
-          return
-        } else if (metadata.type === 'season' && metadata.parentRatingKey) {
-          console.log(`[MediaDetailsPage] Unified Redirect: season ${ratingKey} -> show ${metadata.parentRatingKey}`)
-          navigate(`/details/${metadata.parentRatingKey}`, { replace: true, state: { serverInfo } })
-          return
-        }
-
-        setItem(metadata)
-        setMetadataLoaded(true)
-      } catch (error) {
-        console.error('[MediaDetailsPage] Error fetching metadata:', error)
-        if (location.state?.item && !item) {
-          setItem(location.state.item)
-        }
-      } finally {
-        setLoading(false)
-      }
+    // Unified Details: Redirect season/episode views to the main parent/grandparent Show details page
+    if (queryMetadata.type === 'episode' && queryMetadata.grandparentRatingKey) {
+      console.log(`[MediaDetailsPage] Unified Redirect: episode ${ratingKey} -> show ${queryMetadata.grandparentRatingKey}`)
+      navigate(`/details/${queryMetadata.grandparentRatingKey}`, { replace: true, state: { serverInfo } })
+      return
+    } else if (queryMetadata.type === 'season' && queryMetadata.parentRatingKey) {
+      console.log(`[MediaDetailsPage] Unified Redirect: season ${ratingKey} -> show ${queryMetadata.parentRatingKey}`)
+      navigate(`/details/${queryMetadata.parentRatingKey}`, { replace: true, state: { serverInfo } })
+      return
     }
 
-    fetchDetails()
-  }, [ratingKey, serverInfo, serverLoading, navigate, stateItem])
+    setItem(queryMetadata);
+    setMetadataLoaded(true);
+  }, [queryMetadata, ratingKey, serverInfo, navigate]);
+
+  // Loading state management
+  useEffect(() => {
+    // If we have a stateItem, we can show it immediately, so loading is false
+    if (stateItem) {
+      setLoading(false);
+    } else {
+      setLoading(queryLoading);
+    }
+  }, [queryLoading, stateItem]);
 
   const handleFocusItem = () => {}
 

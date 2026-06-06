@@ -4,6 +4,7 @@ import { FocusableItem } from '../components/navigational/FocusableItem'
 import { ServerOfflineMessage } from '../components/ServerOfflineMessage'
 import { getLibraries } from '../services/plex/plexContentService'
 import { useAppStore } from '../stores/AppStore'
+import { usePlexQuery } from '../hooks/usePlexQuery'
 import { getSharedServerToken, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { useServerStore } from '../stores/serverStore'
@@ -22,32 +23,23 @@ function LibrarySelectPage() {
   const [selectedIds, setSelectedIds] = useState([])
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    loadLibraries()
-  }, [])
 
-  const loadLibraries = async () => {
-    console.log('[AUTH FLOW] LibrarySelectPage: Fetching available libraries from ALL servers...')
-    try {
-      const smStore = useServerManagerStore.getState()
-      const servers = Object.values(smStore.servers)
 
-      if (servers.length === 0) {
-        setError('No reachable servers found.')
-        setLoading(false)
-        return
-      }
+  // Retrieve active servers from serverManagerStore
+  const smStore = useServerManagerStore.getState()
+  const servers = Object.values(smStore.servers)
 
-      const allLibs = []
-      const initialSelected = []
-      const currentSelections = useAppStore.getState().selectedLibraries || []
-
-      // Extract existing selections to prepopulate checkboxes
-      currentSelections.forEach(sel => {
-        initialSelected.push(`${sel.serverClientId}|${sel.id}`)
-      })
-
-      const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
+  // Use usePlexQuery to load and cache libraries across servers
+  const {
+    data: queriedLibrariesData,
+    loading: queriedLibrariesLoading,
+    error: queriedLibrariesError,
+  } = usePlexQuery(
+    ['all_servers_libraries', servers.map(s => s.clientIdentifier).join('_')],
+    async () => {
+      if (servers.length === 0) return [];
+      const allLibs = [];
+      const { getLibrariesCached } = await import('../services/caching/MediaCacheService');
 
       const promises = servers.map(async (server) => {
         try {
@@ -67,25 +59,41 @@ function LibrarySelectPage() {
         }
       })
 
-      await Promise.allSettled(promises)
+      await Promise.allSettled(promises);
+      return allLibs;
+    },
+    { enabled: servers.length > 0 }
+  );
 
-      console.log(`[AUTH FLOW] LibrarySelectPage: Found ${allLibs.length} total libraries across servers.`)
+  useEffect(() => {
+    if (queriedLibrariesData) {
+      setLibraries(queriedLibrariesData);
 
-      if (allLibs.length === 0) {
-        setError('No libraries found on any server.')
-        setLoading(false)
-        return
-      }
-
-      setLibraries(allLibs)
-      setSelectedIds(initialSelected)
-      setLoading(false)
-    } catch (err) {
-      console.error('[AUTH FLOW] LibrarySelectPage: Error loading libraries:', err)
-      setError('Failed to load libraries. Please check your connection.')
-      setLoading(false)
+      // Extract existing selections to prepopulate checkboxes
+      const currentSelections = useAppStore.getState().selectedLibraries || []
+      const initialSelected = []
+      currentSelections.forEach(sel => {
+        initialSelected.push(`${sel.serverClientId}|${sel.id}`)
+      })
+      setSelectedIds(initialSelected);
     }
-  }
+  }, [queriedLibrariesData]);
+
+  useEffect(() => {
+    setLoading(queriedLibrariesLoading);
+  }, [queriedLibrariesLoading]);
+
+  useEffect(() => {
+    if (queriedLibrariesError) {
+      setError('Failed to load libraries. Please check your connection.');
+      setLoading(false);
+    } else if (servers.length === 0) {
+      setError('No reachable servers found.');
+      setLoading(false);
+    } else {
+      setError('');
+    }
+  }, [queriedLibrariesError, servers.length]);
 
   const toggleLibrary = async (compositeId) => {
     const updatedIds = selectedIds.includes(compositeId)

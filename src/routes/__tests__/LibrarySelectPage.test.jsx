@@ -19,13 +19,28 @@ vi.mock('../../stores/serverManagerStore', () => ({
   }
 }))
 
-vi.mock('../../stores/AppStore', () => ({
-  useAppStore: {
+vi.mock('../../stores/AppStore', () => {
+  const store = {
     getState: vi.fn(() => ({
       selectedLibraries: [],
-      selectedLibrariesByServer: {}
+      selectedLibrariesByServer: {},
+      userProfile: { userId: '123', userName: 'User' }
     }))
-  }
+  };
+  const useAppStore = vi.fn((selector) => {
+    if (selector) return selector(store.getState());
+    return store.getState();
+  });
+  useAppStore.getState = store.getState;
+  return { useAppStore };
+})
+
+vi.mock('../../stores/serverStore', () => ({
+  useServerStore: vi.fn((selector) => {
+    const state = { isOnline: true }
+    if (selector) return selector(state)
+    return state
+  })
 }))
 
 vi.mock('../../contexts/SpatialNavigationContext', () => {

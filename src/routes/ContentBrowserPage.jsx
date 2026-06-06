@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
+import { usePlexQuery } from '../hooks/usePlexQuery'
 import { ServerOfflineMessage } from '../components/ServerOfflineMessage'
 import { FallbackImage } from '../components/media/FallbackImage'
 import { MediaCard } from '../components/media/MediaCard'
@@ -389,113 +390,99 @@ function ContentBrowserPage() {
     }))
   }
 
-  // 2. Fetch Content when Tab or Server changes
+  // Query Continue Watching
+  const {
+    data: continueWatchingData,
+    loading: continueWatchingLoading,
+  } = usePlexQuery(
+    ['home_continue_watching', serverInfo?.uri],
+    async () => {
+      if (!serverInfo) return [];
+      return await multiServerCacheService.getOnDeck(true);
+    },
+    { enabled: !!serverInfo && activeTab.type === 'home', initialData: continueWatching }
+  );
+
+  // Query Recent Added Content
+  const {
+    data: recentAddedData,
+    loading: recentAddedLoading,
+  } = usePlexQuery(
+    ['home_recent_added', serverInfo?.uri],
+    async () => {
+      if (!serverInfo) return [];
+      return await multiServerCacheService.getRecentlyAdded(true);
+    },
+    { enabled: !!serverInfo && activeTab.type === 'home', initialData: [] }
+  );
+
+  // Sync Continue Watching & Recent Added to Browser Store when updated
   useEffect(() => {
-    if (!serverInfo) return
-
-    const fetchContent = async () => {
-      try {
-        setLoading(true)
-        setLibraryOffline(false)
-
-        if (activeTab.type === 'home') {
-          const activeServer = useServerStore.getState().activeServer
-          if (!activeServer) return
-          
-          try {
-            const { getLibrariesCached } = await import('../services/caching/MediaCacheService')
-            const libs = await getLibrariesCached(activeServer.uri, activeServer.token)
-            const videoLibs = libs.filter(l => l.type === 'movie' || l.type === 'show')
-            if (videoLibs.length > 0) {
-              setLibraryContent({
-                movies: videoLibs.filter(l => l.type === 'movie'),
-                shows: videoLibs.filter(l => l.type === 'show'),
-                all: []
-              })
-            }
-          } catch (e) {
-            console.warn('[fetchContent] Failed to fetch home libraries:', e)
-          }
-
-          // Force fresh fetch for onDeck and recentlyAdded
-          const onDeckData = await multiServerCacheService.getOnDeck(true)
-          const recentAddedData = await multiServerCacheService.getRecentlyAdded(true)
-          
-          const recentMovies = recentAddedData.filter(item => item.type === 'movie')
-          const recentTv = recentAddedData.filter(item => item.type === 'show' || item.type === 'season' || item.type === 'episode')
-
-          setContinueWatching(onDeckData)
-          setRecentMovies(recentMovies)
-          setRecentTv(recentTv)
-
-          const unsubOnDeck = multiServerCacheService.subscribe(CACHE_KEYS_MULTI.ON_DECK, async (newData) => {
-            console.log('[ContentBrowser] On Deck background update received')
-            setContinueWatching(newData)
-          })
-
-          const unsubRecent = multiServerCacheService.subscribe(CACHE_KEYS_MULTI.RECENTLY_ADDED, async (newData) => {
-            console.log('[ContentBrowser] Recently Added background update received')
-            const rm = newData.filter(item => item.type === 'movie')
-            const rtv = newData.filter(item => item.type === 'show' || item.type === 'season' || item.type === 'episode')
-            setRecentMovies(rm)
-            setRecentTv(rtv)
-          })
-
-          return () => {
-            unsubOnDeck()
-            unsubRecent()
-            multiServerCacheService.stopBackgroundSync(CACHE_KEYS_MULTI.ON_DECK)
-            multiServerCacheService.stopBackgroundSync(CACHE_KEYS_MULTI.RECENTLY_ADDED)
-          }
-
-        } else if (activeTab.type === 'library') {
-          const libId = activeTab.data.id
-          const targetUri = activeTab.data.serverUri || serverInfo.uri
-          const targetToken = activeTab.data.token || serverInfo.token
-          const { getLibraryItemsCached, mediaCacheService } = await import('../services/caching/MediaCacheService')
-
-          // Check if we have cached library metadata to display immediately
-          const safeUri = targetUri ? targetUri.replace(/[^a-zA-Z0-9]/g, '_') : 'default'
-          const profileId = useAppStore.getState().userProfile?.userId || 'default'
-          const cacheKey = `cache_library_meta_${safeUri}_${libId}_${profileId}`
-          const cachedData = await mediaCacheService.getCached(cacheKey)
-
-          if (cachedData && cachedData.items && cachedData.items.length > 0) {
-            setLibraryContent({ all: cachedData.items })
-            preloadImages([cachedData.items]).catch(() => {})
-          } else {
-            setLibraryContent({ all: [] })
-          }
-          
-          if (activeTab.data?.isOffline) {
-             // Only show offline screen if we have absolutely no cache
-             if (!cachedData || !cachedData.items || cachedData.items.length === 0) {
-                setLibraryOffline(true)
-             }
-             setLoading(false)
-             return
-          }
-
-          const allData = await getLibraryItemsCached(targetUri, targetToken, libId)
-          await preloadImages([allData])
-          setLibraryContent({ all: allData })
-        }
-      } catch (error) {
-        console.error('[fetchContent] Error:', error)
-        if (activeTab.type === 'library') {
-           // Decouple: only show full-screen offline message if we have no cached data to display
-           const currentItems = useBrowserStore.getState().libraryContent?.all || []
-           if (currentItems.length === 0) {
-              setLibraryOffline(true)
-           }
-        }
-      } finally {
-        setLoading(false)
-      }
+    if (continueWatchingData) {
+      setContinueWatching(continueWatchingData);
     }
+  }, [continueWatchingData]);
 
-    fetchContent()
-  }, [activeTab, serverInfo])
+  useEffect(() => {
+    if (recentAddedData) {
+      const rm = recentAddedData.filter(item => item.type === 'movie');
+      const rtv = recentAddedData.filter(item => item.type === 'show' || item.type === 'season' || item.type === 'episode');
+      setRecentMovies(rm);
+      setRecentTv(rtv);
+    }
+  }, [recentAddedData]);
+
+  // Query active library content
+  const activeLibId = activeTab.type === 'library' ? activeTab.data?.id : null;
+  const activeLibUri = activeTab.type === 'library' ? (activeTab.data?.serverUri || serverInfo?.uri) : null;
+  const activeLibToken = activeTab.type === 'library' ? (activeTab.data?.token || serverInfo?.token) : null;
+  
+  const {
+    data: libraryItemsData,
+    loading: libraryItemsLoading,
+    error: libraryItemsError,
+  } = usePlexQuery(
+    ['library_items', activeLibUri, activeLibId],
+    async () => {
+      if (!activeLibUri || !activeLibId) return [];
+      const { getLibraryItemsCached } = await import('../services/caching/MediaCacheService');
+      const allData = await getLibraryItemsCached(activeLibUri, activeLibToken, activeLibId);
+      preloadImages([allData]).catch(() => {});
+      return allData;
+    },
+    { enabled: activeTab.type === 'library' && !!activeLibUri && !!activeLibId && !activeTab.data?.isOffline, initialData: libraryContent.all }
+  );
+
+  // Sync active library items to browser store
+  useEffect(() => {
+    if (libraryItemsData) {
+      setLibraryContent({ all: libraryItemsData });
+    }
+  }, [libraryItemsData]);
+
+  // Set local browser loading & offline state
+  useEffect(() => {
+    if (activeTab.type === 'home') {
+      setLoading(continueWatchingLoading || recentAddedLoading);
+      setLibraryOffline(false);
+    } else if (activeTab.type === 'library') {
+      setLoading(libraryItemsLoading);
+      // Decouple: show offline error screen if network call errored or offline, and there is no cached content
+      const hasCache = libraryContent.all && libraryContent.all.length > 0;
+      const isLibOffline = activeTab.data?.isOffline || !!libraryItemsError;
+      setLibraryOffline(isLibOffline && !hasCache);
+    } else {
+      setLoading(false);
+      setLibraryOffline(false);
+    }
+  }, [
+    activeTab,
+    continueWatchingLoading,
+    recentAddedLoading,
+    libraryItemsLoading,
+    libraryItemsError,
+    libraryContent.all
+  ]);
 
   // Global Input Locking & Mode Management
   useEffect(() => {

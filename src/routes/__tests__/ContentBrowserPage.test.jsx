@@ -57,9 +57,13 @@ describe('ContentBrowserPage', () => {
       const state = {
         activeTab: { type: 'home' },
         continueWatching: [],
+        setContinueWatching: vi.fn(),
         recentMovies: [],
+        setRecentMovies: vi.fn(),
         recentTv: [],
+        setRecentTv: vi.fn(),
         libraryContent: { all: [] },
+        setLibraryContent: vi.fn(),
         showUnwatchedIndicator: true,
         subtitleWeight: 400
       }
@@ -87,9 +91,13 @@ describe('ContentBrowserPage', () => {
       const state = {
         activeTab: { type: 'home' },
         continueWatching: [],
+        setContinueWatching: vi.fn(),
         recentMovies: [],
+        setRecentMovies: vi.fn(),
         recentTv: [],
+        setRecentTv: vi.fn(),
         libraryContent: { all: [] },
+        setLibraryContent: vi.fn(),
         showUnwatchedIndicator: true,
         subtitleWeight: 400
       }
