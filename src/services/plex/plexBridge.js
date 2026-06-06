@@ -6,6 +6,7 @@ import { PLEX_CONFIG } from '../../config/app'
 import { getPlatformInfo } from '../../utils/platformInfo'
 
 let isRecovering = false;
+let lastUpgradeCheckTime = 0;
 
 export const attemptConnectionRecovery = async () => {
   if (isRecovering) return false;
@@ -101,6 +102,23 @@ export const plexBridge = {
       if (response.ok) {
         store.setServerState(true)
         store.log('INFO', 'Server is healthy.')
+
+        // Relay Upgrade Check: If we are on a relay connection, check periodically if a direct connection is restored
+        const now = Date.now();
+        if (now - lastUpgradeCheckTime > 120000) { // 2 minutes interval
+          const smStore = useServerManagerStore.getState();
+          const serverEntry = Object.values(smStore.servers).find(
+            s => s.accessToken === activeServer.token || s.uri === activeServer.uri
+          );
+          const activeConn = serverEntry?.connections?.find(c => c.uri === activeServer.uri);
+          
+          if (activeConn?.relay) {
+            lastUpgradeCheckTime = now;
+            store.log('INFO', 'Relay connection active. Checking if a faster direct connection is available...');
+            attemptConnectionRecovery();
+          }
+        }
+
         return true
       } else {
         if (response.status === 401) {
