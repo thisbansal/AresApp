@@ -799,10 +799,10 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-wrapper.collapsed .nav-icon-container {
-    width: 66px; /* 44 * 1.5 */
-    height: 66px;
+    width: 96px;
+    height: 96px;
     border-radius: 50%;
-    background-color: transparent; /* No inner background needed for circle */
+    background-color: transparent;
     display: flex;
     align-items: center;
     justify-content: center;

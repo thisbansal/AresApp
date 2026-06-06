@@ -366,11 +366,12 @@ function ContentBrowserPage() {
   }, [])
 
   // 1b. Reload libraries dynamically if selections change (e.g. from Settings Library Select)
+  const selectedLibrariesStr = JSON.stringify(selectedLibraries)
   useEffect(() => {
     if (serverInfo?.uri && serverInfo?.token) {
       loadAllSelectedLibraries(serverInfo.uri, serverInfo.token).catch(e => console.warn('[init] Reactive reload failed:', e))
     }
-  }, [selectedLibraries, serverInfo])
+  }, [selectedLibrariesStr, serverInfo])
 
   // Helper to preload images before showing content
   const preloadImages = async (itemsArrays) => {
@@ -463,7 +464,8 @@ function ContentBrowserPage() {
   // Set local browser loading & offline state
   useEffect(() => {
     if (activeTab.type === 'home') {
-      setLoading(continueWatchingLoading || recentAddedLoading);
+      const hasHomeCache = continueWatching.length > 0 || recentMovies.length > 0 || recentTv.length > 0;
+      setLoading((continueWatchingLoading || recentAddedLoading) && !hasHomeCache);
       setLibraryOffline(false);
     } else if (activeTab.type === 'library') {
       setLoading(libraryItemsLoading);
@@ -481,7 +483,10 @@ function ContentBrowserPage() {
     recentAddedLoading,
     libraryItemsLoading,
     libraryItemsError,
-    libraryContent.all
+    libraryContent.all,
+    continueWatching.length,
+    recentMovies.length,
+    recentTv.length
   ]);
 
   // Global Input Locking & Mode Management

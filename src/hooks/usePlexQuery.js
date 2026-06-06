@@ -21,7 +21,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
   const profileId = useAppStore(state => state.userProfile?.userId || 'default');
 
   const [data, setLocalData] = useState(initialData);
-  const [loading, setLoading] = useState(!initialData);
+  const [loading, setLoading] = useState(!initialData && enabled);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [error, setError] = useState(null);
 
