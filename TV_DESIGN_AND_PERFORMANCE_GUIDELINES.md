@@ -58,6 +58,10 @@ Smart TV System-on-Chips (SoCs) are severely CPU and GPU resource-constrained. U
 * **Restricted Transition Properties**: Never transition `all` properties. Explicitly list the properties to transition (ideally only `transform` and `opacity`).
   * **Good**: `transition: transform 0.12s ease, opacity 0.12s ease;`
   * **Bad**: `transition: all 0.25s ease;` (forces layout recalculations for every style property).
+* **Layout Property Snapping (The Navigation Bar Rule)**:
+  * For elements that undergo layout resizing on toggle (such as the Sidebar/NavigationBar expanding/collapsing), **never transition layout-affecting properties** like `width`, `max-width`, `height`, `max-height`, `margin`, `padding`, or `border-radius`.
+  * Let these layout properties update **instantly** (`0s` duration) so the browser engine performs exactly one layout pass, and transition only hardware-accelerated properties (`opacity` or `transform`) for the entry/exit fade effects. This prevents low-end TV CPUs from thrashing during resizing.
+
 
 
 ## 3. Architecture & Session Tracking
