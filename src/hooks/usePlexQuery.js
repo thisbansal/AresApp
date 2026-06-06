@@ -21,7 +21,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
   const profileId = useAppStore(state => state.userProfile?.userId || 'default');
 
   const [data, setLocalData] = useState(initialData);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [error, setError] = useState(null);
 
@@ -85,14 +85,17 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
 
   // 1. Initial Cache Load & Key Changes
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
 
     let active = true;
     const cacheKey = getSafeCacheKey();
 
     // Reset local state for the new key so we do not show stale data from the previous key
     setLocalData(initialData);
-    setLoading(true);
+    setLoading(!initialData);
 
     const loadInitialCache = async () => {
       try {
