@@ -417,20 +417,27 @@ function ContentBrowserPage() {
   );
 
   // Sync Continue Watching & Recent Added to Browser Store when updated
+  const continueWatchingDataStr = JSON.stringify(continueWatchingData);
   useEffect(() => {
     if (continueWatchingData) {
-      setContinueWatching(continueWatchingData);
+      if (JSON.stringify(continueWatching) !== continueWatchingDataStr) {
+        setContinueWatching(continueWatchingData);
+      }
     }
-  }, [continueWatchingData]);
+  }, [continueWatchingDataStr, continueWatchingData, continueWatching]);
 
+  const recentAddedDataStr = JSON.stringify(recentAddedData);
   useEffect(() => {
     if (recentAddedData) {
       const rm = recentAddedData.filter(item => item.type === 'movie');
       const rtv = recentAddedData.filter(item => item.type === 'show' || item.type === 'season' || item.type === 'episode');
-      setRecentMovies(rm);
-      setRecentTv(rtv);
+      
+      if (JSON.stringify(recentMovies) !== JSON.stringify(rm) || JSON.stringify(recentTv) !== JSON.stringify(rtv)) {
+        setRecentMovies(rm);
+        setRecentTv(rtv);
+      }
     }
-  }, [recentAddedData]);
+  }, [recentAddedDataStr, recentAddedData, recentMovies, recentTv]);
 
   // Query active library content
   const activeLibId = activeTab.type === 'library' ? activeTab.data?.id : null;
@@ -454,11 +461,14 @@ function ContentBrowserPage() {
   );
 
   // Sync active library items to browser store
+  const libraryItemsDataStr = JSON.stringify(libraryItemsData);
   useEffect(() => {
     if (libraryItemsData) {
-      setLibraryContent({ all: libraryItemsData });
+      if (JSON.stringify(libraryContent.all) !== libraryItemsDataStr) {
+        setLibraryContent({ all: libraryItemsData });
+      }
     }
-  }, [libraryItemsData]);
+  }, [libraryItemsDataStr, libraryItemsData, libraryContent.all]);
 
   // Set local browser loading & offline state
   useEffect(() => {
