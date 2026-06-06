@@ -1,8 +1,79 @@
 import { getActiveServerInfo } from './plexConnectionService'
 import { useServerStore } from '../../stores/serverStore'
 import { useAppStore } from '../../stores/AppStore'
+import { useServerManagerStore } from '../../stores/serverManagerStore'
 import { PLEX_CONFIG } from '../../config/app'
 import { getPlatformInfo } from '../../utils/platformInfo'
+
+let isRecovering = false;
+
+export const attemptConnectionRecovery = async () => {
+  if (isRecovering) return false;
+  isRecovering = true;
+
+  const serverStore = useServerStore.getState();
+  serverStore.log('INFO', 'Initiating event-driven connection recovery...');
+
+  try {
+    const activeServer = serverStore.activeServer;
+    if (!activeServer) {
+      isRecovering = false;
+      return false;
+    }
+
+    const appStore = useAppStore.getState();
+    const token = appStore.token || activeServer.token;
+
+    // Retrieve full server data from serverManagerStore
+    const smStore = useServerManagerStore.getState();
+    
+    // Find the server in serverManagerStore matching our active server token/URI/clientIdentifier
+    const serverEntry = Object.values(smStore.servers).find(
+      s => s.accessToken === activeServer.token || s.uri === activeServer.uri
+    );
+
+    if (!serverEntry) {
+      serverStore.log('WARN', 'Could not locate matching server entry in cache for recovery.');
+      isRecovering = false;
+      return false;
+    }
+
+    serverStore.log('INFO', `Probing alternative connections for server "${serverEntry.name}"...`);
+    const { getBestServerConnection } = await import('./plexAPIServer');
+    const newUri = await getBestServerConnection(serverEntry, token);
+
+    if (newUri && newUri !== activeServer.uri) {
+      serverStore.log('INFO', `Successfully recovered! Switched connection URI from "${activeServer.uri}" to "${newUri}"`);
+      
+      const updatedActiveServer = {
+        ...activeServer,
+        uri: newUri
+      };
+
+      // 1. Update active server state
+      useServerStore.setState({ activeServer: updatedActiveServer, isOnline: true });
+
+      // 2. Update server entry in manager store and cache
+      serverEntry.uri = newUri;
+      const updatedServers = {
+        ...smStore.servers,
+        [serverEntry.clientIdentifier]: serverEntry
+      };
+      useServerManagerStore.setState({ servers: updatedServers });
+      await smStore.saveServersToCache(updatedServers);
+
+      isRecovering = false;
+      return true;
+    } else {
+      serverStore.log('WARN', 'Recovery probe finished but no faster or alternative connections succeeded.');
+    }
+  } catch (err) {
+    serverStore.log('ERROR', 'Error during connection recovery:', err.message);
+  }
+
+  isRecovering = false;
+  return false;
+};
 
 export const plexBridge = {
   /**
@@ -42,7 +113,14 @@ export const plexBridge = {
       store.setServerState(false, errorMsg)
       store.log('FATAL', `Plex Media Server went offline: ${errorMsg}`)
       
-      return false
+      // Trigger lazy connection recovery in the background
+      attemptConnectionRecovery().then(recovered => {
+        if (recovered) {
+          plexBridge.ping();
+        }
+      });
+
+      return false;
     }
   },
 
@@ -152,6 +230,13 @@ export const plexBridge = {
         if (!options.silent) {
           currentState.log('FATAL', `Network failure on request to ${endpoint}: ${errorMsg}`)
         }
+
+        // Trigger lazy connection recovery in the background
+        attemptConnectionRecovery().then(recovered => {
+          if (recovered) {
+            currentState.log('INFO', 'Connection recovery swapped server URI.')
+          }
+        });
       } else {
         if (!options.silent) {
           currentState.log('WARN', `Network failure on secondary server request to ${endpoint}: ${errorMsg}`)

@@ -1,5 +1,7 @@
 import { PLEX_CONFIG } from "../../config/app";
 
+import { sortConnectionsByRank, probeLatency } from "./plexConnectionRanker";
+
 const getHeaders = (authToken) => ({
   'Accept': 'application/json',
   'X-Plex-Product': PLEX_CONFIG.product,
@@ -35,7 +37,9 @@ export const getServers = async (authToken, options = {}) => {
       .map(conn => ({
         uri: conn.uri,
         local: !!conn.local,
-        relay: !!conn.relay
+        relay: !!conn.relay,
+        address: conn.address,
+        port: conn.port
       }))
       .sort((a, b) => {
         if (a.local && !b.local) return -1
@@ -77,60 +81,44 @@ export const testConnectionToServer = async (uri, authToken, timeoutMs = 15000) 
 export const getBestServerConnection = async (server, authToken) => {
   if (!server || !server.connections || server.connections.length === 0) return null
 
-  const localConns = server.connections.filter(c => c.local)
-  const remoteConns = server.connections.filter(c => !c.local)
+  // Sort connections based on historical speed ranking
+  const sortedConns = await sortConnectionsByRank(server.connections)
 
-  // 1. Try local connections with a 15000ms timeout concurrently (resolves instantly on first success)
-  if (localConns.length > 0) {
-    const localUri = await new Promise((resolve) => {
-      let failedCount = 0
-      
-      const checkDone = () => {
-        failedCount++
-        if (failedCount === localConns.length) resolve(null)
+  const bestUri = await new Promise((resolve) => {
+    let completedProbes = 0
+    let resolved = false
+
+    const checkDone = () => {
+      completedProbes++
+      if (completedProbes === sortedConns.length && !resolved) {
+        resolve(null)
       }
+    }
 
-      for (const conn of localConns) {
-        // Try the secure .plex.direct URI first
-        testConnectionToServer(conn.uri, authToken, 15000).then(ok => {
-          if (ok) {
-            resolve(conn.uri)
+    for (const conn of sortedConns) {
+      probeLatency(conn.uri, authToken, 10000).then((latency) => {
+        if (latency !== null && !resolved) {
+          resolved = true
+          resolve(conn.uri)
+        } else {
+          // DNS Rebinding Fallback: If .plex.direct fails locally, try the raw IP
+          if (conn.local && conn.address && conn.port) {
+            const rawIpUri = `http://${conn.address}:${conn.port}`
+            probeLatency(rawIpUri, authToken, 10000).then((rawLatency) => {
+              if (rawLatency !== null && !resolved) {
+                resolved = true
+                resolve(rawIpUri)
+              } else {
+                checkDone()
+              }
+            })
           } else {
-            // DNS Rebinding Fallback: If .plex.direct fails on the local network, 
-            // the router is likely blocking it. Fallback to raw HTTP IP.
-            if (conn.address && conn.port) {
-              const rawIpUri = `http://${conn.address}:${conn.port}`
-              testConnectionToServer(rawIpUri, authToken, 15000).then(rawOk => {
-                if (rawOk) resolve(rawIpUri)
-                else checkDone()
-              })
-            } else {
-              checkDone()
-            }
+            checkDone()
           }
-        })
-      }
-    })
-    if (localUri) return localUri
-  }
+        }
+      })
+    }
+  })
 
-  // 2. Try remote connections with 15000ms timeout concurrently
-  if (remoteConns.length > 0) {
-    const remoteUri = await new Promise((resolve) => {
-      let failedCount = 0
-      for (const conn of remoteConns) {
-        testConnectionToServer(conn.uri, authToken, 15000).then(ok => {
-          if (ok) resolve(conn.uri)
-          else {
-            failedCount++
-            if (failedCount === remoteConns.length) resolve(null)
-          }
-        })
-      }
-    })
-    if (remoteUri) return remoteUri
-  }
-
-  // Fallback to the first connection if none resolved in time
-  return server.connections[0]?.uri
+  return bestUri || server.connections[0]?.uri
 }

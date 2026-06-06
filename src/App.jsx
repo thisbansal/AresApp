@@ -31,6 +31,18 @@ function App() {
     initializeAuth()
   }, [])
 
+  // Listen for online transition to recover connection instantly
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('[NETWORK] Network interface returned online. Triggering server check...');
+      if (isAuthenticated && hasSession) {
+        plexBridge.ping()
+      }
+    }
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
+  }, [isAuthenticated, hasSession])
+
   // Periodic Health Pings check to keep connection state healthy
   useEffect(() => {
     if (!isAuthenticated || !hasSession || !activeServer?.uri || !activeServer?.token) return
