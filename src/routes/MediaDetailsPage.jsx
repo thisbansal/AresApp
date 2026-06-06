@@ -101,6 +101,9 @@ function MediaDetailsPage() {
         setMetadataLoaded(true)
       } catch (error) {
         console.error('[MediaDetailsPage] Error fetching metadata:', error)
+        if (location.state?.item && !item) {
+          setItem(location.state.item)
+        }
       } finally {
         setLoading(false)
       }

@@ -346,12 +346,15 @@ function ContentBrowserPage() {
           setServerInfo(nextServerInfo)
           useServerStore.setState({ activeServer: nextServerInfo })
           loadAllSelectedLibraries(resolvedServer.uri, resolvedServer.token).catch(e => console.warn('Background loadAllSelectedLibraries failed:', e))
-        } else if (!isCurrentHealthy && resolvedServer?.uri) {
-          console.log('[init] Reusing stored server for active profile:', resolvedServer.uri)
-          const nextServerInfo = { uri: resolvedServer.uri, token: resolvedServer.token }
-          setServerInfo(nextServerInfo)
-          useServerStore.setState({ activeServer: nextServerInfo })
-          loadAllSelectedLibraries(resolvedServer.uri, resolvedServer.token).catch(e => console.warn('Background loadAllSelectedLibraries failed:', e))
+        }
+        
+        // 3. Offline Fallback: If both fast path and discovery failed, reuse last known credentials
+        if (!isCurrentHealthy && !resolvedServer && currentUri) {
+          console.log('[init] Offline Fallback: Reusing stored server credentials for offline browsing.')
+          const offlineServer = { uri: currentUri, token: currentToken }
+          setServerInfo(offlineServer)
+          useServerStore.setState({ activeServer: offlineServer })
+          loadAllSelectedLibraries(currentUri, currentToken).catch(e => console.warn('Offline fallback loadAllSelectedLibraries failed:', e))
         }
       } catch (error) {
         console.error('[initServerAndNav] Error:', error)
