@@ -87,13 +87,13 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
   }, [enabled, getSafeCacheKey]);
 
   // 1. Initial Cache Load & Key Changes
+  const cacheKey = getSafeCacheKey();
   useEffect(() => {
     if (!enabled) {
       setLoading(false);
       return;
     }
 
-    const cacheKey = getSafeCacheKey();
     let active = true;
 
     // Reset local state only if the key has actually changed!
@@ -126,7 +126,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
     return () => {
       active = false;
     };
-  }, [enabled, getSafeCacheKey, revalidate]);
+  }, [enabled, cacheKey, revalidate]);
 
   // 2. Reactive Auto-Refetch when connection is restored
   useEffect(() => {
