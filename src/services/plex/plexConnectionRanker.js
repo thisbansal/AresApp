@@ -54,9 +54,16 @@ export const saveLatency = async (uri, latency) => {
 export const probeLatency = async (uri, authToken, timeoutMs = DEFAULT_TIMEOUT) => {
   const start = Date.now();
   try {
-    const fetchPromise = fetch(uri, {
+    const urlObj = new URL(uri);
+    urlObj.searchParams.append('X-Plex-Token', authToken);
+    urlObj.searchParams.append('X-Plex-Client-Identifier', PLEX_CONFIG.clientId);
+    urlObj.searchParams.append('X-Plex-Product', PLEX_CONFIG.product);
+    urlObj.searchParams.append('X-Plex-Version', '1.0.0');
+    const finalUri = urlObj.toString();
+
+    const fetchPromise = fetch(finalUri, {
       method: 'GET',
-      headers: getHeaders(authToken)
+      headers: { 'Accept': 'application/json' }
     }).then(res => res.ok ? (Date.now() - start) : null);
 
     const timeoutPromise = new Promise((_, reject) => {

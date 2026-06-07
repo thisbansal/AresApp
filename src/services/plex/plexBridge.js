@@ -188,11 +188,7 @@ export const plexBridge = {
       ...options.headers
     }
 
-    console.group(`[PLEX BRIDGE] API Request: ${options.method || 'GET'} ${endpoint}`)
-    console.log('[PLEX BRIDGE] Target URL:', finalUrl)
-    console.log('[PLEX BRIDGE] Using Token:', activeServer.token)
-    console.log('[PLEX BRIDGE] Headers:', JSON.stringify(headers, null, 2))
-    console.groupEnd()
+
 
     store.log('INFO', `Sending request: ${options.method || 'GET'} ${endpoint}`)
 
