@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FocusableItem } from './FocusableItem';
-import { FiHome, FiSettings, FiUser } from 'react-icons/fi';
+import { FiHome, FiSettings, FiUser, FiArrowLeft } from 'react-icons/fi';
 import { MdKeyboardArrowLeft } from 'react-icons/md';
 import { useSpatialNavigation, FocusLayer } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
@@ -162,7 +162,7 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 {/* Only show library icon in collapsed mode */}
                 {!isNavbarExpanded && (
                   <div className="nav-icon-container lib-icon">
-                    {lib?.title ? lib.title.charAt(0).toUpperCase() : '?'}
+                    <FiArrowLeft size={42} />
                   </div>
                 )}
 
