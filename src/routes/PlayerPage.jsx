@@ -7,7 +7,7 @@ import { subtitleConverter } from '../utils/subtitleConverter'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { FocusLayer } from '../contexts/SpatialNavigationContext'
 import { FiTv, FiSliders, FiRewind, FiPause, FiPlay } from 'react-icons/fi'
-import { MdSubtitles } from 'react-icons/md'
+import { MdSubtitles, MdFormatSize, MdFormatBold } from 'react-icons/md'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
 
 import { PLEX_CONFIG } from '../config/app'
@@ -53,7 +53,7 @@ export default function PlayerPage() {
   const setSubtitleColor = useBrowserStore((state) => state.setSubtitleColor)
   const subtitleSize = useBrowserStore((state) => state.subtitleSize)
   const setSubtitleSize = useBrowserStore((state) => state.setSubtitleSize)
-  const subtitleWeight = useBrowserStore((state) => state.subtitleWeight)
+
   const setSubtitleWeight = useBrowserStore((state) => state.setSubtitleWeight)
   const showSubtitleHUDControls = useBrowserStore((state) => state.showSubtitleHUDControls)
 
@@ -895,7 +895,7 @@ export default function PlayerPage() {
             onClick={() => setActiveMenu(activeMenu === 'video' ? 'none' : 'video')}
           >
             {/* Video TV icon */}
-            <FiTv size={32} color="#fff" />
+            <FiTv size={44} color="#fff" />
           </FocusableItem>}
 
           { numberOfStreams?.audio?.length > 1 && <FocusableItem
@@ -905,7 +905,7 @@ export default function PlayerPage() {
             onClick={() => setActiveMenu(activeMenu === 'audio' ? 'none' : 'audio')}
           >
             {/* Minimal equalizer icon */}
-            <FiSliders size={32} color="#fff" />
+            <FiSliders size={44} color="#fff" />
           </FocusableItem>}
 
           { numberOfStreams?.subtitles?.length > 0 && <FocusableItem
@@ -916,8 +916,8 @@ export default function PlayerPage() {
           >
             {/* Classic Subtitle Icon */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px' }}>
-                <MdSubtitles size={32} color="#fff" />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px' }}>
+                <MdSubtitles size={44} color="#fff" />
               </div>
               {isSubtitleCaching && (
                 <div className="subtitle-caching-spinner"></div>
@@ -927,40 +927,14 @@ export default function PlayerPage() {
 
           {showSubtitleHUDControls && (
             <>
-              {/* HUD Subtitle Color Toggle */}
+              {/* HUD Subtitle Size Toggle */}
               <FocusableItem
-                id="player-hud-sub-color"
+                id="player-hud-sub-size"
                 rowIndex={0} colIndex={3}
                 style={{...styles.streamBtn, marginLeft: '8px'}}
                 className="hud-stream-btn"
                 onClick={() => {
-                  const colors = ['#FFFFFF', '#737373', '#4A4A4A', '#222222']
-                  const currentIndex = colors.indexOf(subtitleColor)
-                  const nextIndex = (currentIndex + 1) % colors.length
-                  const newColor = colors[nextIndex]
-                  setSubtitleColor(newColor)
-                  setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                    showUnwatchedIndicator,
-                    subtitleColor: newColor,
-                    subtitleSize,
-                    subtitleWeight,
-                    showSubtitleHUDControls
-                  })
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', backgroundColor: subtitleColor === '#FFFFFF' ? '#ffffff' : subtitleColor === '#737373' ? '#aaaaaa' : subtitleColor === '#4A4A4A' ? '#888888' : '#555555', border: '1px solid #fff' }}>
-                  <span style={{ fontSize: '28px', fontWeight: 'bold', color: subtitleColor === '#FFFFFF' ? '#000' : '#fff' }}>C</span>
-                </div>
-              </FocusableItem>
-
-              {/* HUD Subtitle Size Toggle */}
-              <FocusableItem
-                id="player-hud-sub-size"
-                rowIndex={0} colIndex={4}
-                style={styles.streamBtn}
-                className="hud-stream-btn"
-                onClick={() => {
-                  const sizes = ['1.5rem', '2.5rem', '3.5rem']
+                  const sizes = ['2.5rem', '3.0rem', '3.5rem']
                   const currentIndex = sizes.indexOf(subtitleSize)
                   const nextIndex = (currentIndex + 1) % sizes.length
                   const newSize = sizes[nextIndex]
@@ -969,39 +943,38 @@ export default function PlayerPage() {
                     showUnwatchedIndicator,
                     subtitleColor,
                     subtitleSize: newSize,
-                    subtitleWeight,
+
                     showSubtitleHUDControls
                   })
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>{subtitleSize === '1.5rem' ? 'S' : subtitleSize === '2.5rem' ? 'M' : 'L'}</span>
+                  <MdFormatSize size={44} color="#fff" />
                 </div>
               </FocusableItem>
 
-              {/* HUD Subtitle Weight Toggle */}
+              {/* HUD Subtitle Color Toggle */}
               <FocusableItem
-                id="player-hud-sub-weight"
-                rowIndex={0} colIndex={5}
-                style={styles.streamBtn}
+                id="player-hud-sub-color"
+                rowIndex={0} colIndex={4}
+                style={{ ...styles.streamBtn, overflow: 'hidden' }}
                 className="hud-stream-btn"
                 onClick={() => {
-                  const weights = [400, 700, 900]
-                  const currentIndex = weights.indexOf(subtitleWeight || 400)
-                  const nextIndex = (currentIndex + 1) % weights.length
-                  const newWeight = weights[nextIndex]
-                  setSubtitleWeight(newWeight)
+                  const colors = ['#AAAAAA', '#737373']
+                  const currentIndex = colors.indexOf(subtitleColor)
+                  const nextIndex = (currentIndex + 1) % colors.length
+                  const newColor = colors[nextIndex]
+                  setSubtitleColor(newColor)
                   setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                     showUnwatchedIndicator,
-                    subtitleColor,
+                    subtitleColor: newColor,
                     subtitleSize,
-                    subtitleWeight: newWeight,
+
                     showSubtitleHUDControls
                   })
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>W</span>
+                <div style={{ width: '100%', height: '100%', borderRadius: '50%', backgroundColor: subtitleColor || '#AAAAAA' }}>
                 </div>
               </FocusableItem>
             </>
@@ -1221,13 +1194,18 @@ export default function PlayerPage() {
         }
         .player-hud-timeline-track.focused .player-hud-timeline-knob {
           transform: translate(-50%, -50%) !important;
-          box-shadow: 0 0 12px 4px rgba(229, 160, 13, 0.6) !important;
+          background-color: #DDDDDD !important;
+          box-shadow: 0 0 16px 6px rgba(221, 221, 221, 0.6), 0 0 32px rgba(221, 221, 221, 0.3) !important;
+          transition: background-color 0.15s ease, box-shadow 0.15s ease;
         }
         .player-hud-timeline-track, .player-hud-btn-capsule, .hud-stream-btn, .hud-stream-menu-item {
           transform: scale(1) !important;
         }
         .player-hud-btn-capsule {
-          transition: background-color 0.15s ease, color 0.15s ease !important;
+          transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          outline: 1px solid transparent;
+          backface-visibility: hidden;
+          transform: translateZ(0);
         }
         .player-hud-btn-capsule.focused, .player-hud-btn-capsule:hover {
           background-color: #ffffff !important;
@@ -1252,6 +1230,9 @@ export default function PlayerPage() {
         }
         .hud-stream-btn {
           transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease !important;
+          outline: 1px solid transparent;
+          backface-visibility: hidden;
+          transform: translateZ(0);
         }
         .hud-stream-btn.focused, .hud-stream-btn:hover {
           background-color: #ffffff !important;
@@ -1512,7 +1493,9 @@ const styles = {
     height: '60px',
     borderRadius: '50%',
     backgroundColor: 'rgb(30, 30, 30)',
-    border: '1.5px solid rgb(255, 255, 255)',
+    border: '2px solid transparent',
+    boxShadow: 'inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.2)',
+    backgroundClip: 'padding-box',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1524,7 +1507,9 @@ const styles = {
     padding: '14px 28px',
     borderRadius: '9999px', // Pill capsule shape
     backgroundColor: 'rgb(20, 20, 20)',
-    border: '1.5px solid rgb(255, 255, 255)',
+    border: '2px solid transparent',
+    boxShadow: 'inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.2)',
+    backgroundClip: 'padding-box',
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
@@ -1538,7 +1523,9 @@ const styles = {
     padding: '14px 28px',
     borderRadius: '9999px', // Pill capsule shape
     backgroundColor: 'rgb(20, 20, 20)',
-    border: '1.5px solid rgb(255, 255, 255)',
+    border: '2px solid transparent',
+    boxShadow: 'inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.2)',
+    backgroundClip: 'padding-box',
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
@@ -1557,7 +1544,9 @@ const styles = {
     height: '75px',
     borderRadius: '50%',
     backgroundColor: 'rgb(30, 30, 30)',
-    border: '1.5px solid rgb(255, 255, 255)',
+    border: '2px solid transparent',
+    boxShadow: 'inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.2)',
+    backgroundClip: 'padding-box',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

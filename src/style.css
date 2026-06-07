@@ -467,7 +467,9 @@ video::-webkit-media-controls-text-track-display {
   padding: 14px 28px;
   border-radius: 9999px;
   background-color: rgb(20, 20, 20);
-  border: 1.5px solid rgb(255, 255, 255);
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.2);
+  background-clip: padding-box;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -492,7 +494,9 @@ video::-webkit-media-controls-text-track-display {
   height: 75px;
   border-radius: 50%;
   background-color: rgb(30, 30, 30);
-  border: 1.5px solid rgb(255, 255, 255);
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.2);
+  background-clip: padding-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -594,6 +598,9 @@ video::-webkit-media-controls-text-track-display {
   box-shadow: 0 -4px 20px rgb(0,0,0);
   z-index: 10002;
   scrollbar-width: none;
+  transform-origin: bottom left;
+  animation: scaleInModal 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
 .player-hud-stream-menu-item {
@@ -709,15 +716,27 @@ video::-webkit-media-controls-text-track-display {
     flex-direction: column;
     border-radius: 30px;
     height: auto;
+    background-color: transparent; /* Move background to ::before for GPU scaling */
+    border: none;
+    box-shadow: none;
+    pointer-events: auto; /* ...but capture clicks on the capsule itself */
+    max-width: 400px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .nav-capsule::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
     background-color: #19191e; /* Solid color for performance */
     border: 1px solid #333333; /* Solid color */
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+    border-radius: 30px;
+    z-index: -1;
+    transform-origin: center left;
     will-change: transform, opacity;
-    /* Animate transform for width expansion for GPU performance */
-    transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.12s ease;
-    pointer-events: auto; /* ...but capture clicks on the capsule itself */
-    overflow: hidden; /* For clipping animated items */
-    max-width: 400px;
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
   }
 
   .nav-header {
@@ -738,9 +757,10 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-text-label {
-    will-change: opacity;
-    transition: opacity 0.12s ease;
+    will-change: opacity, transform;
+    transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     opacity: 1;
+    transform: translateX(0);
     max-width: 200px;
     overflow: hidden;
   }
@@ -752,10 +772,12 @@ video::-webkit-media-controls-text-track-display {
 
   .nav-wrapper.collapsed .nav-capsule {
     width: auto;
-    background-color: transparent;
-    border-color: transparent;
-    box-shadow: none;
     max-width: 250px;
+  }
+
+  .nav-wrapper.collapsed .nav-capsule::before {
+    opacity: 0;
+    transform: scaleX(0.3) scaleY(0.8); /* GPU accelerated collapse */
   }
 
   .nav-wrapper.collapsed .nav-header {
@@ -810,6 +832,7 @@ video::-webkit-media-controls-text-track-display {
 
   .nav-wrapper.collapsed .nav-text-label {
     opacity: 0;
+    transform: translateX(-15px); /* Slide text in */
     max-width: 0;
     padding-left: 0;
     display: none;
@@ -1006,5 +1029,27 @@ video::-webkit-media-controls-text-track-display {
   letter-spacing: 0.5px;
   font-family: 'Outfit', 'Inter', sans-serif;
   text-transform: uppercase;
+}
+
+/* Modal & Popover Animations (GPU Accelerated) */
+.exit-overlay {
+  animation: fadeInModal 0.15s ease forwards;
+  will-change: opacity;
+}
+
+.exit-modal {
+  transform-origin: center bottom;
+  animation: scaleInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes fadeInModal {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes scaleInModal {
+  0% { transform: scale3d(0.85, 0.85, 1); opacity: 0; }
+  100% { transform: scale3d(1, 1, 1); opacity: 1; }
 }
 

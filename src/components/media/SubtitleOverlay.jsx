@@ -11,9 +11,8 @@ import { useBrowserStore } from '../../stores/browserStore'
 const SubtitleOverlay = forwardRef(({ isVisible }, ref) => {
   const overlayRef = useRef(null)
 
-  const subtitleColor = useBrowserStore(state => state.subtitleColor) || '#FFFFFF'
+  const subtitleColor = useBrowserStore(state => state.subtitleColor) || '#AAAAAA'
   const subtitleSize = useBrowserStore(state => state.subtitleSize) || '2.5rem'
-  const subtitleWeight = useBrowserStore(state => state.subtitleWeight) || 400
 
   // Expose the setText API directly to the parent via the ref
   useImperativeHandle(ref, () => ({
@@ -39,9 +38,7 @@ const SubtitleOverlay = forwardRef(({ isVisible }, ref) => {
     }
   }, [isVisible])
 
-  const isDarkText = subtitleColor === '#4A4A4A' || subtitleColor === '#222222'
-  
-  const strokeColor = isDarkText ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.8)'
+  const strokeColor = 'rgba(0,0,0,1)'
   
   // Simulate a 1px stroke using 8-directional text-shadows so it sits completely behind the text
   // This eliminates the jagged overlap effect caused by WebkitTextStroke on intersecting letters
@@ -56,9 +53,7 @@ const SubtitleOverlay = forwardRef(({ isVisible }, ref) => {
      1px  0px 0 ${strokeColor}
   `
 
-  const baseShadow = isDarkText 
-    ? '0px 2px 4px rgba(255,255,255,0.5), 0px 0px 8px rgba(255,255,255,0.3)'
-    : '0px 2px 4px rgba(0,0,0,0.8), 0px 0px 8px rgba(0,0,0,0.8)'
+  const baseShadow = '0px 2px 4px rgba(0,0,0,1), 0px 0px 10px rgba(0,0,0,1)'
 
   const combinedShadow = `${strokeShadow}, ${baseShadow}`
 
@@ -81,8 +76,9 @@ const SubtitleOverlay = forwardRef(({ isVisible }, ref) => {
           display: 'inline-block',
           color: subtitleColor,
           fontSize: subtitleSize,
-          fontFamily: "'Outfit', 'Inter', sans-serif",
-          fontWeight: subtitleWeight,
+          fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif",
+          fontWeight: 600,
+          letterSpacing: '0.5px',
           lineHeight: 1.4,
           padding: '4px 16px',
           borderRadius: '6px',

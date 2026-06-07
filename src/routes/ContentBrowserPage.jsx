@@ -52,7 +52,7 @@ function ContentBrowserPage() {
   const setLibraryContent = useBrowserStore((state) => state.setLibraryContent)
 
   // Settings State from Store
-  const subtitleWeight = useBrowserStore((state) => state.subtitleWeight)
+
   const setSubtitleWeight = useBrowserStore((state) => state.setSubtitleWeight)
   const subtitleColor = useBrowserStore((state) => state.subtitleColor)
   const setSubtitleColor = useBrowserStore((state) => state.setSubtitleColor)
@@ -290,7 +290,7 @@ function ContentBrowserPage() {
         let prefs = await getData(DB_KINDS.PREFERENCES, KINDS.preferences)
         if (prefs) {
           if (prefs.showUnwatchedIndicator !== undefined) setShowUnwatchedIndicator(prefs.showUnwatchedIndicator)
-          if (prefs.subtitleWeight !== undefined) setSubtitleWeight(prefs.subtitleWeight)
+
           if (prefs.subtitleColor !== undefined) setSubtitleColor(prefs.subtitleColor)
           if (prefs.subtitleSize !== undefined) setSubtitleSize(prefs.subtitleSize)
           if (prefs.showSubtitleHUDControls !== undefined) setShowSubtitleHUDControls(prefs.showSubtitleHUDControls)
@@ -1028,7 +1028,7 @@ function ContentBrowserPage() {
                       setShowUnwatchedIndicator(newValue)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator: newValue,
-                        subtitleWeight,
+
                         subtitleColor,
                         subtitleSize,
                         showSubtitleHUDControls
@@ -1047,46 +1047,20 @@ function ContentBrowserPage() {
                   </FocusableItem>
 
                   {/* Subtitle Weight Setting */}
-                  <FocusableItem
-                    id="setting-subtitle-weight"
-                    rowIndex={11}
-                    colIndex={1}
-                    onClick={() => {
-                      const weights = [400, 700, 900]
-                      const currentIndex = weights.indexOf(subtitleWeight || 400)
-                      const nextIndex = (currentIndex + 1) % weights.length
-                      const newWeight = weights[nextIndex]
-                      setSubtitleWeight(newWeight)
-                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                        showUnwatchedIndicator,
-                        subtitleWeight: newWeight,
-                        subtitleColor,
-                        subtitleSize,
-                        showSubtitleHUDControls
-                      })
-                    }}
-                    style={{ flexShrink: 0 }}
-                  >
-                    <div className="setting-card">
-                      <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>W</div>
-                      <div className="setting-card-title">Subtitle Weight: {subtitleWeight === 400 ? 'Normal' : subtitleWeight === 700 ? 'Bold' : 'Heavy'}</div>
-                    </div>
-                  </FocusableItem>
-
                   {/* Subtitle Color Setting */}
                   <FocusableItem
                     id="setting-subtitle-color"
                     rowIndex={11}
-                    colIndex={2}
+                    colIndex={1}
                     onClick={() => {
-                      const colors = ['#FFFFFF', '#737373', '#4A4A4A', '#222222']
-                      const currentIndex = colors.indexOf(subtitleColor || '#FFFFFF')
+                      const colors = ['#AAAAAA', '#737373']
+                      const currentIndex = colors.indexOf(subtitleColor || '#AAAAAA')
                       const nextIndex = (currentIndex + 1) % colors.length
                       const newColor = colors[nextIndex]
                       setSubtitleColor(newColor)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator,
-                        subtitleWeight,
+
                         subtitleColor: newColor,
                         subtitleSize,
                         showSubtitleHUDControls
@@ -1095,8 +1069,8 @@ function ContentBrowserPage() {
                     style={{ flexShrink: 0 }}
                   >
                     <div className="setting-card">
-                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: subtitleColor || '#FFFFFF', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
-                      <div className="setting-card-title">Color: {subtitleColor === '#FFFFFF' ? 'White' : subtitleColor === '#737373' ? 'Grey' : subtitleColor === '#4A4A4A' ? 'Dark Grey' : 'Extra Dark'}</div>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: subtitleColor || '#AAAAAA', border: '2px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                      <div className="setting-card-title">Color: {subtitleColor === '#AAAAAA' ? 'Light Grey' : 'Grey'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1104,16 +1078,16 @@ function ContentBrowserPage() {
                   <FocusableItem
                     id="setting-subtitle-size"
                     rowIndex={11}
-                    colIndex={3}
+                    colIndex={2}
                     onClick={() => {
-                      const sizes = ['1.5rem', '2.5rem', '3.5rem']
+                      const sizes = ['2.5rem', '3.0rem', '3.5rem']
                       const currentIndex = sizes.indexOf(subtitleSize || '2.5rem')
                       const nextIndex = (currentIndex + 1) % sizes.length
                       const newSize = sizes[nextIndex]
                       setSubtitleSize(newSize)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator,
-                        subtitleWeight,
+
                         subtitleColor,
                         subtitleSize: newSize,
                         showSubtitleHUDControls
@@ -1123,7 +1097,7 @@ function ContentBrowserPage() {
                   >
                     <div className="setting-card">
                       <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 'bold', color: '#fff' }}>Aa</div>
-                      <div className="setting-card-title">Size: {subtitleSize === '1.5rem' ? 'Small' : subtitleSize === '2.5rem' ? 'Medium' : 'Large'}</div>
+                      <div className="setting-card-title">Size: {subtitleSize === '2.5rem' ? 'Small' : subtitleSize === '3.0rem' ? 'Medium' : 'Large'}</div>
                     </div>
                   </FocusableItem>
 
@@ -1131,13 +1105,13 @@ function ContentBrowserPage() {
                   <FocusableItem
                     id="setting-subtitle-hud"
                     rowIndex={11}
-                    colIndex={4}
+                    colIndex={3}
                     onClick={() => {
                       const newValue = !showSubtitleHUDControls
                       setShowSubtitleHUDControls(newValue)
                       setData(DB_KINDS.PREFERENCES, `${KINDS.preferences}_${currentProfile?.id || useAppStore.getState().userProfile?.userId || 'default'}`, {
                         showUnwatchedIndicator,
-                        subtitleWeight,
+
                         subtitleColor,
                         subtitleSize,
                         showSubtitleHUDControls: newValue
@@ -1155,7 +1129,7 @@ function ContentBrowserPage() {
                   <FocusableItem
                     id="setting-manage-libraries"
                     rowIndex={11}
-                    colIndex={5}
+                    colIndex={4}
                     onClick={() => {
                       navigate('/library-select', {
                         state: {

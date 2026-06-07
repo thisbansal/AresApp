@@ -1,5 +1,6 @@
 import React from 'react'
 import { FocusableItem } from '../navigational/FocusableItem'
+import { MdPlayArrow, MdReplay } from 'react-icons/md'
 
 export default function ActionButtons({ onPlay, onRestart, onMore, onFocus, rowIndex = 0 }) {
   const playLabel = onRestart ? 'Resume' : 'Play'
@@ -20,7 +21,7 @@ export default function ActionButtons({ onPlay, onRestart, onMore, onFocus, rowI
         className="action-btn"
       >
         <div style={{ ...styles.button, ...styles.playButton }}>
-          <span style={styles.icon}>▶</span> {playLabel}
+          <MdPlayArrow size={24} style={styles.icon} /> {playLabel}
         </div>
       </FocusableItem>
 
@@ -34,7 +35,7 @@ export default function ActionButtons({ onPlay, onRestart, onMore, onFocus, rowI
           className="action-btn"
         >
           <div style={{ ...styles.button, ...styles.moreButton }}>
-            <span style={{ ...styles.icon, marginRight: '8px' }}>↺</span> Restart
+            <MdReplay size={24} style={{ ...styles.icon, marginRight: '4px' }} /> Restart
           </div>
         </FocusableItem>
       )}
@@ -57,6 +58,9 @@ export default function ActionButtons({ onPlay, onRestart, onMore, onFocus, rowI
       <style>{`
         .action-btn {
           border-radius: 9999px;
+          outline: 1px solid transparent;
+          backface-visibility: hidden;
+          transform: translateZ(0);
         }
         .action-btn.focused > div {
           transform: scale(1.05);
