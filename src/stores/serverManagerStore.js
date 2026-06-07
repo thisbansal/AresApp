@@ -5,8 +5,7 @@ import { useServerStore } from './serverStore'
 import { useAppStore } from './AppStore'
 
 const getCacheKey = (profileId = null) => {
-  const pId = profileId || useAppStore.getState().userProfile?.userId || 'default'
-  return `multiServerCache_${pId}`
+  return `multiServerCache_global`
 }
 
 export const useServerManagerStore = create((set, get) => ({
@@ -20,20 +19,17 @@ export const useServerManagerStore = create((set, get) => ({
       if (cached) {
         console.group('[SERVER MANAGER] Restoring cached servers...')
 
-        // Heal any poisoned cache entries from previous bugs
+        // Ensure owned servers use the correct active profile's token
         if (fallbackToken) {
           for (const key of Object.keys(cached)) {
             const s = cached[key]
-
-            const isMissingToken = !s.accessToken || s.accessToken === 'undefined' || s.accessToken === 'null'
-
-            if (isMissingToken && s.owned) {
+            if (s.owned) {
               s.accessToken = fallbackToken
-              console.log(`[Heal] Repaired missing token for owned server "${s.name}".`, s)
+              console.log(`[Sync] Set owned server "${s.name}" token to active profile token.`)
             }
           }
         } else {
-          console.warn('[SERVER MANAGER] loadCachedServers called without fallbackToken. Skipping auto-heal check.')
+          console.warn('[SERVER MANAGER] loadCachedServers called without fallbackToken. Skipping sync check.')
         }
 
         console.groupEnd()
@@ -59,7 +55,7 @@ export const useServerManagerStore = create((set, get) => ({
   },
 
   // Discovers all servers via plex.tv, resolves best URIs, and caches them
-  discoverAllServers: async (mainToken) => {
+  discoverAllServers: async (mainToken, profileId = null) => {
     if (!mainToken) return
     set({ isDiscovering: true })
     console.log('[SERVER MANAGER] Starting global server discovery...')
@@ -93,7 +89,7 @@ export const useServerManagerStore = create((set, get) => ({
 
       // 3. Save to state and cache
       set({ servers: updatedServers, isDiscovering: false })
-      await get().saveServersToCache(updatedServers)
+      await get().saveServersToCache(updatedServers, profileId)
 
       console.log(`[SERVER MANAGER] Discovery complete. Found ${Object.keys(updatedServers).length} reachable servers.`)
 

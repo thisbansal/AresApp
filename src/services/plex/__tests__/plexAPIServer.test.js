@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getBestServerConnection } from '../plexAPIServer'
+import { getBestServerConnection, getServers } from '../plexAPIServer'
 import { lunaService } from '../../luna/lunaService'
 
 vi.mock('../../luna/lunaService', () => ({
@@ -59,5 +59,45 @@ describe('plexAPIServer', () => {
 
     const bestUri = await getBestServerConnection(server, 'dummy-token')
     expect(bestUri).toBe('http://192.168.1.100:32400')
+  })
+
+  it('getServers should return mapped servers and assign active authToken to owned servers', async () => {
+    const mockResources = [
+      {
+        name: 'My Owned Server',
+        clientIdentifier: 'owned-123',
+        accessToken: 'owner-server-token-from-plex',
+        provides: 'server',
+        owned: true,
+        connections: [{ uri: 'http://192.168.1.100:32400', local: true }]
+      },
+      {
+        name: 'Friend Shared Server',
+        clientIdentifier: 'shared-456',
+        accessToken: 'shared-server-token-from-plex',
+        provides: 'server',
+        owned: false,
+        connections: [{ uri: 'http://192.168.1.200:32400', local: false }]
+      }
+    ]
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => mockResources
+    })
+
+    const servers = await getServers('user-profile-token', { ownedOnly: false })
+    
+    expect(servers).toHaveLength(2)
+    
+    // Owned server should have the active user profile token as its accessToken
+    const owned = servers.find(s => s.clientIdentifier === 'owned-123')
+    expect(owned.accessToken).toBe('user-profile-token')
+    expect(owned.owned).toBe(true)
+
+    // Shared server should keep its original accessToken from resources
+    const shared = servers.find(s => s.clientIdentifier === 'shared-456')
+    expect(shared.accessToken).toBe('shared-server-token-from-plex')
+    expect(shared.owned).toBe(false)
   })
 })

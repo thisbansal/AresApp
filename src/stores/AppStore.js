@@ -55,7 +55,7 @@ export const useAppStore = create((set, get) => ({
 
       await useServerManagerStore.getState().loadCachedServers(activeToken, profileId)
       // Kick off background discovery so new servers are added and offline ones update their status
-      useServerManagerStore.getState().discoverAllServers(activeToken)
+      useServerManagerStore.getState().discoverAllServers(activeToken, profileId)
 
       const selectedLibraries = await getSelectedLibraries(profileId)
 
@@ -147,7 +147,7 @@ export const useAppStore = create((set, get) => ({
       })
 
       // Kick off server discovery on profile switch
-      useServerManagerStore.getState().discoverAllServers(token)
+      useServerManagerStore.getState().discoverAllServers(token, profileId)
 
       console.log('[AUTH STORE] setProfileSession completed')
     } catch (err) {

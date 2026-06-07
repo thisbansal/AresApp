@@ -13,6 +13,8 @@ export const getAccessibleServers = async (token) => {
   return getServers(token)
 }
 
+import { getSharedServersCache } from './sharedServerService'
+
 export const resolveAccessibleServer = async (token, preferredUri = null) => {
   if (!token) {
     throw new Error('An auth token is required to resolve accessible Plex servers.')
@@ -21,6 +23,13 @@ export const resolveAccessibleServer = async (token, preferredUri = null) => {
   const servers = await getAccessibleServers(token)
   if (servers.length === 0) {
     throw new Error('No Plex servers are accessible for this account.')
+  }
+
+  const sharedCache = await getSharedServersCache()
+  for (const server of servers) {
+    if (!server.owned && sharedCache[server.clientIdentifier]) {
+      server.accessToken = sharedCache[server.clientIdentifier].token
+    }
   }
 
   if (preferredUri) {

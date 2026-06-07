@@ -34,7 +34,7 @@ const buildServerContext = (serverUri, token) => ({ uri: serverUri, token })
  * Get all libraries from the Plex server
  */
 export const getLibraries = async (serverUri, token) => {
-  const response = await plexBridge.request('/library/sections/all', {}, buildServerContext(serverUri, token))
+  const response = await plexBridge.request('/library/sections', {}, buildServerContext(serverUri, token))
   const data = await response.json()
 
   return data.MediaContainer.Directory

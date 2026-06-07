@@ -25,15 +25,21 @@ vi.mock('../../contexts/SpatialNavigationContext', () => {
   };
 })
 
-vi.mock('../../stores/serverManagerStore', () => ({
-  useServerManagerStore: {
-    getState: vi.fn(() => ({
-      servers: {
-        '123': { uri: 'http://local', accessToken: 'token', owned: true, name: 'Main' }
-      }
-    }))
+vi.mock('../../stores/serverManagerStore', () => {
+  const mockServers = {
+    '123': { uri: 'http://local', accessToken: 'token', owned: true, name: 'Main' }
   }
-}))
+  const mockFn = vi.fn((selector) => {
+    if (selector) return selector({ servers: mockServers })
+    return { servers: mockServers }
+  })
+  mockFn.getState = vi.fn(() => ({
+    servers: mockServers
+  }))
+  return {
+    useServerManagerStore: mockFn
+  }
+})
 
 vi.mock('../../stores/serverStore', () => ({
   useServerStore: vi.fn()

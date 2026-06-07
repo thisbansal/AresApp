@@ -34,18 +34,15 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
   const lastKeyRef = useRef('');
 
   // Generate a deterministic safe cache key string
-  const getSafeCacheKey = useCallback(() => {
-    const keyStr = Array.isArray(queryKey) 
-      ? queryKey.map(k => typeof k === 'object' ? JSON.stringify(k) : k).join('_') 
-      : String(queryKey);
-    const safeKey = keyStr.replace(/[^a-zA-Z0-9]/g, '_');
-    return `swr_cache_${safeKey}_${profileId}`;
-  }, [queryKey, profileId]);
+  const keyStr = Array.isArray(queryKey) 
+    ? queryKey.map(k => typeof k === 'object' ? JSON.stringify(k) : k).join('_') 
+    : String(queryKey);
+  const safeKey = keyStr.replace(/[^a-zA-Z0-9]/g, '_');
+  const cacheKey = `swr_cache_${safeKey}_${profileId}`;
 
   const revalidate = useCallback(async (forceLoading = false) => {
     if (!enabled) return;
 
-    const cacheKey = getSafeCacheKey();
     if (forceLoading) {
       setLoading(true);
     }
@@ -57,7 +54,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
       const freshData = await fetchFnRef.current();
       
       // Prevent race conditions: check if key is still the active one
-      if (cacheKey !== getSafeCacheKey()) {
+      if (lastKeyRef.current !== cacheKey) {
         return;
       }
       
@@ -67,7 +64,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
       setLocalData(freshData);
       setError(null);
     } catch (err) {
-      if (cacheKey !== getSafeCacheKey()) {
+      if (lastKeyRef.current !== cacheKey) {
         return;
       }
       console.warn(`[usePlexQuery] Revalidation failed for key ${cacheKey}:`, err.message);
@@ -79,15 +76,14 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
         useServerStore.getState().setServerState(false, err.message);
       }
     } finally {
-      if (cacheKey === getSafeCacheKey()) {
+      if (lastKeyRef.current === cacheKey) {
         setLoading(false);
         setIsRevalidating(false);
       }
     }
-  }, [enabled, getSafeCacheKey]);
+  }, [enabled, cacheKey]);
 
   // 1. Initial Cache Load & Key Changes
-  const cacheKey = getSafeCacheKey();
   useEffect(() => {
     if (!enabled) {
       setLoading(false);
@@ -136,7 +132,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
       revalidate();
     }
     wasOnlineRef.current = isOnline;
-  }, [isOnline, enabled]);
+  }, [isOnline, enabled, revalidate]);
 
   return {
     data,
