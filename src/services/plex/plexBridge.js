@@ -41,7 +41,7 @@ export const attemptConnectionRecovery = async () => {
 
     serverStore.log('INFO', `Probing alternative connections for server "${serverEntry.name}"...`);
     const { getBestServerConnection } = await import('./plexAPIServer');
-    const newUri = await getBestServerConnection(serverEntry, token);
+    const newUri = await getBestServerConnection(serverEntry, serverEntry.accessToken);
 
     if (newUri && newUri !== activeServer.uri) {
       serverStore.log('INFO', `Successfully recovered! Switched connection URI from "${activeServer.uri}" to "${newUri}"`);
@@ -89,12 +89,15 @@ export const plexBridge = {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 15000)
 
-      const response = await fetch(`${activeServer.uri}/`, {
+      const urlObj = new URL(`${activeServer.uri}/`)
+      urlObj.searchParams.append('X-Plex-Token', activeServer.token)
+      urlObj.searchParams.append('X-Plex-Client-Identifier', PLEX_CONFIG.clientId)
+      urlObj.searchParams.append('X-Plex-Product', PLEX_CONFIG.product)
+      urlObj.searchParams.append('X-Plex-Version', '1.0.0')
+
+      const response = await fetch(urlObj.toString(), {
         method: 'GET',
-        headers: {
-          'X-Plex-Token': activeServer.token,
-          'Accept': 'application/json'
-        },
+        headers: { 'Accept': 'application/json' },
         signal: controller.signal
       })
       clearTimeout(timeoutId)
@@ -166,23 +169,30 @@ export const plexBridge = {
       throw err
     }
 
-    const separator = endpoint.includes('?') ? '&' : '?'
-    const url = `${activeServer.uri}${endpoint}${separator}X-Plex-Token=${activeServer.token}`
-    
     const platformInfo = await getPlatformInfo()
+
+    const urlObj = new URL(`${activeServer.uri}${endpoint}`)
+    urlObj.searchParams.append('X-Plex-Token', activeServer.token)
+    urlObj.searchParams.append('X-Plex-Client-Identifier', PLEX_CONFIG.clientId)
+    urlObj.searchParams.append('X-Plex-Product', PLEX_CONFIG.product)
+    urlObj.searchParams.append('X-Plex-Version', '1.0.0')
+    urlObj.searchParams.append('X-Plex-Platform', platformInfo.platform)
+    urlObj.searchParams.append('X-Plex-Platform-Version', platformInfo.version)
+    urlObj.searchParams.append('X-Plex-Device', platformInfo.device)
+    urlObj.searchParams.append('X-Plex-Device-Name', platformInfo.device)
+    const finalUrl = urlObj.toString()
     
-    // Auto default headers
+    // Auto default headers (only CORS safelisted ones)
     const headers = {
       'Accept': 'application/json',
-      'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
-      'X-Plex-Product': PLEX_CONFIG.product,
-      'X-Plex-Version': '1.0.0',
-      'X-Plex-Platform': platformInfo.platform,
-      'X-Plex-Platform-Version': platformInfo.version,
-      'X-Plex-Device': platformInfo.device,
-      'X-Plex-Device-Name': platformInfo.device,
       ...options.headers
     }
+
+    console.group(`[PLEX BRIDGE] API Request: ${options.method || 'GET'} ${endpoint}`)
+    console.log('[PLEX BRIDGE] Target URL:', finalUrl)
+    console.log('[PLEX BRIDGE] Using Token:', activeServer.token)
+    console.log('[PLEX BRIDGE] Headers:', JSON.stringify(headers, null, 2))
+    console.groupEnd()
 
     store.log('INFO', `Sending request: ${options.method || 'GET'} ${endpoint}`)
 
@@ -193,7 +203,7 @@ export const plexBridge = {
     let lastErr = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const response = await fetch(url, {
+        const response = await fetch(finalUrl, {
           ...options,
           headers,
           signal: options.signal || controller.signal
@@ -201,7 +211,10 @@ export const plexBridge = {
         clearTimeout(timeoutId)
 
         if (!response.ok) {
-          if (response.status === 401) {
+          const currentState = useServerStore.getState()
+          const isMainServer = currentState.activeServer?.uri && finalUrl.startsWith(currentState.activeServer.uri)
+          
+          if (response.status === 401 && isMainServer) {
             useAppStore.getState().handleServerAuthError()
           }
           if (!options.silent) {
@@ -212,7 +225,7 @@ export const plexBridge = {
 
         // If we got a successful response for the main server, ensure server status is set back to online
         const currentState = useServerStore.getState()
-        const isMainServer = currentState.activeServer?.uri && url.startsWith(currentState.activeServer.uri)
+        const isMainServer = currentState.activeServer?.uri && finalUrl.startsWith(currentState.activeServer.uri)
         if (isMainServer && !currentState.isOnline) {
           currentState.setServerState(true)
           if (!options.silent) {
@@ -238,7 +251,7 @@ export const plexBridge = {
     const isNetworkError = err.name === 'AbortError' || err instanceof TypeError
     
     const currentState = useServerStore.getState()
-    const isMainServer = currentState.activeServer?.uri && url.startsWith(currentState.activeServer.uri)
+    const isMainServer = currentState.activeServer?.uri && finalUrl.startsWith(currentState.activeServer.uri)
 
     if (isNetworkError) {
       const errorMsg = err.name === 'AbortError' ? 'Request timeout' : err.message

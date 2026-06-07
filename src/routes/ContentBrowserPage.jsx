@@ -13,6 +13,7 @@ import { testConnectionToServer, getServers } from '../services/plex/plexAPIServ
 import { resolveAccessibleServer } from '../services/plex/plexAccessService'
 import { getLibraries, getLibraryItems, buildImageUrl } from '../services/plex/plexContentService'
 import { multiServerCacheService, CACHE_KEYS_MULTI } from '../services/caching/multiServerCacheService'
+import { getMultiServerOnDeck, getMultiServerRecentlyAdded } from '../services/plex/multiServerContentHub'
 import { isMediaWatched } from '../services/plex/plexWatchedService'
 import { useToggleWatched } from '../hooks/useToggleWatched'
 import { useBrowserStore } from '../stores/browserStore'
@@ -63,7 +64,8 @@ function ContentBrowserPage() {
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
 
   const selectedLibraries = useAppStore((state) => state.selectedLibraries)
-  const isOnline = useServerStore((state) => state.isOnline)
+  const isOnline = useServerStore(state => state.isOnline)
+  const smStoreServers = useServerManagerStore((state) => state.servers)
   const allServersOffline = !isOnline && continueWatching.length === 0 && recentMovies.length === 0 && recentTv.length === 0;
 
   const [loading, setLoading] = useState(true)
@@ -166,14 +168,9 @@ function ContentBrowserPage() {
       try {
         const mainToken = useAppStore.getState().mainToken || await getMainToken()
         const userToken = await verifyUserPin(mainToken, user.id, "")
-        const preferredUri = useAppStore.getState().serverUri
-        const resolvedServer = await resolveAccessibleServer(userToken, preferredUri)
-        const serverConnection = resolvedServer ? { uri: resolvedServer.uri, token: resolvedServer.token } : null
+        
         sessionStorage.setItem('activeSession', 'true')
-        if (resolvedServer?.uri && resolvedServer.uri !== preferredUri) {
-          await useAppStore.getState().setServerUri(resolvedServer.uri)
-        }
-        await useAppStore.getState().setProfileSession(user.id, user.name, userToken, null, false, false, serverConnection)
+        await useAppStore.getState().setProfileSession(user.id, user.name, userToken, null, false, false)
         const newProfile = useAppStore.getState().userProfile
         localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
         window.location.reload()
@@ -195,14 +192,8 @@ function ContentBrowserPage() {
       const userToken = await verifyUserPin(mainToken, pinDialogUser.id, pin)
 
       if (userToken) {
-        const preferredUri = useAppStore.getState().serverUri
-        const resolvedServer = await resolveAccessibleServer(userToken, preferredUri)
-        const serverConnection = resolvedServer ? { uri: resolvedServer.uri, token: resolvedServer.token } : null
         sessionStorage.setItem('activeSession', 'true')
-        if (resolvedServer?.uri && resolvedServer.uri !== preferredUri) {
-          await useAppStore.getState().setServerUri(resolvedServer.uri)
-        }
-        await useAppStore.getState().setProfileSession(pinDialogUser.id, pinDialogUser.name, userToken, pin, false, true, serverConnection)
+        await useAppStore.getState().setProfileSession(pinDialogUser.id, pinDialogUser.name, userToken, pin, false, true)
         const newProfile = useAppStore.getState().userProfile
         localStorage.setItem('cached_current_profile', JSON.stringify(newProfile))
         window.location.reload()
@@ -252,7 +243,6 @@ function ContentBrowserPage() {
     try {
       const allNavLibs = []
       const unifiedLibs = useAppStore.getState().selectedLibraries || []
-      const smStoreServers = useServerManagerStore.getState().servers || {}
 
       for (const lib of unifiedLibs) {
         const server = smStoreServers[lib.serverClientId]
@@ -341,8 +331,8 @@ function ContentBrowserPage() {
         console.log('[init] Running token-aware server discovery...')
         const resolvedServer = await resolveAccessibleServer(token, currentUri)
 
-        if (resolvedServer?.uri && resolvedServer.uri !== currentUri) {
-          console.log('[init] Found reachable server for active profile:', resolvedServer.uri)
+        if (resolvedServer?.uri && (resolvedServer.uri !== currentUri || resolvedServer.token !== currentToken)) {
+          console.log('[init] Found reachable server or updated token for active profile:', resolvedServer.uri)
           await setData(DB_KINDS.SERVER, KINDS.server, resolvedServer.uri)
           const nextServerInfo = { uri: resolvedServer.uri, token: resolvedServer.token }
           setServerInfo(nextServerInfo)
@@ -368,9 +358,10 @@ function ContentBrowserPage() {
 
   // 1b. Reload libraries dynamically if selections change (e.g. from Settings Library Select)
   const selectedLibrariesStr = JSON.stringify(selectedLibraries)
+  const smStoreServersStr = JSON.stringify(smStoreServers)
   useEffect(() => {
     loadAllSelectedLibraries().catch(e => console.warn('[init] Reactive reload failed:', e))
-  }, [selectedLibrariesStr, serverInfo])
+  }, [selectedLibrariesStr, serverInfo, smStoreServersStr])
 
   // Helper to preload images before showing content
   const preloadImages = async (itemsArrays) => {
@@ -395,10 +386,10 @@ function ContentBrowserPage() {
     data: continueWatchingData,
     loading: continueWatchingLoading,
   } = usePlexQuery(
-    ['home_continue_watching', serverInfo?.uri],
+    ['home_continue_watching', serverInfo?.uri, Object.keys(smStoreServers).length],
     async () => {
       if (!serverInfo) return [];
-      return await multiServerCacheService.getOnDeck(true);
+      return await getMultiServerOnDeck(50);
     },
     { enabled: !!serverInfo && activeTab.type === 'home', initialData: continueWatching }
   );
@@ -408,36 +399,29 @@ function ContentBrowserPage() {
     data: recentAddedData,
     loading: recentAddedLoading,
   } = usePlexQuery(
-    ['home_recent_added', serverInfo?.uri],
+    ['home_recent_added', serverInfo?.uri, Object.keys(smStoreServers).length],
     async () => {
       if (!serverInfo) return [];
-      return await multiServerCacheService.getRecentlyAdded(true);
+      return await getMultiServerRecentlyAdded(50);
     },
     { enabled: !!serverInfo && activeTab.type === 'home', initialData: [] }
   );
 
   // Sync Continue Watching & Recent Added to Browser Store when updated
-  const continueWatchingDataStr = JSON.stringify(continueWatchingData);
   useEffect(() => {
     if (continueWatchingData) {
-      if (JSON.stringify(continueWatching) !== continueWatchingDataStr) {
-        setContinueWatching(continueWatchingData);
-      }
+      setContinueWatching(continueWatchingData);
     }
-  }, [continueWatchingDataStr, continueWatchingData, continueWatching]);
+  }, [continueWatchingData, setContinueWatching]);
 
-  const recentAddedDataStr = JSON.stringify(recentAddedData);
   useEffect(() => {
     if (recentAddedData) {
       const rm = recentAddedData.filter(item => item.type === 'movie');
       const rtv = recentAddedData.filter(item => item.type === 'show' || item.type === 'season' || item.type === 'episode');
-      
-      if (JSON.stringify(recentMovies) !== JSON.stringify(rm) || JSON.stringify(recentTv) !== JSON.stringify(rtv)) {
-        setRecentMovies(rm);
-        setRecentTv(rtv);
-      }
+      setRecentMovies(rm);
+      setRecentTv(rtv);
     }
-  }, [recentAddedDataStr, recentAddedData, recentMovies, recentTv]);
+  }, [recentAddedData, setRecentMovies, setRecentTv]);
 
   // Query active library content
   const activeLibId = activeTab.type === 'library' ? activeTab.data?.id : null;
@@ -461,14 +445,13 @@ function ContentBrowserPage() {
   );
 
   // Sync active library items to browser store
-  const libraryItemsDataStr = JSON.stringify(libraryItemsData);
   useEffect(() => {
     if (libraryItemsData) {
-      if (JSON.stringify(libraryContent.all) !== libraryItemsDataStr) {
-        setLibraryContent({ all: libraryItemsData });
-      }
+      setLibraryContent({ all: libraryItemsData });
     }
-  }, [libraryItemsDataStr, libraryItemsData, libraryContent.all]);
+  }, [libraryItemsData, setLibraryContent]);
+
+
 
   // Set local browser loading & offline state
   useEffect(() => {
@@ -594,7 +577,7 @@ function ContentBrowserPage() {
 
       // Fetch latest On Deck to populate the next episode or updated state
       try {
-        const onDeckData = await multiServerCacheService.getOnDeck(true)
+        const onDeckData = await getMultiServerOnDeck(50)
         // Preload only the new images to avoid pop-in
         const existingThumbs = new Set((continueWatching || []).map(i => i.thumb))
         const newUrls = onDeckData.map(i => i.thumb).filter(url => url && !existingThumbs.has(url))

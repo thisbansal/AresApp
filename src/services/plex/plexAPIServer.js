@@ -12,15 +12,20 @@ const getHeaders = (authToken) => ({
 
 // Removed normalizeConnectionUri to preserve native .plex.direct URIs
 
+import { useAppStore } from "../../stores/AppStore";
+
 export const getServers = async (authToken, options = {}) => {
   const { ownedOnly = false } = options
-  const res = await fetch(
-    'https://plex.tv/api/v2/resources?includeHttps=1&includeRelay=1&includeIPv6=1',
-    {
-      method: 'GET',
-      headers: getHeaders(authToken)
-    }
-  )
+  const url = 'https://plex.tv/api/v2/resources?includeHttps=1&includeRelay=1&includeIPv6=1'
+  const headers = getHeaders(authToken)
+  
+  console.group(`[PLEX API] getServers: Discovery Request`)
+  console.log('[PLEX API] Target URL:', url)
+  console.log('[PLEX API] Using Token:', authToken)
+  console.log('[PLEX API] Headers:', JSON.stringify(headers, null, 2))
+  console.groupEnd()
+
+  const res = await fetch(url, { method: 'GET', headers })
 
   if (!res.ok) throw new Error(`Failed to fetch servers: ${res.status}`)
 
@@ -63,9 +68,21 @@ export const getServers = async (authToken, options = {}) => {
 
 export const testConnectionToServer = async (uri, authToken, timeoutMs = 15000) => {
   try {
-    const fetchPromise = fetch(uri, {
+    const urlObj = new URL(uri)
+    urlObj.searchParams.append('X-Plex-Token', authToken)
+    urlObj.searchParams.append('X-Plex-Client-Identifier', PLEX_CONFIG.clientId)
+    urlObj.searchParams.append('X-Plex-Product', PLEX_CONFIG.product)
+    urlObj.searchParams.append('X-Plex-Version', '1.0.0')
+    const finalUri = urlObj.toString()
+
+    console.group(`[PLEX API] testConnectionToServer: Ping Request`)
+    console.log('[PLEX API] Target URL:', finalUri)
+    console.log('[PLEX API] Using Token:', authToken)
+    console.groupEnd()
+
+    const fetchPromise = fetch(finalUri, {
       method: 'GET',
-      headers: getHeaders(authToken)
+      headers: { 'Accept': 'application/json' }
     }).then(res => res.ok)
     
     const timeoutPromise = new Promise((_, reject) => {
