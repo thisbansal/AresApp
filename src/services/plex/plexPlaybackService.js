@@ -2,13 +2,12 @@ import { plexBridge } from './plexBridge'
 
 /**
  * Update the playback progress (offset) on the Plex Media Server.
- * 
- * @param {string} serverUri Active server base URI.
+ *
  * Creates a new Play Queue on the Plex Server for the specified item.
  * Creating a PlayQueue is a STRICT PREREQUISITE for reliable timeline playback syncing.
  * The Plex Server requires the resulting `playQueueItemID` in subsequent timeline sync requests
  * to correctly maintain session states and avoid duplicate "Continue Watching" tracking.
- * 
+ *
  * @param {string} serverUrl - The absolute URI of the active Plex server.
  * @param {string} token - The X-Plex-Token.
  * @param {string} ratingKey - The metadata rating key of the media item.
@@ -27,7 +26,7 @@ export const createPlayQueue = async (serverUrl, token, ratingKey) => {
       { method: 'POST' },
       { uri: serverUrl, token }
     )
-    
+
     const data = await response.json()
     return {
       playQueueID: data?.MediaContainer?.playQueueID,
@@ -41,7 +40,7 @@ export const createPlayQueue = async (serverUrl, token, ratingKey) => {
 
 /**
  * Syncs the current playback timeline progress to the Plex Server.
- * 
+ *
  * @param {string} serverUrl - The absolute URI of the active Plex server.
  * @param {string} token - The X-Plex-Token.
  * @param {string} ratingKey - The metadata rating key of the media item.
@@ -65,9 +64,9 @@ export const updatePlaybackProgress = async (serverUrl, token, ratingKey, playQu
     let url = `/:/timeline?ratingKey=${ratingKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${Math.floor(timeMs)}&duration=${Math.floor(durationMs)}&state=${state}&playQueueItemID=${playQueueItemID}`
     if (playbackSessionId) url += `&X-Plex-Playback-Session-Id=${playbackSessionId}`
     if (clientSessionId) url += `&X-Plex-Session-Id=${clientSessionId}`
-    
+
     console.log(`[plexPlaybackService] EXECUTING timeline sync! URL: ${url}`)
-    
+
     const response = await plexBridge.request(
       url,
       { method: 'GET' },
@@ -83,7 +82,7 @@ export const updatePlaybackProgress = async (serverUrl, token, ratingKey, playQu
 
 /**
  * Update the stream selection (Audio/Subtitle) for a specific part.
- * 
+ *
  * @param {string} serverUrl - The absolute URI of the active Plex server.
  * @param {string} token - The X-Plex-Token.
  * @param {string} partId - The ID of the media part.

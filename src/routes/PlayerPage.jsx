@@ -31,6 +31,7 @@ export default function PlayerPage() {
   const videoRef = useRef(null)
   const subtitleOverlayRef = useRef(null)
   const shakaRef = useRef(null)
+  const shakaDestroyPromiseRef = useRef(Promise.resolve())
   const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
   const [loading, setLoading] = useState(true)
   const [isSubtitleCaching, setIsSubtitleCaching] = useState(false)
@@ -248,19 +249,25 @@ export default function PlayerPage() {
     const videoEl = videoRef.current || document.querySelector('video')
     if (!videoEl) return
 
-    // Clean up previous Shaka instance if one exists
-    if (shakaRef.current) {
-      shakaRef.current.destroy()
-      shakaRef.current = null
-    }
+    let initShaka = null;
 
-    // Safely flush the TV's hardware decoder pipeline before injecting a new format.
-    videoEl.src = ''
-    videoEl.removeAttribute('src')
+    const setupStream = async () => {
+      // 1. Wait for any previous Shaka instance to fully destroy
+      await shakaDestroyPromiseRef.current;
+      if (isCancelled) return;
 
-    // Initialize Shaka Player
-    shaka.polyfill.installAll()
-    let initShaka;
+      // Clean up previous Shaka instance if one exists
+      if (shakaRef.current) {
+        await shakaRef.current.destroy();
+        shakaRef.current = null;
+      }
+
+      // Safely flush the TV's hardware decoder pipeline before injecting a new format.
+      videoEl.src = ''
+      videoEl.removeAttribute('src')
+
+      // Initialize Shaka Player
+      shaka.polyfill.installAll()
 
     if (shaka.Player.isBrowserSupported()) {
       let initialized = false
@@ -377,6 +384,9 @@ export default function PlayerPage() {
       }
       videoEl.addEventListener('canplay', playOnCanPlay)
     }
+    }
+
+    setupStream();
 
     return () => {
       isCancelled = true
@@ -384,7 +394,7 @@ export default function PlayerPage() {
       if (initShaka) videoEl.removeEventListener('emptied', initShaka)
 
       if (shakaRef.current) {
-        shakaRef.current.destroy()
+        shakaDestroyPromiseRef.current = shakaRef.current.destroy()
         shakaRef.current = null
       }
     }
