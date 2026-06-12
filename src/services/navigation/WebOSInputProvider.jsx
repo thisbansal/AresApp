@@ -39,6 +39,12 @@ export function WebOSInputProvider({ children }) {
     const handleWheel = (e) => {
       // Only intercept primarily vertical scrolling
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        // Don't intercept if scrolling inside an internal scroll container
+        const scrollContainer = e.target && e.target.closest ? e.target.closest('.stream-menu-popover, .nav-scroll-container, .settings-content-area') : null;
+        if (scrollContainer && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+          return;
+        }
+
         e.preventDefault();
         
         // If horizontal scrolling is active, block vertical scrolling

@@ -78,8 +78,20 @@ export const SpatialNavigationProvider = ({ children }) => {
     lastNavDirectionRef.current = direction;
 
     const activeElement = document.activeElement;
-    if (!activeElement || activeElement === document.body) {
-      // If nothing is focused, focus the first registered node IN THE ACTIVE LAYER
+    
+    // Check if the current active element is actually registered in the active layer
+    let isActiveElementInActiveLayer = false;
+    if (activeElement && activeElement !== document.body) {
+      nodesRef.current.forEach((entry) => {
+        if (entry.node === activeElement && entry.layerId === activeLayer) {
+          isActiveElementInActiveLayer = true;
+        }
+      });
+    }
+
+    if (!isActiveElementInActiveLayer) {
+      // If nothing is focused OR the currently focused element is NOT in the active layer,
+      // focus the first registered node IN THE ACTIVE LAYER
       const nodesInActiveLayer = Array.from(nodesRef.current.values()).filter(entry => entry.layerId === activeLayer);
       const firstNode = nodesInActiveLayer[0]?.node;
       if (firstNode) firstNode.focus({ preventScroll: true });
@@ -160,6 +172,15 @@ export const SpatialNavigationProvider = ({ children }) => {
         }
       }
     }
+  }, [activeLayer]);
+
+  const focusLayer = useCallback((layerId) => {
+    // Find the first registered node in the specified layer and focus it
+    const nodesInLayer = Array.from(nodesRef.current.values()).filter(entry => entry.layerId === layerId);
+    const firstNode = nodesInLayer[0]?.node;
+    if (firstNode) {
+      firstNode.focus({ preventScroll: true });
+    }
   }, []);
 
   const value = {
@@ -175,6 +196,7 @@ export const SpatialNavigationProvider = ({ children }) => {
     activeLayer,
     pushLayer,
     popLayer,
+    focusLayer,
     lastRemoteActionRef,
     lastNavDirectionRef
   };
@@ -197,16 +219,17 @@ export const useSpatialNavigation = () => {
 export const LayerContext = createContext('base');
 
 export const FocusLayer = ({ id, isActive = true, children }) => {
-  const { pushLayer, popLayer } = useSpatialNavigation();
+  const { pushLayer, popLayer, focusLayer } = useSpatialNavigation();
 
   useEffect(() => {
     if (isActive) {
       pushLayer(id);
+      setTimeout(() => focusLayer(id), 50);
     } else {
       popLayer(id);
     }
     return () => popLayer(id);
-  }, [isActive, id, pushLayer, popLayer]);
+  }, [isActive, id, pushLayer, popLayer, focusLayer]);
 
   // If not active, we still provide 'base' so children don't trap focus if layer is deactivated but still mounted
   return (

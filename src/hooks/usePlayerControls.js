@@ -232,8 +232,9 @@ export function usePlayerControls({
     }
 
     const handleWheel = (e) => {
-      // If a popover or layer is active (e.g. settings menu), let native scroll handle it
-      if (activeLayerRef.current !== 'base') {
+      // Allow native scrolling for elements that need it
+      const scrollContainer = e.target && e.target.closest ? e.target.closest('.stream-menu-popover, .nav-scroll-container, .settings-content-area') : null;
+      if (scrollContainer && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
         return;
       }
       

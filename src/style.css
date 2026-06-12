@@ -184,6 +184,9 @@ body::-webkit-scrollbar {
 .stream-menu-popover::-webkit-scrollbar {
   display: none;
 }
+.stream-menu-popover {
+  overscroll-behavior: none;
+}
 .video-wrapper {
   position: relative;
   width: 100%;

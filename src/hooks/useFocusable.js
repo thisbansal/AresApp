@@ -43,6 +43,21 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
           }
         }
 
+        // Vertical scroll handling for internal containers (like popovers and modals)
+        const verticalContainer = ref.current.closest('.stream-menu-popover, .nav-scroll-container');
+        if (verticalContainer && verticalContainer.scrollHeight > verticalContainer.clientHeight) {
+          const containerRect = verticalContainer.getBoundingClientRect();
+          const SAFE_MARGIN = 20;
+
+          if (rect.top < containerRect.top + SAFE_MARGIN) {
+            const scrollAmount = rect.top - (containerRect.top + SAFE_MARGIN);
+            verticalContainer.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+          } else if (rect.bottom > containerRect.bottom - SAFE_MARGIN) {
+            const scrollAmount = rect.bottom - (containerRect.bottom - SAFE_MARGIN);
+            verticalContainer.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+          }
+        }
+
         // Horizontal scroll handling (within row)
         // Always run this on focus changes (both D-pad and hover) to pull clipped thumbnails fully into view.
         const rowContainer = ref.current.closest('.row-items');
