@@ -18,6 +18,10 @@ import { formatTime, formatRemainingTime } from '../utils/timeUtils'
 import { plexStreamBuilder } from '../services/plex/plexStreamBuilder'
 import { SubtitleManagerFactory } from '../services/plex/subtitles/SubtitleManagerFactory'
 import SubtitleOverlay from '../components/media/SubtitleOverlay'
+import { AudioMenu } from '../components/media/menus/AudioMenu'
+import { VideoMenu } from '../components/media/menus/VideoMenu'
+import { SubtitleMenu } from '../components/media/menus/SubtitleMenu'
+import { useServerManagerStore } from '../stores/serverManagerStore'
 import { mediaCodecService } from '../services/MediaCodecService'
 import shaka from 'shaka-player'
 import '../style.css'
@@ -167,20 +171,38 @@ export default function PlayerPage() {
           }
         })
 
-        // Auto-select English text subtitle for background streaming if none is selected
+        // Prevent Plex from auto-selecting image-based subtitles (PGS/VOBSUB) or embedded subtitles by default
+        // because it will trigger an aggressive video transcode/burn-in unless the user explicitly requested it.
         const subtitleStreams = streams.filter(s => s.streamType === 3)
+        const currentlySelectedSub = subtitleStreams.find(s => s.selected)
+        
+        if (currentlySelectedSub) {
+          const codec = (currentlySelectedSub.codec || '').toLowerCase();
+          const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa', 'mov_text', 'tx3g'].includes(codec);
+          const isExternal = !!currentlySelectedSub.key;
+          
+          if (!isTextBased || !isExternal) {
+            console.log(`[PlayerPage] Deselecting Plex's default subtitle track ${currentlySelectedSub.codec} because it requires burn-in.`);
+            currentlySelectedSub.selected = false;
+            // Notify the server that we are clearing the default selection to prevent transcode loops
+            await setStreamSelection(serverInfo.uri, serverInfo.token, part.id, '', 0).catch(console.error)
+          }
+        }
+
         const isAnySubtitleSelected = subtitleStreams.some(s => s.selected)
 
         if (!isAnySubtitleSelected && subtitleStreams.length > 0) {
-          const bestEnglishTextSub = subtitleStreams.find(s =>
-            (s.languageCode === 'eng' || s.language === 'English' || s.languageCode === 'en') &&
-            (s.codec === 'srt' || s.codec === 'vtt' || s.codec === 'ass' || s.codec === 'ssa')
-          )
+          const bestEnglishTextSub = subtitleStreams.find(s => {
+            const codec = (s.codec || '').toLowerCase();
+            const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa', 'mov_text', 'tx3g'].includes(codec);
+            const isExternal = !!s.key;
+            return (s.languageCode === 'eng' || s.language === 'English' || s.languageCode === 'en') && isTextBased && isExternal;
+          })
           if (bestEnglishTextSub) {
             console.log(`[PlayerPage] Auto-selecting English subtitle: ${bestEnglishTextSub.id} for background streaming`);
             bestEnglishTextSub.selected = true;
             setIsSubtitleVisible(false); // Hidden by default
-            setStreamSelection(serverInfo.uri, serverInfo.token, part.id, '', bestEnglishTextSub.id).catch(console.error)
+            await setStreamSelection(serverInfo.uri, serverInfo.token, part.id, '', bestEnglishTextSub.id).catch(console.error)
           } else {
             setIsSubtitleVisible(false);
           }
@@ -935,8 +957,13 @@ export default function PlayerPage() {
             </div>
           </FocusableItem>}
 
-          {showSubtitleHUDControls && (
-            <>
+          {showSubtitleHUDControls && (() => {
+            const activeSub = availableStreams.find(s => s.streamType === 3 && s.selected)
+            const isSubtitleBurnedIn = forceSubtitleBurnIn || (activeSub && !getStreamSupport(3, activeSub.id)?.supported)
+            if (isSubtitleBurnedIn) return null;
+            
+            return (
+              <>
               {/* HUD Subtitle Size Toggle */}
               <FocusableItem
                 id="player-hud-sub-size"
@@ -988,72 +1015,37 @@ export default function PlayerPage() {
                 </div>
               </FocusableItem>
             </>
-          )}
+            );
+          })()}
 
           {/* Active Menu Popover */}
           {activeMenu !== 'none' && (
             <FocusLayer id="player-menu" isActive={true}>
               <div className="player-hud-stream-popover stream-menu-popover">
-                {activeMenu === 'subtitle' && (
-                  <>
-                    <FocusableItem
-                      id="stream-sub-burnin-toggle"
-                      rowIndex={-1} colIndex={0}
-                      style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
-                      className="hud-stream-menu-item player-hud-stream-menu-item"
-                      onClick={() => {
-                        const newValue = !forceSubtitleBurnIn
-                        setForceSubtitleBurnIn(newValue)
-
-                        // Trigger a stream reload with the active streams, but now using the new forceSubtitleBurnIn value
-                        const activeVideo = availableStreams.find(s => s.streamType === 1 && s.selected)
-                        const activeAudio = availableStreams.find(s => s.streamType === 2 && s.selected)
-                        const activeSub = availableStreams.find(s => s.streamType === 3 && s.selected)
-
-                        setTimeout(() => {
-                          handleStreamSelect(3, activeSub ? activeSub.id : 0)
-                        }, 100)
-                      }}
-                    >
-                      <div style={{ borderRadius: '4px', backgroundColor: forceSubtitleBurnIn ? '#e50914' : 'transparent'}} className="player-hud-stream-radio" />
-                      <span style={{color: forceSubtitleBurnIn ? '#fff' : '#a8a8af', fontWeight: forceSubtitleBurnIn ? '600' : '500', flex: 1}}>Force Burn-in (Transcode)</span>
-                    </FocusableItem>
-
-                    <FocusableItem
-                      id="stream-sub-toggle"
-                      rowIndex={-1} colIndex={1}
-                      style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
-                      className="hud-stream-menu-item player-hud-stream-menu-item"
-                      onClick={() => setIsSubtitleVisible(prev => !prev)}
-                    >
-                      <div style={{ borderRadius: '2px', backgroundColor: isSubtitleVisible ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
-                      <span style={{ flex: 1 }}>{isSubtitleVisible ? "Hide Subtitles" : "Show Subtitles"}</span>
-                    </FocusableItem>
-                  </>
-                )}
-                {availableStreams.filter(s => {
-                  if (activeMenu === 'video') return s.streamType === 1
-                  if (activeMenu === 'audio') return s.streamType === 2
-                  if (activeMenu === 'subtitle') return s.streamType === 3
-                  return false
-                }).map((stream, idx) => (
-                  <FocusableItem
-                    key={stream.id}
-                    id={`stream-${activeMenu}-${stream.id}`}
-                    rowIndex={-1} colIndex={activeMenu === 'subtitle' ? idx + 2 : idx}
-                    className="hud-stream-menu-item player-hud-stream-menu-item"
-                    onClick={() => {
-                      handleStreamSelect(stream.streamType, stream.id)
-                      if (stream.streamType === 3) setIsSubtitleVisible(prev => !prev)
-                    }}
-                  >
-                    <div style={{ backgroundColor: stream.selected ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
-                    <span style={{ flex: 1 }}>
-                      {stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}
-                      {getStreamSupport(stream.streamType, stream.id)?.supported && ` (Native)`}
-                    </span>
-                  </FocusableItem>
-                ))}
+                <SubtitleMenu
+                  availableStreams={availableStreams}
+                  activeMenu={activeMenu}
+                  handleStreamSelect={handleStreamSelect}
+                  getStreamSupport={getStreamSupport}
+                  forceSubtitleBurnIn={forceSubtitleBurnIn}
+                  setForceSubtitleBurnIn={setForceSubtitleBurnIn}
+                  isSubtitleVisible={isSubtitleVisible}
+                  setIsSubtitleVisible={setIsSubtitleVisible}
+                />
+                
+                <AudioMenu
+                  availableStreams={availableStreams}
+                  activeMenu={activeMenu}
+                  handleStreamSelect={handleStreamSelect}
+                  getStreamSupport={getStreamSupport}
+                />
+                
+                <VideoMenu
+                  availableStreams={availableStreams}
+                  activeMenu={activeMenu}
+                  handleStreamSelect={handleStreamSelect}
+                  getStreamSupport={getStreamSupport}
+                />
               </div>
             </FocusLayer>
           )}
