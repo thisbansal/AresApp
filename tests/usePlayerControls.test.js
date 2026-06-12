@@ -6,7 +6,7 @@ import { SpatialNavigationProvider } from '../src/contexts/SpatialNavigationCont
 
 // Mock spatial navigation
 vi.mock('../src/contexts/SpatialNavigationContext', () => ({
-  useSpatialNavigation: () => ({ navigate: vi.fn() }),
+  useSpatialNavigation: () => ({ navigate: vi.fn(), activeLayer: 'base' }),
   SpatialNavigationProvider: ({ children }) => children
 }))
 
@@ -57,7 +57,8 @@ describe('usePlayerControls', () => {
       setCurrentTime: setCurrentTimeMock,
       seekTimeoutRef,
       hudTimeoutRef,
-      executeSeek: executeSeekMock
+      executeSeek: executeSeekMock,
+      activeMenu: 'none'
     }), { wrapper: SpatialNavigationProvider })
 
     // Bypass first scroll tick block

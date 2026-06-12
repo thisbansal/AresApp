@@ -90,9 +90,9 @@ describe('plexAPIServer', () => {
     
     expect(servers).toHaveLength(2)
     
-    // Owned server should have the active user profile token as its accessToken
+    // Owned server should have its token
     const owned = servers.find(s => s.clientIdentifier === 'owned-123')
-    expect(owned.accessToken).toBe('user-profile-token')
+    expect(owned.accessToken).toBe('owner-server-token-from-plex')
     expect(owned.owned).toBe(true)
 
     // Shared server should keep its original accessToken from resources

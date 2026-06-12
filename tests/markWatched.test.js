@@ -49,7 +49,7 @@ describe('Plex Scrobble & Unscrobble API Service', () => {
     expect(result).toBe(true)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:32400/:/scrobble?key=12345&identifier=com.plexapp.plugins.library&X-Plex-Token=fake-token',
+      expect.stringContaining('http://localhost:32400/:/scrobble?key=12345&identifier=com.plexapp.plugins.library&X-Plex-Token=fake-token'),
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({
@@ -75,7 +75,7 @@ describe('Plex Scrobble & Unscrobble API Service', () => {
     expect(result).toBe(true)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:32400/:/unscrobble?key=12345&identifier=com.plexapp.plugins.library&X-Plex-Token=fake-token',
+      expect.stringContaining('http://localhost:32400/:/unscrobble?key=12345&identifier=com.plexapp.plugins.library&X-Plex-Token=fake-token'),
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({

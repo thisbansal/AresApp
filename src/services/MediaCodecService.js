@@ -1,3 +1,5 @@
+import { useBrowserStore } from '../stores/browserStore';
+
 class MediaCodecService {
     constructor() {
         // Create a detached video element to use for testing codec capabilities
@@ -95,10 +97,20 @@ class MediaCodecService {
         }
 
         if (streamData.audio && Array.isArray(streamData.audio)) {
+            const enableAudioPassthrough = useBrowserStore.getState().enableAudioPassthrough;
+            
             streamData.audio.forEach(a => {
+                const codecLower = (a.codec || '').toLowerCase();
+                const isPassthroughCodec = ['ac3', 'eac3', 'dca', 'dts', 'truehd'].includes(codecLower);
                 const mimeType = this.getMimeTypeForCodec(a.codec, 'audio');
-                const canPlay = this.videoElement.canPlayType(mimeType);
-                const supported = canPlay === 'probably' || canPlay === 'maybe';
+                let canPlay = this.videoElement.canPlayType(mimeType);
+                let supported = canPlay === 'probably' || canPlay === 'maybe';
+
+                // Override with passthrough if enabled and codec is high-end audio
+                if (enableAudioPassthrough && isPassthroughCodec) {
+                    supported = true;
+                    canPlay = 'passthrough-override';
+                }
 
                 results.audio.push({
                     id: a.id,

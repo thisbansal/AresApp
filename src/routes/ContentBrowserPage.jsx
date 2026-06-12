@@ -62,6 +62,8 @@ function ContentBrowserPage() {
   const setShowSubtitleHUDControls = useBrowserStore((state) => state.setShowSubtitleHUDControls)
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
+  const enableAudioPassthrough = useBrowserStore((state) => state.enableAudioPassthrough)
+  const setEnableAudioPassthrough = useBrowserStore((state) => state.setEnableAudioPassthrough)
 
   const selectedLibraries = useAppStore((state) => state.selectedLibraries)
   const isOnline = useServerStore(state => state.isOnline)
@@ -294,6 +296,7 @@ function ContentBrowserPage() {
           if (prefs.subtitleColor !== undefined) setSubtitleColor(prefs.subtitleColor)
           if (prefs.subtitleSize !== undefined) setSubtitleSize(prefs.subtitleSize)
           if (prefs.showSubtitleHUDControls !== undefined) setShowSubtitleHUDControls(prefs.showSubtitleHUDControls)
+          if (prefs.enableAudioPassthrough !== undefined) setEnableAudioPassthrough(prefs.enableAudioPassthrough)
         }
 
         // 1. Fast Path: Try to boot instantly using the last known server address
@@ -1125,11 +1128,35 @@ function ContentBrowserPage() {
                     </div>
                   </FocusableItem>
 
+                  {/* Audio Passthrough Setting */}
+                  <FocusableItem
+                    id="setting-audio-passthrough"
+                    rowIndex={11}
+                    colIndex={4}
+                    onClick={() => {
+                      const newValue = !enableAudioPassthrough
+                      setEnableAudioPassthrough(newValue)
+                      setData(DB_KINDS.PREFERENCES, `${KINDS.preferences}_${currentProfile?.id || useAppStore.getState().userProfile?.userId || 'default'}`, {
+                        showUnwatchedIndicator,
+                        subtitleColor,
+                        subtitleSize,
+                        showSubtitleHUDControls,
+                        enableAudioPassthrough: newValue
+                      })
+                    }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold', color: enableAudioPassthrough ? '#ffffff' : 'rgba(255, 255, 255, 0.4)' }}>eARC</div>
+                      <div className="setting-card-title">Audio Passthrough: {enableAudioPassthrough ? 'On' : 'Off'}</div>
+                    </div>
+                  </FocusableItem>
+
                   {/* Manage Libraries Setting */}
                   <FocusableItem
                     id="setting-manage-libraries"
                     rowIndex={11}
-                    colIndex={4}
+                    colIndex={5}
                     onClick={() => {
                       navigate('/library-select', {
                         state: {

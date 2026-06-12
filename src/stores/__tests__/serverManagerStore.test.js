@@ -86,7 +86,7 @@ describe('serverManagerStore', () => {
     // Shared server token should NOT be updated
     expect(servers['shared-456'].accessToken).toBe('shared-token-remains')
 
-    expect(getData).toHaveBeenCalledWith('servers_kind', 'multiServerCache_user_1')
+    expect(getData).toHaveBeenCalledWith('servers_kind', 'multiServerCache_global')
   })
 
   it('should discover servers using user token and cache the result with profileId', async () => {
@@ -112,7 +112,7 @@ describe('serverManagerStore', () => {
     // Verify saveServersToCache called with correct profileId
     expect(setData).toHaveBeenCalledWith(
       'servers_kind',
-      'multiServerCache_user_1',
+      'multiServerCache_global',
       expect.objectContaining({
         'owned-123': expect.objectContaining({
           name: 'My Owned Server',

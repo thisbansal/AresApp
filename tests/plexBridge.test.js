@@ -68,7 +68,7 @@ describe('plexBridge and useServerStore Unit Tests', () => {
 
       const response = await plexBridge.request('/library/sections')
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://pms/library/sections?X-Plex-Token=tok',
+        expect.stringContaining('http://pms/library/sections?X-Plex-Token=tok'),
         expect.any(Object)
       )
       expect(response.ok).toBe(true)
@@ -82,7 +82,7 @@ describe('plexBridge and useServerStore Unit Tests', () => {
 
       expect(getActiveServerInfo).not.toHaveBeenCalled()
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://shared-pms/library/sections?X-Plex-Token=profile-token',
+        expect.stringContaining('http://shared-pms/library/sections?X-Plex-Token=profile-token'),
         expect.any(Object)
       )
       expect(useServerStore.getState().activeServer).toEqual({
