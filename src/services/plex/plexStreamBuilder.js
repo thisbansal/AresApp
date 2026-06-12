@@ -74,7 +74,7 @@ class PlexStreamBuilder {
       'autoAdjustQuality': '0',
       'location': 'lan',
       'mediaBufferSize': '1024000', // Allow the Plex server to buffer up to 100MB ahead for smooth streaming
-      'subtitles': forceSubtitleBurnIn ? 'burn' : 'auto',
+      'subtitles': forceSubtitleBurnIn ? 'burn' : (capabilities && capabilities.subtitles?.some(s => s.selected && s.id !== 0) ? 'auto' : 'none'),
       'advancedSubtitles': forceSubtitleBurnIn ? 'burn' : 'text', // Enum: 'burn', 'text', 'unknown'
       'subtitleSize': '100',
       'audioBoost': '100',

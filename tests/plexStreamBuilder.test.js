@@ -34,7 +34,7 @@ describe('PlexStreamBuilder', () => {
   });
   
   describe('buildTranscodeUrl', () => {
-    it('sets advancedSubtitles=text and subtitles=auto by default to enable native DASH parsing', async () => {
+    it('sets advancedSubtitles=text and subtitles=none by default to prevent unwarranted burn-in', async () => {
       const url = await plexStreamBuilder.buildTranscodeUrl(
         serverInfo,
         '/library/metadata/123',
@@ -43,6 +43,22 @@ describe('PlexStreamBuilder', () => {
         'client-123',
         0,
         false // forceSubtitleBurnIn
+      );
+
+      expect(url).toContain('subtitles=none');
+      expect(url).toContain('advancedSubtitles=text');
+    });
+
+    it('sets subtitles=auto when a text-based subtitle is selected and capabilities are provided', async () => {
+      const url = await plexStreamBuilder.buildTranscodeUrl(
+        serverInfo,
+        '/library/metadata/123',
+        '/library/parts/123/1234/file.mkv',
+        'session-123',
+        'client-123',
+        0,
+        false, // forceSubtitleBurnIn
+        { video: [], subtitles: [{ id: 1234, selected: true }] }
       );
 
       expect(url).toContain('subtitles=auto');
