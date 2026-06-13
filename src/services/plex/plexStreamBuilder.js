@@ -39,7 +39,17 @@ class PlexStreamBuilder {
         // We bypass strict MediaSource.isTypeSupported checks here because Safari's implementation is notorious 
         // for returning false negatives for HEVC MSE. Since selectedVideo.supported (which uses <video>.canPlayType) 
         // returned true, we trust that the underlying OS can decode it.
-        profileExtra = 'add-transcode-target(type=videoProfile&context=streaming&protocol=dash&container=mp4&videoCodec=hevc)';
+        
+        // Use the exact advanced limitations from Plex Web to force Plex to allow HEVC remuxing in DASH
+        const hevcLimits = [
+          'add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.width&value=4096&replace=true)',
+          'add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.height&value=2160&replace=true)',
+          'add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.bitDepth&value=10&replace=true)',
+          'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)',
+          'add-limitation(scope=videoTranscodeTarget&scopeName=hevc&scopeType=videoCodec&context=streaming&protocol=dash&type=match&name=video.colorTrc&list=bt709|bt470m|bt470bg|smpte170m|smpte240m|bt2020-10|smpte2084&isRequired=false)',
+          'append-transcode-target-codec(type=videoProfile&context=streaming&videoCodec=hevc,h264&audioCodec=aac&protocol=dash)'
+        ];
+        profileExtra = hevcLimits.join('+');
       }
 
       // Check if the browser supports AC3/EAC3 (Dolby Digital) natively. WebOS TVs do, Chrome Desktop does not.
@@ -54,8 +64,7 @@ class PlexStreamBuilder {
       }
     }
 
-    const isApple = platformInfo.device === 'Mac' || platformInfo.platform === 'Safari' || platformInfo.platform === 'iOS';
-    const streamProtocol = isApple ? 'hls' : 'dash';
+    const streamProtocol = 'dash';
 
     // Construct the transcode query parameters
     const paramsObj = {
@@ -91,10 +100,6 @@ class PlexStreamBuilder {
     };
 
     if (profileExtra) {
-      // Replace protocol=dash with protocol=hls in the profile extra if we switched to HLS
-      if (streamProtocol === 'hls') {
-        profileExtra = profileExtra.replace(/protocol=dash/g, 'protocol=hls');
-      }
       paramsObj['X-Plex-Client-Profile-Extra'] = profileExtra;
     }
 
@@ -119,8 +124,7 @@ class PlexStreamBuilder {
       throw err
     }
 
-    const extension = streamProtocol === 'hls' ? 'm3u8' : 'mpd';
-    return `${serverInfo.uri}/video/:/transcode/universal/start.${extension}?${params.toString()}`
+    return `${serverInfo.uri}/video/:/transcode/universal/start.mpd?${params.toString()}`
   }
 
   /**
