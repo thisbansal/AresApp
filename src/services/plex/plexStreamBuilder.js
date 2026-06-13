@@ -35,19 +35,11 @@ class PlexStreamBuilder {
     let profileExtra = '';
     if (capabilities) {
       const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
-      const hasMediaSource = typeof MediaSource !== 'undefined';
-      const hasManagedMediaSource = typeof window !== 'undefined' && typeof window.ManagedMediaSource !== 'undefined';
-      
-      const checkHevc = (mseClass) => mseClass.isTypeSupported('video/mp4; codecs="hev1"') || mseClass.isTypeSupported('video/mp4; codecs="hvc1"');
-      
-      const isHevcSupported = (hasMediaSource && checkHevc(MediaSource)) || (hasManagedMediaSource && checkHevc(window.ManagedMediaSource));
-
       if (selectedVideo && selectedVideo.supported && (selectedVideo.codec === 'hevc' || selectedVideo.codec === 'h265' || selectedVideo.codec === 'dovi')) {
-        if (isHevcSupported) {
-          profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)';
-        } else {
-          console.log('[plexStreamBuilder] Original video is HEVC, but current browser lacks MSE HEVC support. Falling back to H.264 transcode.');
-        }
+        // We bypass strict MediaSource.isTypeSupported checks here because Safari's implementation is notorious 
+        // for returning false negatives for HEVC MSE. Since selectedVideo.supported (which uses <video>.canPlayType) 
+        // returned true, we trust that the underlying OS can decode it.
+        profileExtra = 'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc,h264)';
       }
 
       // Check if the browser supports AC3/EAC3 (Dolby Digital) natively. WebOS TVs do, Chrome Desktop does not.
