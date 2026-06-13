@@ -6,8 +6,6 @@ export function SubtitleMenu({
   activeMenu, 
   handleStreamSelect, 
   getStreamSupport,
-  forceSubtitleBurnIn,
-  setForceSubtitleBurnIn,
   isSubtitleVisible,
   setIsSubtitleVisible
 }) {
@@ -17,26 +15,6 @@ export function SubtitleMenu({
 
   return (
     <>
-      <FocusableItem
-        id="stream-sub-burnin-toggle"
-        rowIndex={-1} colIndex={0}
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
-        className="hud-stream-menu-item player-hud-stream-menu-item"
-        onClick={() => {
-          const newValue = !forceSubtitleBurnIn
-          setForceSubtitleBurnIn(newValue)
-
-          // Trigger a stream reload with the active streams, but now using the new forceSubtitleBurnIn value
-          const activeSub = availableStreams.find(s => s.streamType === 3 && s.selected)
-
-          setTimeout(() => {
-            handleStreamSelect(3, activeSub ? activeSub.id : 0)
-          }, 100)
-        }}
-      >
-        <div style={{ borderRadius: '4px', backgroundColor: forceSubtitleBurnIn ? '#e50914' : 'transparent'}} className="player-hud-stream-radio" />
-        <span style={{color: forceSubtitleBurnIn ? '#fff' : '#a8a8af', fontWeight: forceSubtitleBurnIn ? '600' : '500', flex: 1}}>Force Burn-in (Transcode)</span>
-      </FocusableItem>
 
       <FocusableItem
         id="stream-sub-toggle"

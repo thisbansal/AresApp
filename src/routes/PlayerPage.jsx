@@ -48,7 +48,6 @@ export default function PlayerPage() {
   const [numberOfStreams, setNumberOfStreams] = useState({ video: 1, audio: 1, subtitles: 0 })
   const [partId, setPartId] = useState(null)
   const [partKey, setPartKey] = useState(null)
-  const [forceSubtitleBurnIn, setForceSubtitleBurnIn] = useState(false)
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
   const [dragTime, setDragTime] = useState(0)
   const [isSubtitleVisible, setIsSubtitleVisible] = useState(true)
@@ -717,11 +716,9 @@ export default function PlayerPage() {
     const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
     setStreamCapabilities(capabilities)
 
-    // Optional manual parameter to force burn in (arguments[7])
     const newStreamUrl = await plexStreamBuilder.getOptimalStreamUrl(
       serverInfo, { id: partId, key: partKey }, ratingKey, capabilities, playbackSessionId, clientSessionId,
-      (videoEl ? videoEl.currentTime * 1000 : 0),
-      forceSubtitleBurnIn
+      (videoEl ? videoEl.currentTime * 1000 : 0)
     )
 
     // Try native HTML5 track switching first (Instant, no reload)
@@ -775,7 +772,7 @@ export default function PlayerPage() {
         playbackSessionId,
         clientSessionId,
         offsetMs,
-        forceSubtitleBurnIn
+        false
       )
 
       // Strip offset and hash to compare if the underlying stream is actually identical
@@ -959,7 +956,7 @@ export default function PlayerPage() {
 
           {showSubtitleHUDControls && (() => {
             const activeSub = availableStreams.find(s => s.streamType === 3 && s.selected)
-            const isSubtitleBurnedIn = forceSubtitleBurnIn || (activeSub && !getStreamSupport(3, activeSub.id)?.supported)
+            const isSubtitleBurnedIn = activeSub && !getStreamSupport(3, activeSub.id)?.supported
             if (isSubtitleBurnedIn) return null;
             
             return (
@@ -1027,8 +1024,6 @@ export default function PlayerPage() {
                   activeMenu={activeMenu}
                   handleStreamSelect={handleStreamSelect}
                   getStreamSupport={getStreamSupport}
-                  forceSubtitleBurnIn={forceSubtitleBurnIn}
-                  setForceSubtitleBurnIn={setForceSubtitleBurnIn}
                   isSubtitleVisible={isSubtitleVisible}
                   setIsSubtitleVisible={setIsSubtitleVisible}
                 />
