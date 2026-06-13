@@ -48,6 +48,7 @@ export default function PlayerPage() {
   const [numberOfStreams, setNumberOfStreams] = useState({ video: 1, audio: 1, subtitles: 0 })
   const [partId, setPartId] = useState(null)
   const [partKey, setPartKey] = useState(null)
+  const [partContainer, setPartContainer] = useState(null)
   const [activeMenu, setActiveMenu] = useState('none') // 'none', 'subtitle', 'audio', 'video'
   const [dragTime, setDragTime] = useState(0)
   const [isSubtitleVisible, setIsSubtitleVisible] = useState(true)
@@ -159,6 +160,14 @@ export default function PlayerPage() {
 
         setPartId(part.id)
         setPartKey(part.key)
+        
+        // Extract the container format to pass to our stream builder.
+        // It's usually on the Part object, or sometimes on the parent Media object.
+        const containerFormat = part.container || metadata.Media?.[0]?.container || metadata.media?.[0]?.container || 'mkv'
+        setPartContainer(containerFormat)
+        
+        // Temporarily mutate part to ensure getOptimalStreamUrl has access to the container on first load
+        part.container = containerFormat
 
         // Ensure at least one stream is selected per type for UI highlighting
         let streams = part.streams || []
@@ -467,7 +476,7 @@ export default function PlayerPage() {
 
         let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
           serverInfo,
-          { key: partKey },
+          { key: partKey, container: partContainer },
           ratingKey,
           mediaCodecService.checkStreamCapabilities(structuredStreams),
           playbackSessionId,
@@ -717,7 +726,7 @@ export default function PlayerPage() {
     setStreamCapabilities(capabilities)
 
     const newStreamUrl = await plexStreamBuilder.getOptimalStreamUrl(
-      serverInfo, { id: partId, key: partKey }, ratingKey, capabilities, playbackSessionId, clientSessionId,
+      serverInfo, { id: partId, key: partKey, container: partContainer }, ratingKey, capabilities, playbackSessionId, clientSessionId,
       (videoEl ? videoEl.currentTime * 1000 : 0)
     )
 
@@ -765,12 +774,7 @@ export default function PlayerPage() {
       // Use global time which correctly accounts for pending wheel seeks and drag states
       const offsetMs = globalTime * 1000
       let newUrl = await plexStreamBuilder.getOptimalStreamUrl(
-        serverInfo,
-        { id: partId, key: partKey },
-        ratingKey,
-        capabilities,
-        playbackSessionId,
-        clientSessionId,
+        serverInfo, { key: partKey, container: partContainer }, ratingKey, capabilities, playbackSessionId, clientSessionId,
         offsetMs,
         false
       )
