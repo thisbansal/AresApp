@@ -168,7 +168,14 @@ class PlexStreamBuilder {
       const imageCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle']
       if (imageCodecs.includes(selectedSubtitle.codec?.toLowerCase())) {
         imageBasedSubtitleSelected = true
-        isForcedBurnIn = true // We MUST burn in image-based subtitles
+        
+        // If we are on WebOS, the native player CAN render PGS from an MKV file directly.
+        // We only force burn-in if we know we are going to be forced into DASH anyway 
+        // (e.g. because the audio needs transcoding).
+        const isWebOSNative = (await getPlatformInfo()).platform === 'webOS' && part?.container === 'mkv';
+        if (!isWebOSNative) {
+          isForcedBurnIn = true // We MUST burn in image-based subtitles for DASH/Browsers
+        }
       }
     }
 
