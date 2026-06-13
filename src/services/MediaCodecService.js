@@ -20,8 +20,8 @@ class MediaCodecService {
             switch (codec) {
                 case 'hevc':
                 case 'h265':
-                    // Generic HEVC profile for testing
-                    return 'video/mp4; codecs="hev1.1.6.L93.B0"';
+                    // Safari highly prefers hvc1 over hev1 for its canPlayType verification
+                    return 'video/mp4; codecs="hvc1"';
                 case 'h264':
                     // Generic H.264 profile for testing
                     return 'video/mp4; codecs="avc1.42E01E"';

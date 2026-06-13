@@ -35,9 +35,12 @@ class PlexStreamBuilder {
     let profileExtra = '';
     if (capabilities) {
       const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
-      const isHevcSupported = typeof MediaSource !== 'undefined' &&
-        (MediaSource.isTypeSupported('video/mp4; codecs="hev1"') ||
-         MediaSource.isTypeSupported('video/mp4; codecs="hvc1"'));
+      const hasMediaSource = typeof MediaSource !== 'undefined';
+      const hasManagedMediaSource = typeof window !== 'undefined' && typeof window.ManagedMediaSource !== 'undefined';
+      
+      const checkHevc = (mseClass) => mseClass.isTypeSupported('video/mp4; codecs="hev1"') || mseClass.isTypeSupported('video/mp4; codecs="hvc1"');
+      
+      const isHevcSupported = (hasMediaSource && checkHevc(MediaSource)) || (hasManagedMediaSource && checkHevc(window.ManagedMediaSource));
 
       if (selectedVideo && selectedVideo.supported && (selectedVideo.codec === 'hevc' || selectedVideo.codec === 'h265' || selectedVideo.codec === 'dovi')) {
         if (isHevcSupported) {
@@ -78,6 +81,7 @@ class PlexStreamBuilder {
       'advancedSubtitles': forceSubtitleBurnIn ? 'burn' : 'text', // Enum: 'burn', 'text', 'unknown'
       'subtitleSize': '100',
       'audioBoost': '100',
+      'videoResolution': '3840x2160', // Prevent Plex from defaulting to 1080p downscaling for 4K media
       'transcodeSessionId': playbackSessionId,
       'offset': offsetSeconds.toString(),
       'copyts': '0',
