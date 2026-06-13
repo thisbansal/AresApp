@@ -54,13 +54,16 @@ class PlexStreamBuilder {
       }
     }
 
+    const isApple = platformInfo.device === 'Mac' || platformInfo.platform === 'Safari' || platformInfo.platform === 'iOS';
+    const streamProtocol = isApple ? 'hls' : 'dash';
+
     // Construct the transcode query parameters
     const paramsObj = {
       'hasMDE': '1',
       'path': metadataPath,
       'mediaIndex': '0',
       'partIndex': '0',
-      'protocol': 'dash',
+      'protocol': streamProtocol,
       'transcodeType': 'video',
       'fastSeek': '1',
       'directPlay': '0',
@@ -88,6 +91,10 @@ class PlexStreamBuilder {
     };
 
     if (profileExtra) {
+      // Replace protocol=dash with protocol=hls in the profile extra if we switched to HLS
+      if (streamProtocol === 'hls') {
+        profileExtra = profileExtra.replace(/protocol=dash/g, 'protocol=hls');
+      }
       paramsObj['X-Plex-Client-Profile-Extra'] = profileExtra;
     }
 
@@ -112,7 +119,8 @@ class PlexStreamBuilder {
       throw err
     }
 
-    return `${serverInfo.uri}/video/:/transcode/universal/start.mpd?${params.toString()}`
+    const extension = streamProtocol === 'hls' ? 'm3u8' : 'mpd';
+    return `${serverInfo.uri}/video/:/transcode/universal/start.${extension}?${params.toString()}`
   }
 
   /**
