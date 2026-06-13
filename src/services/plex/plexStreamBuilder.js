@@ -47,7 +47,7 @@ class PlexStreamBuilder {
           'add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.bitDepth&value=10&replace=true)',
           'append-transcode-target-codec(type=videoProfile&context=streaming&protocol=dash&videoCodec=hevc)',
           'add-limitation(scope=videoTranscodeTarget&scopeName=hevc&scopeType=videoCodec&context=streaming&protocol=dash&type=match&name=video.colorTrc&list=bt709|bt470m|bt470bg|smpte170m|smpte240m|bt2020-10|smpte2084&isRequired=false)',
-          'append-transcode-target-codec(type=videoProfile&context=streaming&videoCodec=hevc,h264&audioCodec=aac&protocol=dash)'
+          'append-transcode-target-codec(type=videoProfile&context=streaming&videoCodec=hevc,h264&audioCodec=aac,ac3,eac3&protocol=dash)'
         ];
         profileExtra = hevcLimits.join('+');
       }
