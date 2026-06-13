@@ -168,14 +168,20 @@ class PlexStreamBuilder {
       }
     }
 
-    // Only force Transcode if we NEED burn-in, OR if an image-based subtitle is selected (which MUST be burned in).
-    // If a text-based subtitle is selected (SRT, ASS), we can extract it on the fly and sideload it, preserving Direct Play!
-    if (videoSupported && audioSupported && !isForcedBurnIn) {
-      console.log('[PlexStreamBuilder] Codecs fully supported and no image-based subtitles selected. Strategy: DIRECT PLAY')
+    const platformInfo = await getPlatformInfo();
+    const isMkv = part?.container === 'mkv';
+    // Currently, only webOS TVs natively support MKV containers reliably.
+    // Desktop browsers (Safari, Chrome) will fail on partial fetches for MKV, requiring a DASH remux.
+    const containerSupported = isMkv ? (platformInfo.platform === 'webOS') : true;
+
+    // Only force Transcode if we NEED burn-in, OR if an image-based subtitle is selected (which MUST be burned in),
+    // OR if the media container itself (like MKV) is unsupported by the current browser.
+    if (videoSupported && audioSupported && containerSupported && !isForcedBurnIn) {
+      console.log('[PlexStreamBuilder] Codecs and container fully supported. Strategy: DIRECT PLAY')
       return this.buildDirectPlayUrl(serverInfo, part.key)
     }
 
-    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, NeedsBurnIn: ${isForcedBurnIn}, ImageSubtitle: ${imageBasedSubtitleSelected})`)
+    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, ContainerSupported: ${containerSupported}, NeedsBurnIn: ${isForcedBurnIn}, ImageSubtitle: ${imageBasedSubtitleSelected})`)
     return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, isForcedBurnIn, capabilities)
   }
 
