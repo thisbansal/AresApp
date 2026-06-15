@@ -184,7 +184,15 @@ class PlexStreamBuilder {
       const imageCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle']
       if (imageCodecs.includes(selectedSubtitle.codec?.toLowerCase())) {
         imageBasedSubtitleSelected = true
-        isForcedBurnIn = true // We MUST burn in image-based subtitles because WebOS HLS and Browsers cannot render them natively
+        
+        const isWebOSNative = isWebOS && isMkv;
+        if (!isWebOSNative) {
+          isForcedBurnIn = true // We MUST burn in image-based subtitles for DASH/Browsers
+        } else {
+          // If we are on WebOS and it's an MKV file, we can Direct Play the PGS track natively!
+          // We DO NOT force burn-in. We will let it Direct Play and trigger the Luna API!
+          isForcedBurnIn = false;
+        }
       }
     }
 
