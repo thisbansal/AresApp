@@ -131,7 +131,7 @@ class MediaCodecService {
         }
 
         if (streamData.subtitles && Array.isArray(streamData.subtitles)) {
-            const isWebOS = typeof window !== 'undefined' && window.webOS;
+            const isWebOS = typeof window !== 'undefined' && (!!window.PalmServiceBridge || /web0s|webos/i.test(navigator.userAgent));
             
             let embeddedIndexCounter = 0;
             

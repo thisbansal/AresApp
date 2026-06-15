@@ -299,8 +299,9 @@ export default function PlayerPage() {
       // Initialize Shaka Player
       shaka.polyfill.installAll()
 
-    const isWebOS = typeof window !== 'undefined' && window.webOS;
-    const isHls = streamUrl.includes('.m3u8');
+    // webOSTV.js is missing, so window.webOS is undefined. Rely on PalmServiceBridge or user agent instead.
+    const isWebOS = typeof window !== 'undefined' && (!!window.PalmServiceBridge || /web0s|webos/i.test(navigator.userAgent));
+    const isHls = streamUrl && streamUrl.includes('.m3u8');
     const useNativePlayer = isWebOS && isHls;
 
     if (shaka.Player.isBrowserSupported() && !useNativePlayer) {
