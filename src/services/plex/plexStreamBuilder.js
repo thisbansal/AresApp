@@ -184,22 +184,13 @@ class PlexStreamBuilder {
       const imageCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle']
       if (imageCodecs.includes(selectedSubtitle.codec?.toLowerCase())) {
         imageBasedSubtitleSelected = true
-        
-        const isWebOSNative = isWebOS && isMkv;
-        if (!isWebOSNative) {
-          isForcedBurnIn = true // We MUST burn in image-based subtitles for DASH/Browsers
-        } else {
-          // If we are on WebOS, MKV Direct Play fails to expose embedded subtitles to the screen.
-          // Therefore, if a PGS subtitle is selected, we must NOT Direct Play. We must fall through
-          // to HLS Direct Stream where Plex muxes the PGS into the .ts chunks!
-        }
+        isForcedBurnIn = true // We MUST burn in image-based subtitles because WebOS HLS and Browsers cannot render them natively
       }
     }
 
     // Currently, only webOS TVs natively support MKV containers reliably.
     // Desktop browsers (Safari, Chrome) will fail on partial fetches for MKV, requiring a DASH remux.
-    // However, if an image-based subtitle is selected on WebOS, we MUST fall through to HLS Direct Stream.
-    const containerSupported = isMkv ? (isWebOS && !imageBasedSubtitleSelected) : true;
+    const containerSupported = isMkv ? isWebOS : true;
 
     // WebOS handles a lot natively, sometimes canPlayType lies about audio and video. 
     // If we want to strictly avoid burn-in for PGS on WebOS, we should prioritize Direct Play 
