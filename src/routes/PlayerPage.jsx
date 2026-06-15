@@ -299,7 +299,11 @@ export default function PlayerPage() {
       // Initialize Shaka Player
       shaka.polyfill.installAll()
 
-    if (shaka.Player.isBrowserSupported()) {
+    const isWebOS = typeof window !== 'undefined' && window.webOS;
+    const isHls = streamUrl.includes('.m3u8');
+    const useNativePlayer = isWebOS && isHls;
+
+    if (shaka.Player.isBrowserSupported() && !useNativePlayer) {
       let initialized = false
       initShaka = async () => {
         if (isCancelled) return
@@ -402,7 +406,7 @@ export default function PlayerPage() {
       }
       videoEl.load() // Trigger the flush
     } else {
-      console.error('[Shaka] Browser not supported!')
+      console.log(useNativePlayer ? '[Native Player] WebOS HLS detected. Bypassing Shaka to use native hardware decoder.' : '[Shaka] Browser not supported! Falling back to native player.');
       // Pure direct play or raw native loading fallback
       videoEl.src = streamUrl
       videoEl.load()
@@ -410,6 +414,26 @@ export default function PlayerPage() {
       const playOnCanPlay = () => {
         if (isCancelled) return;
         videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
+        
+        // Initial load: Tell TV hardware to select the subtitle track if we are Direct Playing MKV
+        if (typeof window !== 'undefined' && videoEl.mediaId) {
+           const selectedSub = availableStreams.find(s => s.streamType === 3 && s.selected);
+           if (selectedSub && selectedSub.index !== undefined && !selectedSub.key) {
+               const payload = JSON.stringify({ "mediaId": videoEl.mediaId, "type": "subtitle", "index": selectedSub.index });
+               console.log(`[PlayerPage] Initial Load: Invoking Luna API selectTrack for index: ${selectedSub.index}`);
+               
+               if (window.webOS && window.webOS.service) {
+                   window.webOS.service.request("luna://com.webos.media", {
+                       method: "selectTrack",
+                       parameters: JSON.parse(payload)
+                   });
+               } else if (window.PalmServiceBridge) {
+                   const bridge = new window.PalmServiceBridge();
+                   bridge.call("luna://com.webos.media/selectTrack", payload);
+               }
+           }
+        }
+        
         videoEl.removeEventListener('canplay', playOnCanPlay)
       }
       videoEl.addEventListener('canplay', playOnCanPlay)
@@ -798,7 +822,53 @@ export default function PlayerPage() {
       // we can skip the hard restart and let the Sidecar engine handle it seamlessly.
       // But if we switched AUDIO (streamType === 2), we MUST restart the transcoder to get the new audio track!
       if (coreNewUrl === coreOldUrl && streamType === 3) {
-        console.log('[PlayerPage] Video stream URL unchanged. Skipping hard restart for seamless Sidecar subtitle toggle.');
+        console.log('[PlayerPage] Video stream URL unchanged. Seamlessly switching subtitle track natively.');
+        
+        // If we are on WebOS and we are Direct Playing an MKV, we MUST tell the TV's native media player 
+        // to switch the embedded subtitle track using the internal Luna API!
+        const videoEl = videoRef.current || document.querySelector('video');
+        
+        console.log(`[PlayerPage] Debugging Luna API Injection:`);
+        console.log(`- window.webOS exists:`, typeof window !== 'undefined' && !!window.webOS);
+        console.log(`- window.PalmServiceBridge exists:`, typeof window !== 'undefined' && !!window.PalmServiceBridge);
+        console.log(`- videoEl exists:`, !!videoEl);
+        console.log(`- videoEl.mediaId:`, videoEl ? videoEl.mediaId : 'N/A');
+        
+        if (typeof window !== 'undefined' && videoEl && videoEl.mediaId) {
+          const targetSubtitle = capabilities.subtitles.find(s => s.id === streamId);
+          console.log(`- targetSubtitle:`, targetSubtitle);
+          
+          // Only fire if the subtitle is embedded (has an index inside the MKV container)
+          if (targetSubtitle && targetSubtitle.index !== undefined) {
+             const payload = JSON.stringify({
+                 "mediaId": videoEl.mediaId,
+                 "type": "subtitle",
+                 "index": targetSubtitle.index
+             });
+             
+             console.log(`[PlayerPage] Invoking Luna API selectTrack for mediaId: ${videoEl.mediaId}, index: ${targetSubtitle.index}`);
+             
+             if (window.webOS && window.webOS.service) {
+                 window.webOS.service.request("luna://com.webos.media", {
+                     method: "selectTrack",
+                     parameters: JSON.parse(payload),
+                     onSuccess: function (args) { console.log("[PlayerPage] Subtitle track selected natively via webOS API:", args); },
+                     onFailure: function (args) { console.error("[PlayerPage] Failed to select subtitle track via webOS API:", args); }
+                 });
+             } else if (window.PalmServiceBridge) {
+                 const bridge = new window.PalmServiceBridge();
+                 bridge.onservicecallback = function(msg) {
+                     console.log("[PlayerPage] Subtitle track selected natively via PalmServiceBridge:", msg);
+                 };
+                 bridge.call("luna://com.webos.media/selectTrack", payload);
+             } else {
+                 console.log("[PlayerPage] NO NATIVE BRIDGE AVAILABLE TO SEND LUNA API CALL!");
+             }
+          }
+        } else {
+          console.log(`[PlayerPage] Cannot invoke Luna API. videoEl or mediaId is missing.`);
+        }
+        
         // Don't even pause the video. Just return.
         return;
       }

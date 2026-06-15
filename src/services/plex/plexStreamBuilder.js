@@ -64,7 +64,7 @@ class PlexStreamBuilder {
       }
     }
 
-    const streamProtocol = 'dash';
+    const streamProtocol = isWebOS ? 'hls' : 'dash';
 
     // Construct the transcode query parameters
     const paramsObj = {
@@ -99,6 +99,13 @@ class PlexStreamBuilder {
       'X-Plex-Product': PLEX_CONFIG.product
     };
 
+    if (isWebOS) {
+      // For WebOS, strictly mimic the official app's profile extras to enable native PGS multiplexing into the HLS stream
+      const officialAppExtra = 'add-transcode-target(type=videoProfile&context=all&protocol=hls&container=mpegts&videoCodec=h264,hevc,mpeg2video,mpeg4&audioCodec=aac,ac3,eac3,mp2,mp3)+add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=pgs&container=mkv)+add-transcode-target-settings(type=videoProfile&context=all&protocol=hls&ForceZeroByteEmptySegment=true)';
+      profileExtra = profileExtra ? `${profileExtra}+${officialAppExtra}` : officialAppExtra;
+      paramsObj['X-Plex-Client-Profile-Name'] = 'Generic';
+    }
+
     if (profileExtra) {
       paramsObj['X-Plex-Client-Profile-Extra'] = profileExtra;
     }
@@ -124,7 +131,11 @@ class PlexStreamBuilder {
       throw err
     }
 
-    return `${serverInfo.uri}/video/:/transcode/universal/start.mpd?${params.toString()}`
+    if (streamProtocol === 'hls') {
+       return `${serverInfo.uri}/video/:/transcode/universal/start.m3u8?${params.toString()}`
+    } else {
+       return `${serverInfo.uri}/video/:/transcode/universal/start.mpd?${params.toString()}`
+    }
   }
 
   /**
@@ -164,35 +175,45 @@ class PlexStreamBuilder {
     let imageBasedSubtitleSelected = false
     let isForcedBurnIn = needsBurnIn
 
+    const platformInfo = await getPlatformInfo();
+    const isWebOS = platformInfo.platform === 'webOS';
+    const isMkv = part?.container?.toLowerCase() === 'mkv';
+
     if (selectedSubtitle) {
       const imageCodecs = ['pgs', 'vobsub', 'dvb_subtitle', 'dvd_subtitle']
       if (imageCodecs.includes(selectedSubtitle.codec?.toLowerCase())) {
         imageBasedSubtitleSelected = true
         
-        // If we are on WebOS, the native player CAN render PGS from an MKV file directly.
-        // We only force burn-in if we know we are going to be forced into DASH anyway 
-        // (e.g. because the audio needs transcoding).
-        const isWebOSNative = (await getPlatformInfo()).platform === 'webOS' && part?.container === 'mkv';
+        const isWebOSNative = isWebOS && isMkv;
         if (!isWebOSNative) {
           isForcedBurnIn = true // We MUST burn in image-based subtitles for DASH/Browsers
+        } else {
+          // If we are on WebOS, MKV Direct Play fails to expose embedded subtitles to the screen.
+          // Therefore, if a PGS subtitle is selected, we must NOT Direct Play. We must fall through
+          // to HLS Direct Stream where Plex muxes the PGS into the .ts chunks!
         }
       }
     }
 
-    const platformInfo = await getPlatformInfo();
-    const isMkv = part?.container === 'mkv';
     // Currently, only webOS TVs natively support MKV containers reliably.
     // Desktop browsers (Safari, Chrome) will fail on partial fetches for MKV, requiring a DASH remux.
-    const containerSupported = isMkv ? (platformInfo.platform === 'webOS') : true;
+    // However, if an image-based subtitle is selected on WebOS, we MUST fall through to HLS Direct Stream.
+    const containerSupported = isMkv ? (isWebOS && !imageBasedSubtitleSelected) : true;
+
+    // WebOS handles a lot natively, sometimes canPlayType lies about audio and video. 
+    // If we want to strictly avoid burn-in for PGS on WebOS, we should prioritize Direct Play 
+    // as long as we're on WebOS (it handles MKV, HEVC, AC3 natively).
+    const audioIsActuallySupported = isWebOS ? true : audioSupported;
+    const videoIsActuallySupported = isWebOS ? true : videoSupported;
 
     // Only force Transcode if we NEED burn-in, OR if an image-based subtitle is selected (which MUST be burned in),
     // OR if the media container itself (like MKV) is unsupported by the current browser.
-    if (videoSupported && audioSupported && containerSupported && !isForcedBurnIn) {
+    if (videoIsActuallySupported && audioIsActuallySupported && containerSupported && !isForcedBurnIn) {
       console.log('[PlexStreamBuilder] Codecs and container fully supported. Strategy: DIRECT PLAY')
       return this.buildDirectPlayUrl(serverInfo, part.key)
     }
 
-    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, ContainerSupported: ${containerSupported}, NeedsBurnIn: ${isForcedBurnIn}, ImageSubtitle: ${imageBasedSubtitleSelected})`)
+    console.log(`[PlexStreamBuilder] Strategy: TRANSCODE (VideoSupported: ${videoSupported}, AudioSupported: ${audioSupported}, AudioActuallySupported: ${audioIsActuallySupported}, ContainerSupported: ${containerSupported}, NeedsBurnIn: ${isForcedBurnIn}, ImageSubtitle: ${imageBasedSubtitleSelected})`)
     return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, isForcedBurnIn, capabilities)
   }
 

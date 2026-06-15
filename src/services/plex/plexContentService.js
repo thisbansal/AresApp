@@ -188,6 +188,8 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
         key: p.key,
         streams: p.Stream?.map(s => ({
           id: s.id,
+          index: s.index,
+          key: s.key,
           streamType: s.streamType,
           codec: s.codec,
           language: s.language,

@@ -131,19 +131,37 @@ class MediaCodecService {
         }
 
         if (streamData.subtitles && Array.isArray(streamData.subtitles)) {
+            const isWebOS = typeof window !== 'undefined' && window.webOS;
+            
+            let embeddedIndexCounter = 0;
+            
             streamData.subtitles.forEach(s => {
                 // Determine if subtitle is text-based (natively renderable via track/HLS) or image-based (requires burn-in)
                 const codec = (s.codec || '').toLowerCase();
                 const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa', 'mov_text', 'tx3g'].includes(codec);
 
                 // Plex ONLY provides a 'key' property if the subtitle is an external sidecar file.
-                // If there is no key, it is embedded inside the MKV container, which means we CANNOT
-                // fetch it cleanly via /library/streams/. Therefore, it must be transcoded!
                 const isExternal = !!s.key;
-                const isSupported = isTextBased && isExternal;
+                let isSupported = isTextBased && isExternal;
+                
+                // If we are on WebOS, the native player can demux embedded subtitles (both text and image) directly from the MKV container.
+                if (isWebOS && !isExternal) {
+                    isSupported = true;
+                }
+                
+                // WebOS selectTrack requires a 0-based relative index for the embedded tracks.
+                // If Plex doesn't provide an index, we infer it by counting the embedded tracks sequentially.
+                let trackIndex = s.index;
+                if (!isExternal) {
+                    if (trackIndex === undefined) {
+                        trackIndex = embeddedIndexCounter;
+                    }
+                    embeddedIndexCounter++;
+                }
 
                 results.subtitles.push({
                     id: s.id,
+                    index: trackIndex,
                     codec: s.codec,
                     isTextBased,
                     isExternal,
@@ -154,7 +172,7 @@ class MediaCodecService {
 
                 const logMessage = `Subtitle [${s.codec}] - ${s.extendedDisplayTitle || s.displayTitle || s.language}`;
                 if (isSupported) {
-                    console.log(`✅ SUPPORTED: ${logMessage} (Format: Text, External)`);
+                    console.log(`✅ SUPPORTED: ${logMessage} (Format: ${isTextBased ? 'Text' : 'Image'}, External: ${isExternal})`);
                 } else {
                     console.error(`❌ NOT SUPPORTED (Requires Burn-in): ${logMessage} (Format: ${isTextBased ? 'Text' : 'Image'}, External: ${isExternal})`);
                 }

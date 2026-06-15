@@ -24,7 +24,13 @@ export async function getPlatformInfo() {
       });
     } else {
       // Basic fallback for development/browser testing
-      if (ua.includes('Mac OS')) {
+      if (ua.includes('Web0S') || ua.toLowerCase().includes('webos')) {
+        cachedInfo = {
+          platform: 'webOS',
+          device: 'webOS TV',
+          version: fallbackInfo.version
+        };
+      } else if (ua.includes('Mac OS')) {
         cachedInfo = { ...fallbackInfo, device: 'Mac' };
       } else if (ua.includes('Windows')) {
         cachedInfo = { ...fallbackInfo, device: 'Windows' };
