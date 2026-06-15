@@ -25,6 +25,7 @@ class PlexStreamBuilder {
    */
   async buildTranscodeUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, offset = 0, forceSubtitleBurnIn = false, capabilities = null) {
     const platformInfo = await getPlatformInfo();
+    const isWebOS = platformInfo.platform === 'webOS';
 
     // Convert offset from milliseconds to seconds if greater than 0
     const offsetSeconds = offset > 0 ? Math.floor(offset / 1000) : 0
