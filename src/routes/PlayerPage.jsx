@@ -34,6 +34,7 @@ export default function PlayerPage() {
   const navigate = useNavigate()
 
   const videoRef = useRef(null)
+  const pgsCanvasRef = useRef(null)
   const subtitleOverlayRef = useRef(null)
   const shakaRef = useRef(null)
   const shakaDestroyPromiseRef = useRef(Promise.resolve())
@@ -126,7 +127,13 @@ export default function PlayerPage() {
       );
       
       console.log('[PlayerPage] Spawning PgsCanvasEngine for sidecar stream with session ID:', playbackSessionId);
-      const engine = new PgsCanvasEngine(videoRef.current);
+      
+      const isDash = streamUrl && streamUrl.includes('protocol=dash');
+      const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
+      // If DASH, video.currentTime starts at 0, so subtract start time from absolute MKV subtitle timestamps
+      const timeOffsetMs = isDash ? (startSeconds * 1000) : 0;
+      
+      const engine = new PgsCanvasEngine(videoRef.current, pgsCanvasRef.current, timeOffsetMs);
       pgsCanvasEngineRef.current = engine;
       
       // Ping the DASH sidecar endpoint to initialize the transcoder, then start fetching HTTP
@@ -1037,6 +1044,7 @@ export default function PlayerPage() {
           crossOrigin="anonymous"
           style={styles.video}
         />
+        <canvas ref={pgsCanvasRef} className="pgs-canvas-layer" />
       </div>
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}
@@ -1122,13 +1130,12 @@ export default function PlayerPage() {
                   const nextIndex = (currentIndex + 1) % sizes.length
                   const newSize = sizes[nextIndex]
                   setSubtitleSize(newSize)
-                  setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                    showUnwatchedIndicator,
-                    subtitleColor,
-                    subtitleSize: newSize,
-
-                    showSubtitleHUDControls
-                  })
+                  // setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                  //   showUnwatchedIndicator,
+                  //   subtitleColor,
+                  //   subtitleSize: newSize,
+                  //   showSubtitleHUDControls
+                  // })
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1148,13 +1155,12 @@ export default function PlayerPage() {
                   const nextIndex = (currentIndex + 1) % colors.length
                   const newColor = colors[nextIndex]
                   setSubtitleColor(newColor)
-                  setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                    showUnwatchedIndicator,
-                    subtitleColor: newColor,
-                    subtitleSize,
-
-                    showSubtitleHUDControls
-                  })
+                  // setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
+                  //   showUnwatchedIndicator,
+                  //   subtitleColor: newColor,
+                  //   subtitleSize,
+                  //   showSubtitleHUDControls
+                  // })
                 }}
               >
                 <div style={{ width: '100%', height: '100%', borderRadius: '50%', backgroundColor: subtitleColor || '#AAAAAA' }}>

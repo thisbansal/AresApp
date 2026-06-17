@@ -406,7 +406,7 @@ class PlexStreamBuilder {
       'directStream': '1',
       'directStreamAudio': '1',
       'protocol': isDecision ? 'hls' : 'http',
-      'fastSeek': '1',
+      'fastSeek': '0',
       'path': metadataPath,
       'session': playbackSessionId,
       'mediaIndex': '0',

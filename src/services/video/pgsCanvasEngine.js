@@ -1,21 +1,58 @@
-import mkvdemuxjs from 'mkvdemuxjs';
-import { FastMkvDemuxer } from './fastMkvDemuxer';
+import { TinyDemuxer } from './tinyDemuxer';
 import { PgsRenderer } from 'libpgs';
 import workerUrl from 'libpgs/dist/libpgs.worker.js?url';
+import { createDebugOverlay } from './debugOverlay';
 
 export class PgsCanvasEngine {
-  constructor(videoElement, canvasElement) {
+  constructor(videoElement, canvasElement, timeOffsetMs = 0) {
     this.videoElement = videoElement;
     this.canvasElement = canvasElement;
+    if (this.canvasElement) {
+        this.canvasElement.style.position = 'absolute';
+        this.canvasElement.style.top = '0';
+        this.canvasElement.style.left = '0';
+        this.canvasElement.style.width = '100%';
+        this.canvasElement.style.height = '100%';
+        this.canvasElement.style.pointerEvents = 'none';
+        this.canvasElement.style.zIndex = '999999';
+    }
+    
+    this.timeOffsetMs = timeOffsetMs;
     this.pgsRenderer = null;
     this.demuxer = null;
     this.isDisposed = false;
     this.abortController = new AbortController();
     this.chunks = [];
     this.totalBytes = 0;
+    this.lastRenderedBytes = 0;
+    
+    this.lastUrl = null;
+    this.lastDecisionUrl = null;
+    
+    this.handleSeek = this.handleSeek.bind(this);
+    if (this.videoElement) {
+        this.videoElement.addEventListener('seeked', this.handleSeek);
+    }
+
+    // Diagnostic logging
+    this.debugInterval = setInterval(() => {
+        if (!this.isDisposed && this.videoElement) {
+            const overlay = createDebugOverlay(this.videoElement);
+            const firstFrameTs = this.demuxer ? this.demuxer.firstFrameTs : 'N/A';
+            const msg = `PGS DIAGNOSTIC\nVideo Time: ${this.videoElement.currentTime.toFixed(3)}s\nSubtitle Offset: ${this.timeOffsetMs / 1000}s\nLoaded Subtitle Bytes: ${this.totalBytes}\nFirst Frame TS: ${firstFrameTs !== null ? (firstFrameTs/1000).toFixed(3) + 's' : 'N/A'}`;
+            overlay.innerText = msg;
+            console.log(`[PgsCanvasEngine] DIAGNOSTIC: video.currentTime = ${this.videoElement.currentTime}s, timeOffsetMs = ${this.timeOffsetMs}, totalBytes = ${this.totalBytes}`);
+        }
+    }, 1000);
   }
 
   async loadStream(url, decisionUrl = null) {
+    this.lastUrl = url;
+    this.lastDecisionUrl = decisionUrl;
+    
+    this.abortController = new AbortController();
+    this.demuxer = new TinyDemuxer();
+    
     const extractHeaders = (urlStr) => {
       const urlObj = new URL(urlStr);
       const headers = { 'Accept': '*/*' };
@@ -62,7 +99,7 @@ export class PgsCanvasEngine {
         throw new Error(`Failed to fetch sidecar stream. Status: ${response.status}`);
       }
 
-      this.demuxer = new FastMkvDemuxer();
+      this.demuxer = new TinyDemuxer();
       const reader = response.body.getReader();
 
       let chunksRead = 0;
@@ -76,10 +113,7 @@ export class PgsCanvasEngine {
 
         chunksRead++;
         console.log(`[PgsCanvasEngine] Received chunk #${chunksRead} of size ${value.byteLength} bytes`);
-        if (chunksRead > 20) {
-          console.log('[PgsCanvasEngine] Reached 20 chunk hard limit. Stopping fetch to test backpressure.');
-          break;
-        }
+
 
         if (this.isDisposed) break;
 
@@ -89,18 +123,52 @@ export class PgsCanvasEngine {
           console.log('[PgsCanvasEngine] First 100 bytes of stream:', str);
         }
 
-        // Feed chunks to mkvdemuxjs (slice to ensure exact buffer length is pushed)
-        const exactBuffer = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
-        this.demuxer.push(exactBuffer);
-        
         try {
+          this.demuxer.push(value);
           const frames = this.demuxer.demux();
-          if (frames && frames.length > 0) {
-            console.log(`[PgsCanvasEngine] Extracted ${frames.length} PGS frames from chunk.`);
-            for (const frame of frames) {
-              this.chunks.push(frame);
-              this.totalBytes += frame.byteLength;
-            }
+          let addedFrames = 0;
+          for (const frame of frames) {
+              const frameData = frame.data;
+              // Subtitle timestamps are absolute, but video.currentTime might start from 0 if DASH
+              // We must offset the subtitle PTS so it perfectly matches video.currentTime
+              const adjustedTsMs = frame.ts - this.timeOffsetMs;
+              const pts = adjustedTsMs * 90; // Convert ms to 90kHz ticks
+              
+              // FrameData contains one or more PGS segments: [Type (1)][Size (2)][Payload (Size)]
+              // We must prefix EACH segment with the 10-byte PES header (0x50 0x47 + PTS + DTS)
+              let i = 0;
+              while (i < frameData.length) {
+                if (i + 3 > frameData.length) break;
+                const type = frameData[i];
+                const size = (frameData[i+1] << 8) | frameData[i+2];
+                if (i + 3 + size > frameData.length) break;
+                
+                const header = new Uint8Array(10);
+                header[0] = 0x50; // 'P'
+                header[1] = 0x47; // 'G'
+                header[2] = (pts >>> 24) & 0xFF;
+                header[3] = (pts >>> 16) & 0xFF;
+                header[4] = (pts >>> 8) & 0xFF;
+                header[5] = pts & 0xFF;
+                header[6] = header[2]; // DTS = PTS
+                header[7] = header[3];
+                header[8] = header[4];
+                header[9] = header[5];
+                
+                this.chunks.push(header);
+                this.chunks.push(frameData.subarray(i, i + 3 + size));
+                
+                this.totalBytes += 10 + 3 + size;
+                i += 3 + size;
+              }
+              
+              addedFrames++;
+              console.log(`[PgsCanvasEngine] Pushed synthesized PGS frame of size ${frameData.byteLength} bytes at ${frame.ts}ms`);
+          }
+          
+          // Feed the renderer incrementally as new frames arrive
+          if (addedFrames > 0 && this.totalBytes > this.lastRenderedBytes) {
+             this._feedRenderer();
           }
         } catch (demuxErr) {
           console.error('[PgsCanvasEngine] Fatal Demuxing error:', demuxErr);
@@ -108,8 +176,7 @@ export class PgsCanvasEngine {
         }
       }
       
-      // Once done, combine all extracted blocks to form a pure .sup buffer
-      this._initializeRenderer();
+      console.log('[PgsCanvasEngine] Stream processing loop ended.');
 
     } catch (e) {
       if (e.name === 'AbortError') {
@@ -120,10 +187,9 @@ export class PgsCanvasEngine {
     }
   }
 
-  _initializeRenderer() {
-    if (this.isDisposed || this.chunks.length === 0) return;
-
-    console.log(`[PgsCanvasEngine] Combining ${this.chunks.length} extracted PGS chunks (${this.totalBytes} bytes)...`);
+  async _feedRenderer() {
+    if (!this.chunks.length) return;
+    
     const mergedArray = new Uint8Array(this.totalBytes);
     let offset = 0;
     for (const chunk of this.chunks) {
@@ -131,23 +197,40 @@ export class PgsCanvasEngine {
       offset += chunk.byteLength;
     }
 
-    console.log('[PgsCanvasEngine] Initializing libpgs PgsRenderer...');
-    this.pgsRenderer = new PgsRenderer({
-      workerUrl: workerUrl,
-      video: this.videoElement,
-      canvas: this.canvasElement
-    });
+    if (!this.pgsRenderer) {
+      console.log('[PgsCanvasEngine] Initializing libpgs PgsRenderer...');
+      this.pgsRenderer = new PgsRenderer({
+        workerUrl: workerUrl,
+        video: this.videoElement,
+        canvas: this.canvasElement,
+        mode: 'mainThread' // PgsRendererMode.mainThread (avoids Worker buffer cloning OOM)
+      });
+    }
 
+    // Feed the accumulated `.sup` buffer to the renderer worker
     this.pgsRenderer.loadFromBuffer(mergedArray.buffer);
-    console.log('[PgsCanvasEngine] PgsRenderer initialized and buffer loaded successfully.');
-    
-    // Clear chunks to save memory
-    this.chunks = [];
+    this.lastRenderedBytes = this.totalBytes;
+    console.log(`[PgsCanvasEngine] PgsRenderer buffer updated with ${this.totalBytes} bytes.`);    
+  }
+
+  handleSeek() {
+      console.log(`[PgsCanvasEngine] Seek detected! Leaving subtitle stream running in background.`);
   }
 
   dispose() {
     this.isDisposed = true;
-    this.abortController.abort();
+    if (this.debugInterval) {
+        clearInterval(this.debugInterval);
+        this.debugInterval = null;
+    }
+    const overlay = document.getElementById('pgs-debug-overlay');
+    if (overlay) overlay.remove();
+    if (this.abortController) {
+        this.abortController.abort();
+    }
+    if (this.videoElement) {
+        this.videoElement.removeEventListener('seeked', this.handleSeek);
+    }
     
     if (this.pgsRenderer) {
       this.pgsRenderer.dispose();
