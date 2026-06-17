@@ -326,7 +326,7 @@ class PlexStreamBuilder {
       subtitleSize: 100,
       audioBoost: 100,
       location: 'lan',
-      session: clientSessionId,
+      session: playbackSessionId,
       subtitles: 'sidecar',
       'X-Plex-Session-Identifier': clientSessionId,
       'X-Plex-Incomplete-Segments': 1,
@@ -557,8 +557,7 @@ class PlexStreamBuilder {
       'X-Plex-Product': PLEX_CONFIG.product,
       'X-Plex-Platform': 'webOS',
       'X-Plex-Session-Id': clientSessionId,
-      'X-Plex-Client-Profile-Name': 'Generic',
-      'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=srt&container=srt)'
+      'X-Plex-Client-Profile-Name': 'Generic'
     };
   }
 

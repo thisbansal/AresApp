@@ -200,8 +200,7 @@ export function usePlaybackProgress({ serverInfo, ratingKey, playQueueItemID, st
         // Build direct URL with token for high-priority fetch keepalive
         const separator = activeServer.uri.includes('?') ? '&' : '?'
         const metadataKey = encodeURIComponent(`/library/metadata/${activeKey}`)
-        const url = `${activeServer.uri}/:/timeline${separator}ratingKey=${activeKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${timeMs}&duration=${durationMs}&state=stopped&playQueueItemID=${activePlayQueueItemID}&X-Plex-Token=${activeServer.token}&X-Plex-Client-Identifier=${PLEX_CONFIG.clientId}&X-Plex-Session-Id=${clientSessionId}&X-Plex-Playback-Session-Id=${playbackSessionId}`
-        
+        const url = `${activeServer.uri}/:/timeline${separator}ratingKey=${activeKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${timeMs}&duration=${durationMs}&state=stopped&playQueueItemID=${activePlayQueueItemID}&X-Plex-Token=${activeServer.token}&X-Plex-Client-Identifier=${PLEX_CONFIG.clientId}&X-Plex-Session-Id=${clientSessionId}&X-Plex-Playback-Session-Id=${playbackSessionId}&X-Plex-Playback-Id=${playbackSessionId}`
         if (navigator.sendBeacon) {
           navigator.sendBeacon(url)
         } else {
