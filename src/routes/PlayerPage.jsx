@@ -680,10 +680,9 @@ export default function PlayerPage() {
       console.log('[Native Subtitles] DASH Stream detected. Using in-band subtitle parser (no sidecar).')
       subtitleManager.start()
     } else {
-      // Create a completely isolated session UUID for the Sidecar Transcoder.
-      // This prevents Plex from throwing '400 Bad Request' (Session already exists)
-      // if the user rapidly toggles the subtitles off and on.
-      activeSidecarSessionId = `${playbackSessionId}-sub-${Date.now()}`;
+      // Use the exact same session UUID for the Sidecar Transcoder.
+      // This allows the Plex Server Dashboard to correctly merge the subtitle stream with the video stream in the Activity UI.
+      activeSidecarSessionId = playbackSessionId;
 
       const sidecarUrl = plexStreamBuilder.buildOfficialSidecarUrl(
         serverInfo,

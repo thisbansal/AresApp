@@ -61,7 +61,7 @@ export const updatePlaybackProgress = async (serverUrl, token, ratingKey, playQu
 
     // Call the Plex /:/timeline endpoint
     const metadataKey = encodeURIComponent(`/library/metadata/${ratingKey}`)
-    let url = `/:/timeline?ratingKey=${ratingKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${Math.floor(timeMs)}&duration=${Math.floor(durationMs)}&state=${state}&playQueueItemID=${playQueueItemID}`
+    let url = `/:/timeline?ratingKey=${ratingKey}&key=${metadataKey}&identifier=com.plexapp.plugins.library&time=${Math.floor(timeMs)}&duration=${Math.floor(durationMs)}&state=${state}&playQueueItemID=${playQueueItemID}&hasMDE=1`
     if (playbackSessionId) url += `&X-Plex-Playback-Session-Id=${playbackSessionId}`
     if (clientSessionId) url += `&X-Plex-Session-Id=${clientSessionId}`
 

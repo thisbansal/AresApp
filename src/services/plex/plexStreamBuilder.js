@@ -461,6 +461,10 @@ class PlexStreamBuilder {
       console.log(`[PlexStreamBuilder] Pinging Sidecar Decision endpoint...`);
       const response = await fetch(decisionUrl, { headers });
       if (!response.ok) {
+        if (response.status === 400) {
+          console.warn(`[PlexStreamBuilder] Sidecar Decision returned 400 Bad Request. Session already exists! Proceeding.`);
+          return true;
+        }
         console.error(`[PlexStreamBuilder] Sidecar Decision failed: ${response.status}`);
         return false;
       }
@@ -481,6 +485,10 @@ class PlexStreamBuilder {
       console.log(`[PlexStreamBuilder] Pinging PGS Sidecar Decision endpoint...`);
       const response = await fetch(decisionUrl, { headers });
       if (!response.ok) {
+        if (response.status === 400) {
+          console.warn(`[PlexStreamBuilder] PGS Sidecar Decision returned 400 Bad Request. Session already exists! Proceeding.`);
+          return true;
+        }
         console.error(`[PlexStreamBuilder] PGS Sidecar Decision failed: ${response.status}`);
         return null;
       }
