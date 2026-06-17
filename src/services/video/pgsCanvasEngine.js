@@ -1,7 +1,7 @@
 import { TinyDemuxer } from './tinyDemuxer';
 import { PgsRenderer } from 'libpgs';
 import workerUrl from 'libpgs/dist/libpgs.worker.js?url';
-import { createDebugOverlay } from './debugOverlay';
+
 
 export class PgsCanvasEngine {
   constructor(videoElement, canvasElement, timeOffsetMs = 0) {
@@ -33,17 +33,6 @@ export class PgsCanvasEngine {
     if (this.videoElement) {
         this.videoElement.addEventListener('seeked', this.handleSeek);
     }
-
-    // Diagnostic logging
-    this.debugInterval = setInterval(() => {
-        if (!this.isDisposed && this.videoElement) {
-            const overlay = createDebugOverlay(this.videoElement);
-            const firstFrameTs = this.demuxer ? this.demuxer.firstFrameTs : 'N/A';
-            const msg = `PGS DIAGNOSTIC\nVideo Time: ${this.videoElement.currentTime.toFixed(3)}s\nSubtitle Offset: ${this.timeOffsetMs / 1000}s\nLoaded Subtitle Bytes: ${this.totalBytes}\nFirst Frame TS: ${firstFrameTs !== null ? (firstFrameTs/1000).toFixed(3) + 's' : 'N/A'}`;
-            overlay.innerText = msg;
-            console.log(`[PgsCanvasEngine] DIAGNOSTIC: video.currentTime = ${this.videoElement.currentTime}s, timeOffsetMs = ${this.timeOffsetMs}, totalBytes = ${this.totalBytes}`);
-        }
-    }, 1000);
   }
 
   async loadStream(url, decisionUrl = null) {
@@ -220,7 +209,6 @@ export class PgsCanvasEngine {
   dispose() {
     this.isDisposed = true;
     if (this.debugInterval) {
-        clearInterval(this.debugInterval);
         this.debugInterval = null;
     }
     const overlay = document.getElementById('pgs-debug-overlay');
