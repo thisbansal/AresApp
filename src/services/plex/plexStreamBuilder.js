@@ -65,7 +65,7 @@ class PlexStreamBuilder {
       }
     }
 
-    const streamProtocol = isWebOS ? 'hls' : 'dash';
+    const streamProtocol = 'dash';
 
     // Construct the transcode query parameters
     const paramsObj = {
@@ -87,6 +87,7 @@ class PlexStreamBuilder {
       'subtitleSize': '100',
       'audioBoost': '100',
       'videoResolution': '3840x2160', // Prevent Plex from defaulting to 1080p downscaling for 4K media
+      'session': playbackSessionId,
       'transcodeSessionId': playbackSessionId,
       'offset': offsetSeconds.toString(),
       'copyts': '0',
@@ -100,11 +101,9 @@ class PlexStreamBuilder {
       'X-Plex-Product': PLEX_CONFIG.product
     };
 
+    // Generic profile is no longer needed since we are using DASH and external sidecars
     if (isWebOS) {
-      // For WebOS, strictly mimic the official app's profile extras to enable native PGS multiplexing into the HLS stream
-      const officialAppExtra = 'add-transcode-target(type=videoProfile&context=all&protocol=hls&container=mpegts&videoCodec=h264,hevc,mpeg2video,mpeg4&audioCodec=aac,ac3,eac3,mp2,mp3)+add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=pgs&container=mkv)+add-transcode-target-settings(type=videoProfile&context=all&protocol=hls&ForceZeroByteEmptySegment=true)';
-      profileExtra = profileExtra ? `${profileExtra}+${officialAppExtra}` : officialAppExtra;
-      paramsObj['X-Plex-Client-Profile-Name'] = 'Generic';
+      // Intentionally left blank or removed
     }
 
     if (profileExtra) {
@@ -203,7 +202,7 @@ class PlexStreamBuilder {
     // WebOS handles a lot natively, sometimes canPlayType lies about audio and video. 
     // If we want to strictly avoid burn-in for PGS on WebOS, we should prioritize Direct Play 
     // as long as we're on WebOS (it handles MKV, HEVC, AC3 natively).
-    const audioIsActuallySupported = isWebOS ? true : audioSupported;
+    const audioIsActuallySupported = audioSupported;
     const videoIsActuallySupported = isWebOS ? true : videoSupported;
 
     // Only force Transcode if we NEED burn-in, OR if an image-based subtitle is selected (which MUST be burned in),
@@ -304,10 +303,31 @@ class PlexStreamBuilder {
     }
   }
 
-  buildPgsDecisionUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities) {
+  buildMainDecisionUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities) {
     if (!serverInfo || !partKey) return null;
 
     const fullPath = ratingKey.startsWith('/library/metadata') ? ratingKey : `/library/metadata/${ratingKey}`;
+
+    // Dynamically inject the correct subtitle profile based on the selected subtitle stream
+    let subtitleCodec = 'pgs';
+    let subtitleContainer = 'mkv';
+    
+    if (capabilities && capabilities.subtitles) {
+      const selectedSub = capabilities.subtitles.find(s => s.selected && s.id !== 0);
+      if (selectedSub) {
+        const rawCodec = (selectedSub.codec || '').toLowerCase();
+        if (['srt', 'subrip'].includes(rawCodec)) {
+          subtitleCodec = 'srt';
+          subtitleContainer = 'srt';
+        } else if (['vtt', 'webvtt'].includes(rawCodec)) {
+          subtitleCodec = 'vtt';
+          subtitleContainer = 'vtt';
+        } else if (['ass', 'ssa'].includes(rawCodec)) {
+          subtitleCodec = 'ass';
+          subtitleContainer = 'ass';
+        }
+      }
+    }
 
     const paramsObj = {
       hasMDE: 1,
@@ -346,7 +366,7 @@ class PlexStreamBuilder {
       'X-Plex-Session-Id': clientSessionId,
       'X-Plex-Playback-Session-Id': playbackSessionId,
       'X-Plex-Playback-Id': playbackSessionId,
-      'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=videoProfile&context=all&protocol=hls&container=mpegts&videoCodec=h264,hevc,mpeg2video,mpeg4&audioCodec=aac,ac3,eac3,mp2,mp3)+add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=pgs&container=mkv)+add-transcode-target-settings(type=videoProfile&context=all&protocol=hls&ForceZeroByteEmptySegment=true)'
+      'X-Plex-Client-Profile-Extra': `add-transcode-target(type=videoProfile&context=all&protocol=hls&container=mpegts&videoCodec=h264,hevc,mpeg2video,mpeg4&audioCodec=aac,ac3,eac3,mp2,mp3)+add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=${subtitleCodec}&container=${subtitleContainer})+add-transcode-target-settings(type=videoProfile&context=all&protocol=hls&ForceZeroByteEmptySegment=true)`
     };
 
     const params = new URLSearchParams(paramsObj);
@@ -359,7 +379,7 @@ class PlexStreamBuilder {
    * can track active streams and display them correctly in the Dashboard Activity tab.
    */
   async pingMainDecision(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities) {
-    const decisionUrl = this.buildPgsDecisionUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities);
+    const decisionUrl = this.buildMainDecisionUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities);
     if (!decisionUrl) return false;
 
     const headers = this.getOfficialSidecarHeaders(serverInfo, playbackSessionId, clientSessionId);
@@ -495,56 +515,7 @@ class PlexStreamBuilder {
     }
   }
 
-  /**
-   * Pings the /decision endpoint to initialize a background transcode session for sidecar extraction.
-   */
-  async pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset = 0) {
-    const decisionUrl = this.buildOfficialSidecarUrl(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset, true);
-    if (!decisionUrl) return false;
 
-    const headers = this.getOfficialSidecarHeaders(serverInfo, playbackSessionId, clientSessionId);
-
-    try {
-      console.log(`[PlexStreamBuilder] Pinging Sidecar Decision endpoint...`);
-      const response = await fetch(decisionUrl, { headers });
-      if (!response.ok) {
-        if (response.status === 400) {
-          console.warn(`[PlexStreamBuilder] Sidecar Decision returned 400 Bad Request. Session already exists! Proceeding.`);
-          return true;
-        }
-        console.error(`[PlexStreamBuilder] Sidecar Decision failed: ${response.status}`);
-        return false;
-      }
-      return true;
-    } catch (e) {
-      console.error(`[PlexStreamBuilder] Error pinging sidecar decision:`, e);
-      return false;
-    }
-  }
-
-  async pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset = 0) {
-    const decisionUrl = this.buildOfficialPgsSidecarUrl(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset, true);
-    if (!decisionUrl) return null;
-
-    const headers = this.getOfficialPgsSidecarHeaders(serverInfo, playbackSessionId, clientSessionId);
-
-    try {
-      console.log(`[PlexStreamBuilder] Pinging PGS Sidecar Decision endpoint...`);
-      const response = await fetch(decisionUrl, { headers });
-      if (!response.ok) {
-        if (response.status === 400) {
-          console.warn(`[PlexStreamBuilder] PGS Sidecar Decision returned 400 Bad Request. Session already exists! Proceeding.`);
-          return true;
-        }
-        console.error(`[PlexStreamBuilder] PGS Sidecar Decision failed: ${response.status}`);
-        return null;
-      }
-      return decisionUrl;
-    } catch (e) {
-      console.error(`[PlexStreamBuilder] Error pinging PGS sidecar decision:`, e);
-      return null;
-    }
-  }
 
   /**
    * Returns the headers required to successfully fetch the official sidecar subtitle.

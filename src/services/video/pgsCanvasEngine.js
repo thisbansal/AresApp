@@ -203,7 +203,13 @@ export class PgsCanvasEngine {
   }
 
   handleSeek() {
-      console.log(`[PgsCanvasEngine] Seek detected! Leaving subtitle stream running in background.`);
+      console.log(`[PgsCanvasEngine] Seek detected! Clearing canvas.`);
+      if (this.canvasElement) {
+          const ctx = this.canvasElement.getContext('2d');
+          if (ctx) {
+              ctx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+          }
+      }
   }
 
   dispose() {
@@ -223,6 +229,14 @@ export class PgsCanvasEngine {
     if (this.pgsRenderer) {
       this.pgsRenderer.dispose();
       this.pgsRenderer = null;
+    }
+    
+    // Explicitly wipe the canvas clean when turning subtitles off
+    if (this.canvasElement) {
+        const ctx = this.canvasElement.getContext('2d');
+        if (ctx) {
+            ctx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+        }
     }
     
     this.chunks = [];

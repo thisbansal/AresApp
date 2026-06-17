@@ -142,14 +142,7 @@ export default function PlayerPage() {
       const engine = new PgsCanvasEngine(videoRef.current, pgsCanvasRef.current, timeOffsetMs);
       pgsCanvasEngineRef.current = engine;
       
-      // Ping the DASH sidecar endpoint to initialize the transcoder, then start fetching HTTP
-      plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset).then((successUrl) => {
-        if (successUrl) {
-          engine.loadStream(sidecarUrl);
-        } else {
-          console.error('[PlayerPage] Failed to ping PGS sidecar decision!');
-        }
-      });
+      engine.loadStream(sidecarUrl);
     }
   }, [streamCapabilities, metaDetails, ratingKey, serverInfo, playbackSessionId, clientSessionId, location.state]);
 
@@ -479,14 +472,24 @@ export default function PlayerPage() {
       videoEl.load() // Trigger the flush
     } else {
       console.log(useNativePlayer ? '[Native Player] WebOS HLS detected. Bypassing Shaka to use native hardware decoder.' : '[Shaka] Browser not supported! Falling back to native player.');
-      // Pure direct play or raw native loading fallback
-      videoEl.src = streamUrl
-      videoEl.load()
+      // On WebOS, setting an HLS stream directly to .src often requires an explicit <source> tag with the MIME type.
+      // Additionally, WebOS won't fire 'canplay' for HLS until play() is called to initiate the initial buffer fill.
+      videoEl.innerHTML = '';
+      const sourceEl = document.createElement('source');
+      sourceEl.src = streamUrl;
+      if (streamUrl.includes('.m3u8')) {
+          sourceEl.type = 'application/vnd.apple.mpegurl';
+      } else if (streamUrl.toLowerCase().includes('.mkv')) {
+          sourceEl.type = 'video/x-matroska';
+      }
+      videoEl.appendChild(sourceEl);
+      videoEl.load();
+
+      // Call play immediately to break the WebOS HLS buffering deadlock
+      videoEl.play().catch(e => console.warn('[PlayerPage] Immediate native autoplay blocked:', e));
 
       const playOnCanPlay = () => {
         if (isCancelled) return;
-        videoEl.play().catch(e => console.error('[PlayerPage] Autoplay blocked or failed:', e))
-        
         // Initial load: Tell TV hardware to select the subtitle track if we are Direct Playing MKV
         if (typeof window !== 'undefined' && videoEl.mediaId) {
            const selectedSub = availableStreams.find(s => s.streamType === 3 && s.selected && s.id !== 0);
@@ -608,11 +611,7 @@ export default function PlayerPage() {
         const newEngine = new PgsCanvasEngine(videoEl, pgsCanvasRef.current, newTimeOffsetMs);
         pgsCanvasEngineRef.current = newEngine;
         
-        plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, normalizedTarget).then((successUrl) => {
-          if (successUrl) {
-            newEngine.loadStream(sidecarUrl);
-          }
-        });
+        newEngine.loadStream(sidecarUrl);
       }
 
       videoEl.currentTime = normalizedTarget
@@ -634,11 +633,7 @@ export default function PlayerPage() {
         const newEngine = new PgsCanvasEngine(videoEl, pgsCanvasRef.current, newTimeOffsetMs);
         pgsCanvasEngineRef.current = newEngine;
         
-        plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, newGlobalTime).then((successUrl) => {
-          if (successUrl) {
-            newEngine.loadStream(sidecarUrl);
-          }
-        });
+        newEngine.loadStream(sidecarUrl);
       }
 
       setMetaDetails(prev => ({ ...prev, viewOffset: newGlobalTime * 1000 }))
@@ -706,17 +701,8 @@ export default function PlayerPage() {
 
       if (!sidecarUrl) return
 
-      // First, ping the /decision endpoint to initialize the background transcode session
-      plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, activeSidecarSessionId, clientSessionId, initialAbsoluteStartTime * 1000)
-        .then(success => {
-          if (!success) throw new Error('Failed to initialize sidecar transcode session')
-
-          console.log(`[Native Subtitles] Session initialized! Starting custom streaming parser for URL: ${sidecarUrl}`)
-          subtitleManager.start(sidecarUrl)
-        })
-        .catch(err => {
-          console.error('[Native Subtitles] Failed to initialize or attach sidecar subtitle:', err)
-        })
+      console.log(`[Native Subtitles] Session initialized! Starting custom streaming parser for URL: ${sidecarUrl}`)
+      subtitleManager.start(sidecarUrl)
     }
 
     return () => {
@@ -943,14 +929,13 @@ export default function PlayerPage() {
       const coreNewUrl = removeOffset(newUrl);
       const coreOldUrl = removeOffset(streamUrl);
 
-      // If we are ONLY switching a subtitle, and the new URL (minus offset) is the same,
-      // we can skip the hard restart and let the Sidecar engine handle it seamlessly.
-      // But if we switched AUDIO (streamType === 2), we MUST restart the transcoder to get the new audio track!
-      if (coreNewUrl === coreOldUrl && streamType === 3) {
-        console.log('[PlayerPage] Video stream URL unchanged. Seamlessly switching subtitle track natively.');
+      // If we are ONLY switching a subtitle or audio, and the new URL (minus offset) is the same,
+      // we can skip the hard restart and let the Sidecar engine or Luna API handle it seamlessly.
+      if (coreNewUrl === coreOldUrl && (streamType === 3 || streamType === 2)) {
+        console.log(`[PlayerPage] Video stream URL unchanged. Seamlessly switching ${streamType === 2 ? 'audio' : 'subtitle'} track natively.`);
         
         // If we are on WebOS and we are Direct Playing an MKV, we MUST tell the TV's native media player 
-        // to switch the embedded subtitle track using the internal Luna API!
+        // to switch the embedded subtitle or audio track using the internal Luna API!
         const videoEl = videoRef.current || document.querySelector('video');
         
         console.log(`[PlayerPage] Debugging Luna API Injection:`);
@@ -960,43 +945,56 @@ export default function PlayerPage() {
         console.log(`- videoEl.mediaId:`, videoEl ? videoEl.mediaId : 'N/A');
         
         if (typeof window !== 'undefined' && videoEl && videoEl.mediaId) {
-          const targetSubtitle = capabilities.subtitles.find(s => s.id === streamId);
-          console.log(`- targetSubtitle:`, targetSubtitle);
+          const typeStr = streamType === 2 ? "audio" : "subtitle";
+          const streamArray = streamType === 2 ? capabilities.audio : capabilities.subtitles;
+          const targetTrack = streamArray.find(s => s.id === streamId);
+          console.log(`- targetTrack:`, targetTrack);
           
-          // Only fire if the subtitle is embedded (has an index inside the MKV container) or we are turning it off
           let relativeIndex = -1;
-          if (targetSubtitle && targetSubtitle.id !== 0 && targetSubtitle.index !== undefined && !targetSubtitle.key) {
-             const embeddedSubs = capabilities.subtitles.filter(s => s.index !== undefined && !s.key);
-             relativeIndex = embeddedSubs.findIndex(s => s.id === targetSubtitle.id);
+          if (streamType === 2) {
+             // For audio, we just use the index Plex provides. All audio tracks are multiplexed.
+             if (targetTrack && targetTrack.index !== undefined) {
+                 const embeddedAudio = streamArray.filter(s => s.index !== undefined);
+                 relativeIndex = embeddedAudio.findIndex(s => s.id === targetTrack.id);
+                 if (relativeIndex === -1) {
+                     relativeIndex = targetTrack.index; // fallback
+                 }
+             }
+          } else {
+             // Only fire if the subtitle is embedded (has an index inside the MKV container) or we are turning it off
+             if (targetTrack && targetTrack.id !== 0 && targetTrack.index !== undefined && !targetTrack.key) {
+                const embeddedSubs = streamArray.filter(s => s.index !== undefined && !s.key);
+                relativeIndex = embeddedSubs.findIndex(s => s.id === targetTrack.id);
+             }
           }
           
-          if (relativeIndex !== -1 || (targetSubtitle && targetSubtitle.id === 0)) {
+          if (relativeIndex !== -1 || (streamType === 3 && targetTrack && targetTrack.id === 0)) {
              const payload = JSON.stringify({
                  "mediaId": videoEl.mediaId,
-                 "type": "subtitle",
+                 "type": typeStr,
                  "index": relativeIndex
              });
              
-             console.log(`[PlayerPage] Invoking Luna API selectTrack for mediaId: ${videoEl.mediaId}, relative index: ${relativeIndex}`);
+             console.log(`[PlayerPage] Invoking Luna API selectTrack for type: ${typeStr}, mediaId: ${videoEl.mediaId}, relative index: ${relativeIndex}`);
              
              if (window.webOS && window.webOS.service) {
                  window.webOS.service.request("luna://com.webos.media", {
                      method: "selectTrack",
                      parameters: JSON.parse(payload),
-                     onSuccess: function (args) { console.log("[PlayerPage] Subtitle track selected natively via webOS API:", args); },
-                     onFailure: function (args) { console.error("[PlayerPage] Failed to select subtitle track via webOS API:", args); }
+                     onSuccess: function (args) { console.log(`[PlayerPage] ${typeStr} track selected natively via webOS API:`, args); },
+                     onFailure: function (args) { console.error(`[PlayerPage] Failed to select ${typeStr} track via webOS API:`, args); }
                  });
              } else if (window.PalmServiceBridge) {
                  const bridge = new window.PalmServiceBridge();
                  bridge.onservicecallback = function(msg) {
-                     console.log("[PlayerPage] Subtitle track selected natively via PalmServiceBridge:", msg);
+                     console.log(`[PlayerPage] ${typeStr} track selected natively via PalmServiceBridge:`, msg);
                  };
                  bridge.call("luna://com.webos.media/selectTrack", payload);
              } else {
                  console.log("[PlayerPage] NO NATIVE BRIDGE AVAILABLE TO SEND LUNA API CALL!");
              }
           } else {
-             console.log(`[PlayerPage] Cannot invoke Luna API. Target subtitle is external or invalid.`);
+             console.log(`[PlayerPage] Cannot invoke Luna API. Target ${typeStr} is external or invalid.`);
           }
         } else {
           console.log(`[PlayerPage] Cannot invoke Luna API. videoEl or mediaId is missing.`);
@@ -1095,7 +1093,7 @@ export default function PlayerPage() {
           crossOrigin="anonymous"
           style={styles.video}
         />
-        <canvas ref={pgsCanvasRef} className="pgs-canvas-layer" />
+        <canvas ref={pgsCanvasRef} className="pgs-canvas-layer" style={{ display: isSubtitleVisible ? 'block' : 'none' }} />
       </div>
 
       {/* Cinematic Dark Bottom-to-Top Linear Gradient mask */}

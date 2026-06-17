@@ -98,13 +98,22 @@ class MediaCodecService {
 
         if (streamData.audio && Array.isArray(streamData.audio)) {
             const enableAudioPassthrough = useBrowserStore.getState().enableAudioPassthrough;
+            const isWebOS = typeof window !== 'undefined' && (!!window.PalmServiceBridge || /web0s|webos/i.test(navigator.userAgent));
             
             streamData.audio.forEach(a => {
                 const codecLower = (a.codec || '').toLowerCase();
                 const isPassthroughCodec = ['ac3', 'eac3', 'dca', 'dts', 'truehd'].includes(codecLower);
+                const webOSNativeCodecs = ['aac', 'ac3', 'eac3', 'mp3', 'flac', 'opus'];
+                
                 const mimeType = this.getMimeTypeForCodec(a.codec, 'audio');
                 let canPlay = this.videoElement.canPlayType(mimeType);
                 let supported = canPlay === 'probably' || canPlay === 'maybe';
+
+                // WebOS natively supports these, even if canPlayType lies
+                if (isWebOS && webOSNativeCodecs.includes(codecLower)) {
+                    supported = true;
+                    canPlay = canPlay || 'webos-native-override';
+                }
 
                 // Override with passthrough if enabled and codec is high-end audio
                 if (enableAudioPassthrough && isPassthroughCodec) {
@@ -114,6 +123,7 @@ class MediaCodecService {
 
                 results.audio.push({
                     id: a.id,
+                    index: a.index,
                     codec: a.codec,
                     mimeType,
                     canPlayValue: canPlay,
