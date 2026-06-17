@@ -210,6 +210,13 @@ class PlexStreamBuilder {
     // OR if the media container itself (like MKV) is unsupported by the current browser.
     if (videoIsActuallySupported && audioIsActuallySupported && containerSupported && !isForcedBurnIn) {
       console.log('[PlexStreamBuilder] Codecs and container fully supported. Strategy: DIRECT PLAY')
+      
+      // Ping the decision endpoint to initialize the Media Decision Engine (MDE) session on the Plex Server
+      // This ensures the Plex Dashboard shows accurate active stream info (Video, Audio, Subtitles) during Direct Play
+      this.pingMainDecision(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, capabilities).catch(e => {
+        console.error('[PlexStreamBuilder] Failed to ping main decision for Direct Play:', e);
+      });
+      
       return this.buildDirectPlayUrl(serverInfo, part.key)
     }
 
@@ -336,7 +343,7 @@ class PlexStreamBuilder {
       'X-Plex-Device-Screen-Resolution': '1920x1080',
       'X-Plex-Token': serverInfo.token,
       'X-Plex-Language': 'en',
-      'X-Plex-Session-Id': playbackSessionId,
+      'X-Plex-Session-Id': clientSessionId,
       'X-Plex-Playback-Session-Id': playbackSessionId,
       'X-Plex-Playback-Id': playbackSessionId,
       'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=videoProfile&context=all&protocol=hls&container=mpegts&videoCodec=h264,hevc,mpeg2video,mpeg4&audioCodec=aac,ac3,eac3,mp2,mp3)+add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=pgs&container=mkv)+add-transcode-target-settings(type=videoProfile&context=all&protocol=hls&ForceZeroByteEmptySegment=true)'
@@ -347,9 +354,38 @@ class PlexStreamBuilder {
   }
 
   /**
+   * Pings the /decision endpoint to initialize a background transcode session for the main video.
+   * This is necessary even for Direct Play, so the Plex Server's Media Decision Engine (MDE)
+   * can track active streams and display them correctly in the Dashboard Activity tab.
+   */
+  async pingMainDecision(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities) {
+    const decisionUrl = this.buildPgsDecisionUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities);
+    if (!decisionUrl) return false;
+
+    const headers = this.getOfficialSidecarHeaders(serverInfo, playbackSessionId, clientSessionId);
+
+    try {
+      console.log(`[PlexStreamBuilder] Pinging Main Video Decision endpoint...`);
+      const response = await fetch(decisionUrl, { headers });
+      if (!response.ok) {
+        if (response.status === 400) {
+          console.warn(`[PlexStreamBuilder] Main Decision returned 400 Bad Request. Session already exists! Proceeding.`);
+          return true;
+        }
+        console.error(`[PlexStreamBuilder] Main Decision failed: ${response.status}`);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error(`[PlexStreamBuilder] Error pinging main decision:`, e);
+      return false;
+    }
+  }
+
+  /**
    * Constructs the official LG HTTP Subtitle Extraction URL.
    */
-  buildOfficialSidecarUrl(serverInfo, ratingKey, playbackSessionId, offset = 0, isDecision = false) {
+  buildOfficialSidecarUrl(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset = 0, isDecision = false) {
     if (!serverInfo || !ratingKey) return null;
 
     const ratingId = ratingKey.split('/').pop()
@@ -379,7 +415,7 @@ class PlexStreamBuilder {
       'offset': offsetSeconds.toString(),
       'X-Plex-Token': serverInfo.token,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
-      'X-Plex-Session-Identifier': playbackSessionId,
+      'X-Plex-Session-Identifier': clientSessionId,
       'X-Plex-Product': PLEX_CONFIG.product,
       'X-Plex-Platform': 'webOS',
       'X-Plex-Client-Profile-Name': 'Generic',
@@ -394,7 +430,7 @@ class PlexStreamBuilder {
     }
   }
 
-  buildOfficialPgsSidecarUrl(serverInfo, ratingKey, playbackSessionId, offset = 0, isDecision = false) {
+  buildOfficialPgsSidecarUrl(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset = 0, isDecision = false) {
     if (!serverInfo || !ratingKey) return null;
 
     const ratingId = ratingKey.split('/').pop()
@@ -423,7 +459,7 @@ class PlexStreamBuilder {
       'copyts': '1',
       'offset': offsetSeconds.toString(),
       'X-Plex-Token': serverInfo.token,
-      'X-Plex-Session-Identifier': playbackSessionId,
+      'X-Plex-Session-Identifier': clientSessionId,
       'X-Plex-Incomplete-Segments': '1',
       'X-Plex-Product': PLEX_CONFIG.product,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
@@ -451,11 +487,11 @@ class PlexStreamBuilder {
   /**
    * Pings the /decision endpoint to initialize a background transcode session for sidecar extraction.
    */
-  async pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, offset = 0) {
-    const decisionUrl = this.buildOfficialSidecarUrl(serverInfo, ratingKey, playbackSessionId, offset, true);
+  async pingSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset = 0) {
+    const decisionUrl = this.buildOfficialSidecarUrl(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset, true);
     if (!decisionUrl) return false;
 
-    const headers = this.getOfficialSidecarHeaders(serverInfo, playbackSessionId);
+    const headers = this.getOfficialSidecarHeaders(serverInfo, playbackSessionId, clientSessionId);
 
     try {
       console.log(`[PlexStreamBuilder] Pinging Sidecar Decision endpoint...`);
@@ -475,11 +511,11 @@ class PlexStreamBuilder {
     }
   }
 
-  async pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, offset = 0) {
-    const decisionUrl = this.buildOfficialPgsSidecarUrl(serverInfo, ratingKey, playbackSessionId, offset, true);
+  async pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset = 0) {
+    const decisionUrl = this.buildOfficialPgsSidecarUrl(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset, true);
     if (!decisionUrl) return null;
 
-    const headers = this.getOfficialPgsSidecarHeaders(serverInfo, playbackSessionId);
+    const headers = this.getOfficialPgsSidecarHeaders(serverInfo, playbackSessionId, clientSessionId);
 
     try {
       console.log(`[PlexStreamBuilder] Pinging PGS Sidecar Decision endpoint...`);
@@ -502,27 +538,27 @@ class PlexStreamBuilder {
   /**
    * Returns the headers required to successfully fetch the official sidecar subtitle.
    */
-  getOfficialSidecarHeaders(serverInfo, playbackSessionId) {
+  getOfficialSidecarHeaders(serverInfo, playbackSessionId, clientSessionId) {
     return {
       'Accept': 'application/json, */*',
       'X-Plex-Token': serverInfo.token,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
       'X-Plex-Product': PLEX_CONFIG.product,
       'X-Plex-Platform': 'webOS',
-      'X-Plex-Session-Id': playbackSessionId,
+      'X-Plex-Session-Id': clientSessionId,
       'X-Plex-Client-Profile-Name': 'Generic',
       'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=srt&container=srt)'
     };
   }
 
-  getOfficialPgsSidecarHeaders(serverInfo, playbackSessionId) {
+  getOfficialPgsSidecarHeaders(serverInfo, playbackSessionId, clientSessionId) {
     return {
       'Accept': 'application/json, */*',
       'X-Plex-Token': serverInfo.token,
       'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
       'X-Plex-Product': PLEX_CONFIG.product,
       'X-Plex-Platform': 'webOS',
-      'X-Plex-Session-Id': playbackSessionId,
+      'X-Plex-Session-Id': clientSessionId,
       'X-Plex-Client-Profile-Name': 'Generic'
     };
   }

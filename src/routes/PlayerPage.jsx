@@ -125,7 +125,11 @@ export default function PlayerPage() {
       const offset = Math.floor(videoRef.current.currentTime || (location.state?.startOver ? 0 : (metaDetails.viewOffset || 0) / 1000));
       
       const sidecarUrl = plexStreamBuilder.buildOfficialPgsSidecarUrl(
-         serverInfo, ratingKey, playbackSessionId, offset, false
+        serverInfo,
+        ratingKey,
+        playbackSessionId,
+        clientSessionId,
+        offset
       );
       
       console.log('[PlayerPage] Spawning PgsCanvasEngine for sidecar stream with session ID:', playbackSessionId);
@@ -139,7 +143,7 @@ export default function PlayerPage() {
       pgsCanvasEngineRef.current = engine;
       
       // Ping the DASH sidecar endpoint to initialize the transcoder, then start fetching HTTP
-      plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, offset).then((successUrl) => {
+      plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, offset).then((successUrl) => {
         if (successUrl) {
           engine.loadStream(sidecarUrl);
         } else {
@@ -592,7 +596,11 @@ export default function PlayerPage() {
       if (pgsCanvasEngineRef.current) {
         console.log(`[PlayerPage] Seek detected! Restarting subtitle stream at ${normalizedTarget}s`);
         const sidecarUrl = plexStreamBuilder.buildOfficialPgsSidecarUrl(
-          serverInfo, ratingKey, playbackSessionId, normalizedTarget, false
+          serverInfo,
+          ratingKey,
+          playbackSessionId,
+          clientSessionId,
+          normalizedTarget
         );
         pgsCanvasEngineRef.current.dispose();
         
@@ -600,7 +608,7 @@ export default function PlayerPage() {
         const newEngine = new PgsCanvasEngine(videoEl, pgsCanvasRef.current, newTimeOffsetMs);
         pgsCanvasEngineRef.current = newEngine;
         
-        plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, normalizedTarget).then((successUrl) => {
+        plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, normalizedTarget).then((successUrl) => {
           if (successUrl) {
             newEngine.loadStream(sidecarUrl);
           }
@@ -613,7 +621,11 @@ export default function PlayerPage() {
       if (pgsCanvasEngineRef.current) {
         console.log(`[PlayerPage] Seek detected! Restarting subtitle stream at ${newGlobalTime}s`);
         const sidecarUrl = plexStreamBuilder.buildOfficialPgsSidecarUrl(
-          serverInfo, ratingKey, playbackSessionId, newGlobalTime, false
+          serverInfo,
+          ratingKey,
+          playbackSessionId,
+          clientSessionId,
+          newGlobalTime
         );
         pgsCanvasEngineRef.current.dispose();
         
@@ -622,7 +634,7 @@ export default function PlayerPage() {
         const newEngine = new PgsCanvasEngine(videoEl, pgsCanvasRef.current, newTimeOffsetMs);
         pgsCanvasEngineRef.current = newEngine;
         
-        plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, newGlobalTime).then((successUrl) => {
+        plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, clientSessionId, newGlobalTime).then((successUrl) => {
           if (successUrl) {
             newEngine.loadStream(sidecarUrl);
           }
@@ -688,13 +700,14 @@ export default function PlayerPage() {
         serverInfo,
         ratingKey,
         activeSidecarSessionId,
+        clientSessionId,
         initialAbsoluteStartTime * 1000
       )
 
       if (!sidecarUrl) return
 
       // First, ping the /decision endpoint to initialize the background transcode session
-      plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, activeSidecarSessionId, initialAbsoluteStartTime * 1000)
+      plexStreamBuilder.pingSidecarDecision(serverInfo, ratingKey, activeSidecarSessionId, clientSessionId, initialAbsoluteStartTime * 1000)
         .then(success => {
           if (!success) throw new Error('Failed to initialize sidecar transcode session')
 
