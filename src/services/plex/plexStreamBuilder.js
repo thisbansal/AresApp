@@ -399,7 +399,7 @@ class PlexStreamBuilder {
 
     const ratingId = ratingKey.split('/').pop()
     const metadataPath = `/library/metadata/${ratingId}`
-    const offsetSeconds = offset > 0 ? Math.floor(offset / 1000) : 0
+    const offsetSeconds = offset > 0 ? Math.floor(offset) : 0
 
     const paramsObj = {
       'directPlay': '1',

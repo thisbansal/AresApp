@@ -96,6 +96,8 @@ export default function PlayerPage() {
 
   // Clear HUD timeout and Canvas Engine on unmount
   useEffect(() => {
+
+
     return () => {
       if (pgsCanvasEngineRef.current) {
         pgsCanvasEngineRef.current.dispose();
@@ -137,7 +139,7 @@ export default function PlayerPage() {
       pgsCanvasEngineRef.current = engine;
       
       // Ping the DASH sidecar endpoint to initialize the transcoder, then start fetching HTTP
-      plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, offset * 1000).then((successUrl) => {
+      plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, offset).then((successUrl) => {
         if (successUrl) {
           engine.loadStream(sidecarUrl);
         } else {
@@ -587,9 +589,46 @@ export default function PlayerPage() {
         return true
       }
 
+      if (pgsCanvasEngineRef.current) {
+        console.log(`[PlayerPage] Seek detected! Restarting subtitle stream at ${normalizedTarget}s`);
+        const sidecarUrl = plexStreamBuilder.buildOfficialPgsSidecarUrl(
+          serverInfo, ratingKey, playbackSessionId, normalizedTarget, false
+        );
+        pgsCanvasEngineRef.current.dispose();
+        
+        const newTimeOffsetMs = isDash ? (normalizedTarget * 1000) : 0;
+        const newEngine = new PgsCanvasEngine(videoEl, pgsCanvasRef.current, newTimeOffsetMs);
+        pgsCanvasEngineRef.current = newEngine;
+        
+        plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, normalizedTarget).then((successUrl) => {
+          if (successUrl) {
+            newEngine.loadStream(sidecarUrl);
+          }
+        });
+      }
+
       videoEl.currentTime = normalizedTarget
       return false
     } else {
+      if (pgsCanvasEngineRef.current) {
+        console.log(`[PlayerPage] Seek detected! Restarting subtitle stream at ${newGlobalTime}s`);
+        const sidecarUrl = plexStreamBuilder.buildOfficialPgsSidecarUrl(
+          serverInfo, ratingKey, playbackSessionId, newGlobalTime, false
+        );
+        pgsCanvasEngineRef.current.dispose();
+        
+        const isDash = streamUrl && streamUrl.includes('protocol=dash');
+        const newTimeOffsetMs = isDash ? (newGlobalTime * 1000) : 0;
+        const newEngine = new PgsCanvasEngine(videoEl, pgsCanvasRef.current, newTimeOffsetMs);
+        pgsCanvasEngineRef.current = newEngine;
+        
+        plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, newGlobalTime).then((successUrl) => {
+          if (successUrl) {
+            newEngine.loadStream(sidecarUrl);
+          }
+        });
+      }
+
       setMetaDetails(prev => ({ ...prev, viewOffset: newGlobalTime * 1000 }))
       videoEl.currentTime = newGlobalTime
       return false
