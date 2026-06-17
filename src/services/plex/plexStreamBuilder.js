@@ -217,47 +217,61 @@ class PlexStreamBuilder {
     return await this.buildTranscodeUrl(serverInfo, ratingKey, part.key, playbackSessionId, clientSessionId, offset, isForcedBurnIn, capabilities)
   }
 
-  buildSubtitleStreamUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities) {
+  buildSubtitleStreamUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities, offset = 0, isPgs = false) {
     if (!serverInfo || !partKey) return null;
+
+    const fullPath = ratingKey.startsWith('/library/metadata') ? ratingKey : `/library/metadata/${ratingKey}`;
 
     const paramsObj = {
       hasMDE: 1,
-      path: ratingKey,
+      path: fullPath,
       mediaIndex: 0,
       partIndex: 0,
-      protocol: 'dash',
+      protocol: isPgs ? 'http' : 'dash',
       fastSeek: 1,
-      directPlay: 0,
-      directStream: 0,
+      directPlay: isPgs ? 1 : 0,
+      directStream: isPgs ? 1 : 0,
+      directStreamAudio: isPgs ? 1 : 0,
+      mediaBufferSize: 50000,
+      videoQuality: 100,
+      videoResolution: '3840x2160',
+      autoAdjustSubtitle: 1,
       subtitleSize: 100,
       audioBoost: 100,
       location: 'lan',
       session: clientSessionId,
-      directStreamAudio: 0,
-      subtitles: 'auto',
-      advancedSubtitles: 'text',
-      'Accept-Language': 'en',
+      subtitles: isPgs ? 'sidecar' : 'auto',
       'X-Plex-Session-Identifier': clientSessionId,
       'X-Plex-Incomplete-Segments': 1,
-      'X-Plex-Product': 'Plex Web',
-      'X-Plex-Version': '4.159.0',
+      'X-Plex-Product': 'Plex for LG',
+      'X-Plex-Version': '5.94.1',
       'X-Plex-Client-Identifier': serverInfo.clientIdentifier || 'ares-webos-client',
-      'X-Plex-Platform': 'Chrome',
-      'X-Plex-Platform-Version': '148.0',
-      'X-Plex-Features': 'external-media,indirect-media,hub-style-list',
-      'X-Plex-Model': 'standalone',
-      'X-Plex-Device': 'OSX',
-      'X-Plex-Device-Name': 'Chrome',
+      'X-Plex-Platform': 'webOS',
+      'X-Plex-Platform-Version': '10.3.0',
+      'X-Plex-Features': 'external-media,indirect-media',
+      'X-Plex-Model': 'OLED65',
+      'X-Plex-Device': 'webOS 10.3.0',
+      'X-Plex-Device-Name': 'LG OLED',
+      'X-Plex-Client-Profile-Name': 'Generic',
       'X-Plex-Device-Screen-Resolution': '1920x1080',
       'X-Plex-Token': serverInfo.token,
       'X-Plex-Language': 'en',
       'X-Plex-Session-Id': playbackSessionId,
       'X-Plex-Playback-Session-Id': playbackSessionId,
+      'X-Plex-Playback-Id': playbackSessionId,
+      'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=videoProfile&context=all&protocol=hls&container=mpegts&videoCodec=h264,hevc,mpeg2video,mpeg4&audioCodec=aac,ac3,eac3,mp2,mp3)+add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=pgs&container=mkv)+add-transcode-target-settings(type=videoProfile&context=all&protocol=hls&ForceZeroByteEmptySegment=true)'
     };
+    
+    if (isPgs) {
+        paramsObj['copyts'] = 1;
+        paramsObj['offset'] = offset;
+    }
 
     // Reconstruct the profile extra string to avoid [object Object]
     let profileExtra = '';
-    if (capabilities) {
+    if (isPgs) {
+        profileExtra = 'add-transcode-target(type=videoProfile&context=all&protocol=hls&container=mpegts&videoCodec=h264,hevc,mpeg2video,mpeg4&audioCodec=aac,ac3,eac3,mp2,mp3)+add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=pgs&container=mkv)+add-transcode-target-settings(type=videoProfile&context=all&protocol=hls&ForceZeroByteEmptySegment=true)';
+    } else if (capabilities) {
       const selectedVideo = capabilities.video.find(v => v.selected) || capabilities.video[0];
       const isHevcSupported = typeof MediaSource !== 'undefined' &&
         (MediaSource.isTypeSupported('video/mp4; codecs="hev1"') ||
@@ -276,7 +290,60 @@ class PlexStreamBuilder {
 
     const params = new URLSearchParams(paramsObj);
 
-    return `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
+    if (isPgs) {
+        return `${serverInfo.uri}/subtitles/:/transcode/universal/start?${params.toString()}`;
+    } else {
+        return `${serverInfo.uri}/video/:/transcode/universal/subtitles?${params.toString()}`;
+    }
+  }
+
+  buildPgsDecisionUrl(serverInfo, ratingKey, partKey, playbackSessionId, clientSessionId, capabilities) {
+    if (!serverInfo || !partKey) return null;
+
+    const fullPath = ratingKey.startsWith('/library/metadata') ? ratingKey : `/library/metadata/${ratingKey}`;
+
+    const paramsObj = {
+      hasMDE: 1,
+      path: fullPath,
+      mediaIndex: 0,
+      partIndex: 0,
+      protocol: 'hls',
+      fastSeek: 1,
+      directPlay: 1,
+      directStream: 1,
+      directStreamAudio: 1,
+      mediaBufferSize: 50000,
+      videoQuality: 100,
+      videoResolution: '3840x2160',
+      autoAdjustSubtitle: 1,
+      subtitleSize: 100,
+      audioBoost: 100,
+      location: 'lan',
+      session: clientSessionId,
+      subtitles: 'sidecar',
+      'X-Plex-Session-Identifier': clientSessionId,
+      'X-Plex-Incomplete-Segments': 1,
+      'X-Plex-Product': 'Plex for LG',
+      'X-Plex-Version': '5.94.1',
+      'X-Plex-Client-Identifier': serverInfo.clientIdentifier || 'ares-webos-client',
+      'X-Plex-Platform': 'webOS',
+      'X-Plex-Platform-Version': '10.3.0',
+      'X-Plex-Features': 'external-media,indirect-media',
+      'X-Plex-Model': 'OLED65',
+      'X-Plex-Device': 'webOS 10.3.0',
+      'X-Plex-Device-Name': 'LG OLED',
+      'X-Plex-Client-Profile-Name': 'Generic',
+      'X-Plex-Device-Screen-Resolution': '1920x1080',
+      'X-Plex-Token': serverInfo.token,
+      'X-Plex-Language': 'en',
+      'X-Plex-Session-Id': playbackSessionId,
+      'X-Plex-Playback-Session-Id': playbackSessionId,
+      'X-Plex-Playback-Id': playbackSessionId,
+      'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=videoProfile&context=all&protocol=hls&container=mpegts&videoCodec=h264,hevc,mpeg2video,mpeg4&audioCodec=aac,ac3,eac3,mp2,mp3)+add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=pgs&container=mkv)+add-transcode-target-settings(type=videoProfile&context=all&protocol=hls&ForceZeroByteEmptySegment=true)'
+    };
+
+    const params = new URLSearchParams(paramsObj);
+    return `${serverInfo.uri}/video/:/transcode/universal/decision?${params.toString()}`;
   }
 
   /**
@@ -327,6 +394,60 @@ class PlexStreamBuilder {
     }
   }
 
+  buildOfficialPgsSidecarUrl(serverInfo, ratingKey, playbackSessionId, offset = 0, isDecision = false) {
+    if (!serverInfo || !ratingKey) return null;
+
+    const ratingId = ratingKey.split('/').pop()
+    const metadataPath = `/library/metadata/${ratingId}`
+    const offsetSeconds = offset > 0 ? Math.floor(offset / 1000) : 0
+
+    const paramsObj = {
+      'directPlay': '1',
+      'directStream': '1',
+      'directStreamAudio': '1',
+      'protocol': isDecision ? 'hls' : 'http',
+      'fastSeek': '1',
+      'path': metadataPath,
+      'session': playbackSessionId,
+      'mediaIndex': '0',
+      'partIndex': '0',
+      'mediaBufferSize': '50000',
+      'hasMDE': '1',
+      'subtitleSize': '100',
+      'videoQuality': '100',
+      'videoResolution': '3840x2160',
+      'audioBoost': '100',
+      'autoAdjustSubtitle': '1',
+      'subtitles': 'sidecar',
+      'location': 'lan',
+      'copyts': '1',
+      'offset': offsetSeconds.toString(),
+      'X-Plex-Token': serverInfo.token,
+      'X-Plex-Session-Identifier': playbackSessionId,
+      'X-Plex-Incomplete-Segments': '1',
+      'X-Plex-Product': PLEX_CONFIG.product,
+      'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
+      'X-Plex-Platform': 'webOS',
+      'X-Plex-Platform-Version': '10.3.0',
+      'X-Plex-Features': 'external-media,indirect-media',
+      'X-Plex-Model': 'OLED65',
+      'X-Plex-Device': 'webOS 10.3.0',
+      'X-Plex-Device-Name': 'LG OLED',
+      'X-Plex-Session-Identifier': playbackSessionId,
+      'X-Plex-Product': PLEX_CONFIG.product,
+      'X-Plex-Platform': 'webOS',
+      'X-Plex-Client-Profile-Name': 'Generic',
+      'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=videoProfile&context=all&protocol=hls&container=mpegts&videoCodec=h264,hevc,mpeg2video,mpeg4&audioCodec=aac,ac3,eac3,mp2,mp3)+add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=pgs&container=mkv)'
+    };
+
+    const params = new URLSearchParams(paramsObj);
+    if (isDecision) {
+      return `${serverInfo.uri}/video/:/transcode/universal/decision?${params.toString()}`;
+    } else {
+      return `${serverInfo.uri}/subtitles/:/transcode/universal/start?${params.toString()}`;
+    }
+  }
+
   /**
    * Pings the /decision endpoint to initialize a background transcode session for sidecar extraction.
    */
@@ -350,6 +471,26 @@ class PlexStreamBuilder {
     }
   }
 
+  async pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, offset = 0) {
+    const decisionUrl = this.buildOfficialPgsSidecarUrl(serverInfo, ratingKey, playbackSessionId, offset, true);
+    if (!decisionUrl) return null;
+
+    const headers = this.getOfficialPgsSidecarHeaders(serverInfo, playbackSessionId);
+
+    try {
+      console.log(`[PlexStreamBuilder] Pinging PGS Sidecar Decision endpoint...`);
+      const response = await fetch(decisionUrl, { headers });
+      if (!response.ok) {
+        console.error(`[PlexStreamBuilder] PGS Sidecar Decision failed: ${response.status}`);
+        return null;
+      }
+      return decisionUrl;
+    } catch (e) {
+      console.error(`[PlexStreamBuilder] Error pinging PGS sidecar decision:`, e);
+      return null;
+    }
+  }
+
   /**
    * Returns the headers required to successfully fetch the official sidecar subtitle.
    */
@@ -363,6 +504,18 @@ class PlexStreamBuilder {
       'X-Plex-Session-Id': playbackSessionId,
       'X-Plex-Client-Profile-Name': 'Generic',
       'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=srt&container=srt)'
+    };
+  }
+
+  getOfficialPgsSidecarHeaders(serverInfo, playbackSessionId) {
+    return {
+      'Accept': 'application/json, */*',
+      'X-Plex-Token': serverInfo.token,
+      'X-Plex-Client-Identifier': PLEX_CONFIG.clientId,
+      'X-Plex-Product': PLEX_CONFIG.product,
+      'X-Plex-Platform': 'webOS',
+      'X-Plex-Session-Id': playbackSessionId,
+      'X-Plex-Client-Profile-Name': 'Generic'
     };
   }
 

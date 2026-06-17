@@ -23,6 +23,7 @@ import { VideoMenu } from '../components/media/menus/VideoMenu'
 import { SubtitleMenu } from '../components/media/menus/SubtitleMenu'
 import { useServerManagerStore } from '../stores/serverManagerStore'
 import { mediaCodecService } from '../services/MediaCodecService'
+import { PgsCanvasEngine } from '../services/video/pgsCanvasEngine'
 import shaka from 'shaka-player'
 import '../style.css'
 import { useBrowserStore } from '../stores/browserStore'
@@ -36,7 +37,8 @@ export default function PlayerPage() {
   const subtitleOverlayRef = useRef(null)
   const shakaRef = useRef(null)
   const shakaDestroyPromiseRef = useRef(Promise.resolve())
-  const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0 })
+  const pgsCanvasEngineRef = useRef(null)
+  const [metaDetails, setMetaDetails] = useState({ title: '', subtitle: '', viewOffset: 0, partKey: '' })
   const [loading, setLoading] = useState(true)
   const [isSubtitleCaching, setIsSubtitleCaching] = useState(false)
   const [isSwitchingStream, setIsSwitchingStream] = useState(false)
@@ -71,10 +73,18 @@ export default function PlayerPage() {
   const [streamCapabilities, setStreamCapabilities] = useState({ video: [], audio: [], subtitles: [] })
 
   // Generate persistent UI session IDs for timeline tracking and transcode termination
-  const { playbackSessionId, clientSessionId } = useMemo(() => ({
-    playbackSessionId: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-    clientSessionId: Math.random().toString(36).substring(2, 15)
-  }), [])
+  const { playbackSessionId, clientSessionId } = useMemo(() => {
+    const uuidv4 = () => {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+    return {
+      playbackSessionId: uuidv4(),
+      clientSessionId: Math.random().toString(36).substring(2, 15)
+    };
+  }, [])
 
   const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef, hudLockoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
   const { currentTime, setCurrentTime, duration: videoDuration, isPlaying, isBuffering } = useVideoMediaEvents(
@@ -82,6 +92,53 @@ export default function PlayerPage() {
   )
 
   const duration = metaDetails?.duration ? metaDetails.duration / 1000 : videoDuration
+
+  // Clear HUD timeout and Canvas Engine on unmount
+  useEffect(() => {
+    return () => {
+      if (pgsCanvasEngineRef.current) {
+        pgsCanvasEngineRef.current.dispose();
+        pgsCanvasEngineRef.current = null;
+        plexStreamBuilder.stopSidecarSession(serverInfo, playbackSessionId);
+      }
+    }
+  }, [])
+
+  // Automatically spawn the PgsCanvasEngine when a PGS subtitle is selected
+  useEffect(() => {
+    if (!videoRef.current || !streamCapabilities?.subtitles) return;
+    
+    const selectedSub = streamCapabilities.subtitles.find(s => s.selected && s.id !== 0);
+    const isPgs = selectedSub?.codec === 'pgs';
+
+    // Cleanup old engine if the subtitle changed or turned off
+    if (pgsCanvasEngineRef.current) {
+      pgsCanvasEngineRef.current.dispose();
+      pgsCanvasEngineRef.current = null;
+      plexStreamBuilder.stopSidecarSession(serverInfo, playbackSessionId);
+    }
+
+    if (isPgs && metaDetails?.partKey) {
+      const offset = Math.floor(videoRef.current.currentTime || (location.state?.startOver ? 0 : (metaDetails.viewOffset || 0) / 1000));
+      
+      const sidecarUrl = plexStreamBuilder.buildOfficialPgsSidecarUrl(
+         serverInfo, ratingKey, playbackSessionId, offset, false
+      );
+      
+      console.log('[PlayerPage] Spawning PgsCanvasEngine for sidecar stream with session ID:', playbackSessionId);
+      const engine = new PgsCanvasEngine(videoRef.current);
+      pgsCanvasEngineRef.current = engine;
+      
+      // Ping the DASH sidecar endpoint to initialize the transcoder, then start fetching HTTP
+      plexStreamBuilder.pingPgsSidecarDecision(serverInfo, ratingKey, playbackSessionId, offset * 1000).then((successUrl) => {
+        if (successUrl) {
+          engine.loadStream(sidecarUrl);
+        } else {
+          console.error('[PlayerPage] Failed to ping PGS sidecar decision!');
+        }
+      });
+    }
+  }, [streamCapabilities, metaDetails, ratingKey, serverInfo, playbackSessionId, clientSessionId, location.state]);
 
   usePlayerControls({
     videoRef,
@@ -149,7 +206,8 @@ export default function PlayerPage() {
           title: metadata.title,
           subtitle: sub,
           viewOffset: metadata.viewOffset,
-          duration: metadata.duration
+          duration: metadata.duration,
+          partKey: metadata.media?.[0]?.parts?.[0]?.key || ''
         })
 
         // Find direct stream key from metadata
@@ -757,8 +815,6 @@ export default function PlayerPage() {
       subtitles: updatedStreams.filter(s => s.streamType === 3),
     }
     const capabilities = mediaCodecService.checkStreamCapabilities(structuredStreams)
-    setStreamCapabilities(capabilities)
-
     const newStreamUrl = await plexStreamBuilder.getOptimalStreamUrl(
       serverInfo, { id: partId, key: partKey, container: partContainer }, ratingKey, capabilities, playbackSessionId, clientSessionId,
       (videoEl ? videoEl.currentTime * 1000 : 0)
@@ -799,6 +855,7 @@ export default function PlayerPage() {
 
     const success = await setStreamSelection(serverInfo.uri, serverInfo.token, partId, audioId, subtitleId)
     if (success) {
+      setStreamCapabilities(capabilities)
       setAvailableStreams(updatedStreams)
 
       if (switchedNatively) {
