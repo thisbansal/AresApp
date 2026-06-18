@@ -743,6 +743,8 @@ video::-webkit-media-controls-text-track-display {
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
     border-radius: inherit; /* Smoothly inherits border-radius from capsule */
     z-index: -1;
+    will-change: background-color, border-color;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
   .nav-header {
@@ -794,6 +796,8 @@ video::-webkit-media-controls-text-track-display {
 
   .nav-wrapper.collapsed .nav-capsule::before {
     opacity: 1; /* Keep it always visible and opaque to prevent content peek */
+    background-color: white;
+    border-color: white;
   }
 
   .nav-wrapper.collapsed .nav-header {
@@ -828,7 +832,7 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-wrapper.collapsed .nav-item.active.focused {
-    background-color: #19191e !important; /* Do not change color when hovered/focused while collapsed */
+    background-color: transparent !important; /* Keep it transparent to show capsule white background */
     box-shadow: none !important;
   }
 
@@ -844,7 +848,7 @@ video::-webkit-media-controls-text-track-display {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: inherit; /* Inherit the custom color (black) from active item */
   }
 
   .nav-wrapper.collapsed .nav-text-label {
