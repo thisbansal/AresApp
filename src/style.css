@@ -793,8 +793,6 @@ video::-webkit-media-controls-text-track-display {
 
   .nav-wrapper.collapsed .nav-capsule::before {
     opacity: 1; /* Keep it always visible and opaque to prevent content peek */
-    background-color: white;
-    border-color: white;
   }
 
   .nav-wrapper.collapsed .nav-header {
@@ -829,7 +827,7 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-wrapper.collapsed .nav-item.active.focused {
-    background-color: transparent !important; /* Keep it transparent to show capsule white background */
+    background-color: transparent !important; /* Keep it transparent to show capsule dark background */
     box-shadow: none !important;
   }
 
@@ -844,7 +842,7 @@ video::-webkit-media-controls-text-track-display {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: inherit; /* Inherit the custom color (black) from active item */
+    color: white; /* White icon on dark background */
   }
 
   .nav-wrapper.collapsed .nav-text-label {
