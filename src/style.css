@@ -880,6 +880,10 @@ video::-webkit-media-controls-text-track-display {
     flex-shrink: 0;
   }
 
+  .nav-wrapper.expanded .nav-icon-container {
+    display: none; /* Hide icons in expanded view per user request */
+  }
+
   .nav-text-label {
     display: block;
     font-size: 27px; /* Reduced from 36px */
