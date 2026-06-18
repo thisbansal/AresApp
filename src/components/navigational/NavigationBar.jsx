@@ -137,8 +137,6 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             }}
             className={`nav-item ${activeTab?.type === 'home' ? 'active' : ''}`}
           >
-            {activeTab?.type === 'home' && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
-            
             <div className="nav-icon-container">
               <FiHome size={42} />
             </div>
