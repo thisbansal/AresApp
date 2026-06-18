@@ -890,6 +890,14 @@ video::-webkit-media-controls-text-track-display {
     display: none; /* Hide icons in expanded view per user request */
   }
 
+  .nav-wrapper.expanded .nav-chevron {
+    display: none; /* Hide chevron (< icon) in expanded view per user request */
+  }
+
+  .nav-wrapper.expanded .nav-item:last-child {
+    margin-bottom: 20px; /* Add margin bottom to Settings listing */
+  }
+
   .nav-text-label {
     display: block;
     font-size: 27px; /* Reduced from 36px */
