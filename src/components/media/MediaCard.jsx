@@ -14,6 +14,7 @@ export function MediaCard({
   showUnwatchedIndicator,
   handleItemClick,
   handleToggleWatched,
+  handleRemoveFromOnDeck,
   clickedItemId
 }) {
   let isUnwatched = false;
@@ -60,19 +61,40 @@ export function MediaCard({
           (prefix === 'cw' || isUnwatched) ? (
             <div
               className={`unwatched-episode-ribbon ${prefix === 'cw' ? 'ribbon-bottom-left' : ''}`}
+              style={prefix === 'cw' ? { pointerEvents: 'none' } : {}}
               onClick={(e) => {
-                e.stopPropagation()
-                handleToggleWatched(item)
+                if (prefix !== 'cw') {
+                  e.stopPropagation()
+                  handleToggleWatched(item)
+                }
               }}
             >
-              {/* Tick checkmark (Shown on hover/cursor) */}
-              <FiCheck 
-                size={24} 
-                className="unwatched-tick" 
-                color="#fff" 
-                strokeWidth={4.5} 
-                style={{ transform: 'rotate(-45deg)', marginBottom: prefix === 'cw' ? '0' : '6px', marginTop: prefix === 'cw' ? '14px' : '0' }} 
-              />
+              {prefix === 'cw' ? (
+                <div 
+                  style={{ pointerEvents: 'auto', padding: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '-10px' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (handleRemoveFromOnDeck) handleRemoveFromOnDeck(item)
+                  }}
+                  className="cw-remove-btn"
+                >
+                  <FiX 
+                    size={24} 
+                    className="unwatched-tick" 
+                    color="#fff" 
+                    strokeWidth={4.5} 
+                    style={{ transform: 'rotate(-45deg)' }} 
+                  />
+                </div>
+              ) : (
+                <FiCheck 
+                  size={24} 
+                  className="unwatched-tick" 
+                  color="#fff" 
+                  strokeWidth={4.5} 
+                  style={{ transform: 'rotate(-45deg)', marginBottom: '6px', marginTop: '0' }} 
+                />
+              )}
             </div>
           ) : (
             <div

@@ -105,23 +105,42 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
   }
 
   const handleToggleWatched = async (episode) => {
+    const isWatched = Number(episode.viewCount || 0) > 0
+    const targetWatchedState = !isWatched
+
+    // 1. Optimistic update episodes local state instantly
+    setEpisodes(prev => prev.map(ep => 
+      ep.id === episode.id ? { ...ep, viewCount: targetWatchedState ? 1 : 0 } : ep
+    ))
+    
+    // 2. Optimistic update viewedLeafCount in seasons state
+    setSeasons(prev => prev.map(s => {
+      if (s.id === activeSeasonId) {
+        const currentViewed = Number(s.viewedLeafCount || 0)
+        const leafCount = Number(s.leafCount || 0)
+        return {
+          ...s,
+          viewedLeafCount: targetWatchedState
+            ? Math.min(leafCount, currentViewed + 1)
+            : Math.max(0, currentViewed - 1)
+        }
+      }
+      return s
+    }))
+
     const newWatchedState = await toggleWatched(episode)
-    if (newWatchedState !== null) {
-      const viewCount = newWatchedState ? 1 : 0
-      
-      // 1. Update episodes local state instantly
+    if (newWatchedState === null) {
+      // Revert if failed
       setEpisodes(prev => prev.map(ep => 
-        ep.id === episode.id ? { ...ep, viewCount } : ep
+        ep.id === episode.id ? { ...ep, viewCount: isWatched ? 1 : 0 } : ep
       ))
-      
-      // 2. Update viewedLeafCount in seasons state
       setSeasons(prev => prev.map(s => {
         if (s.id === activeSeasonId) {
           const currentViewed = Number(s.viewedLeafCount || 0)
           const leafCount = Number(s.leafCount || 0)
           return {
             ...s,
-            viewedLeafCount: newWatchedState
+            viewedLeafCount: isWatched
               ? Math.min(leafCount, currentViewed + 1)
               : Math.max(0, currentViewed - 1)
           }

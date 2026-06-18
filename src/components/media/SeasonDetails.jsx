@@ -28,13 +28,19 @@ export default function SeasonDetails({ item, serverInfo, onFocusItem }) {
   }
 
   const handleToggleWatched = async (episode) => {
+    const isWatched = Number(episode.viewCount || 0) > 0
+    const targetWatchedState = !isWatched
+
+    // Optimistic UI update
+    setEpisodes(prev => prev.map(ep => 
+      ep.id === episode.id ? { ...ep, viewCount: targetWatchedState ? 1 : 0 } : ep
+    ))
+
     const newWatchedState = await toggleWatched(episode)
-    if (newWatchedState !== null) {
-      const viewCount = newWatchedState ? 1 : 0
-      
-      // Update episodes local state instantly
+    if (newWatchedState === null) {
+      // Revert if failed
       setEpisodes(prev => prev.map(ep => 
-        ep.id === episode.id ? { ...ep, viewCount } : ep
+        ep.id === episode.id ? { ...ep, viewCount: isWatched ? 1 : 0 } : ep
       ))
     }
   }

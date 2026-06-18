@@ -14,7 +14,7 @@ import { resolveAccessibleServer } from '../services/plex/plexAccessService'
 import { getLibraries, getLibraryItems, buildImageUrl } from '../services/plex/plexContentService'
 import { multiServerCacheService, CACHE_KEYS_MULTI } from '../services/caching/multiServerCacheService'
 import { getMultiServerOnDeck, getMultiServerRecentlyAdded } from '../services/plex/multiServerContentHub'
-import { isMediaWatched } from '../services/plex/plexWatchedService'
+import { toggleWatchedState, removeFromOnDeck } from '../services/plex/plexWatchedService'
 import { useToggleWatched } from '../hooks/useToggleWatched'
 import { useBrowserStore } from '../stores/browserStore'
 import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
@@ -545,6 +545,32 @@ function ContentBrowserPage() {
     } else if (activeTab.type === 'library' && activeTab.data?.isShared) {
       targetServerInfo = { uri: activeTab.data.serverUri, token: activeTab.data.token }
     }
+
+    let isUnwatched = false;
+    if (item.type === 'show' || item.type === 'season') {
+      isUnwatched = item.leafCount ? (Number(item.viewedLeafCount || 0) < Number(item.leafCount)) : (Number(item.viewedLeafCount || 0) === 0);
+    } else {
+      isUnwatched = Number(item.viewCount || 0) === 0;
+    }
+    const targetWatchedState = isUnwatched;
+
+    const updateItemOptimistic = (i) => {
+      if (i.id === item.id) {
+        if (targetWatchedState) {
+          return { ...i, viewCount: 1, viewedLeafCount: i.leafCount || 1, viewOffset: 0 }
+        } else {
+          return { ...i, viewCount: 0, viewedLeafCount: 0, viewOffset: 0 }
+        }
+      }
+      return i
+    }
+
+    setRecentMovies((useBrowserStore.getState().recentMovies || []).map(updateItemOptimistic))
+    setRecentTv((useBrowserStore.getState().recentTv || []).map(updateItemOptimistic))
+    setLibraryContent({
+      all: (useBrowserStore.getState().libraryContent?.all || []).map(updateItemOptimistic)
+    })
+
     const newWatchedState = await toggleWatched(item, targetServerInfo)
     if (newWatchedState !== null) {
       const updateItem = (i) => {
@@ -568,18 +594,19 @@ function ContentBrowserPage() {
         return i
       }
 
-      setContinueWatching((continueWatching || [])
+      setContinueWatching((useBrowserStore.getState().continueWatching || [])
         .map(updateItem)
         .filter(i => !(newWatchedState && i.id === item.id))
       )
-      setRecentMovies((recentMovies || []).map(updateItem))
-      setRecentTv((recentTv || []).map(updateItem))
+      setRecentMovies((useBrowserStore.getState().recentMovies || []).map(updateItem))
+      setRecentTv((useBrowserStore.getState().recentTv || []).map(updateItem))
       setLibraryContent({
-        all: (libraryContent.all || []).map(updateItem)
+        all: (useBrowserStore.getState().libraryContent?.all || []).map(updateItem)
       })
 
       // Fetch latest On Deck to populate the next episode or updated state
       try {
+        await new Promise(resolve => setTimeout(resolve, 800)) // Give Plex time to process scrobble
         const onDeckData = await getMultiServerOnDeck(50)
         // Preload only the new images to avoid pop-in
         const existingThumbs = new Set((continueWatching || []).map(i => i.thumb))
@@ -602,6 +629,28 @@ function ContentBrowserPage() {
         setContinueWatching([...updatedPrev, ...newItems])
       } catch (err) {
         console.error('[handleToggleWatched] Failed to refresh On Deck items:', err)
+      }
+    }
+  }
+
+  const handleRemoveFromOnDeck = async (item) => {
+    let targetServerInfo = serverInfo
+    if (item._serverContext?.clientId) {
+      const s = useServerManagerStore.getState().servers[item._serverContext.clientId]
+      if (s) {
+        targetServerInfo = { uri: s.uri, token: s.accessToken, owned: s.owned }
+      }
+    }
+
+    if (item && targetServerInfo) {
+      try {
+        await removeFromOnDeck(targetServerInfo.uri, targetServerInfo.token, item)
+        console.log(`[handleRemoveFromOnDeck] Removed ${item.title} from Continue Watching`)
+
+        // Optimistically remove it from the local state
+        setContinueWatching(useBrowserStore.getState().continueWatching.filter(i => i.id !== item.id))
+      } catch (err) {
+        console.error('[handleRemoveFromOnDeck] Failed to remove item from Continue Watching:', err)
       }
     }
   }
@@ -633,6 +682,7 @@ function ContentBrowserPage() {
         showUnwatchedIndicator={showUnwatchedIndicator}
         handleItemClick={handleItemClick}
         handleToggleWatched={handleToggleWatched}
+        handleRemoveFromOnDeck={handleRemoveFromOnDeck}
         clickedItemId={clickedItemId}
       />
     )

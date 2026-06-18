@@ -1,4 +1,4 @@
-import { markAsWatched, markAsUnwatched } from './plexContentService'
+import { markAsWatched, markAsUnwatched, removeFromContinueWatching } from './plexContentService'
 
 
 /**
@@ -41,4 +41,20 @@ export const toggleWatchedState = async (serverUri, token, item) => {
   }
 
   return targetWatchedState
+}
+
+/**
+ * Removes an item from the Continue Watching hub without marking it as played.
+ * 
+ * @param {string} serverUri - Plex server URI
+ * @param {string} token - Plex authentication token
+ * @param {Object} item - Media item to remove
+ */
+export const removeFromOnDeck = async (serverUri, token, item) => {
+  if (!serverUri || !token || !item) {
+    throw new Error('Missing required arguments for removeFromOnDeck')
+  }
+
+  await removeFromContinueWatching(serverUri, token, item.id)
+  return true
 }

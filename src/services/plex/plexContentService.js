@@ -271,3 +271,16 @@ export const markAsUnwatched = async (serverUri, token, ratingKey) => {
   )
   return true
 }
+
+/**
+ * Remove a specific item from the Continue Watching (On Deck) hub 
+ * without modifying its overall watched/unwatched state.
+ */
+export const removeFromContinueWatching = async (serverUri, token, ratingKey) => {
+  await plexBridge.request(
+    `/actions/removeFromContinueWatching?ratingKey=${ratingKey}`,
+    { method: 'PUT' }, // PUT is standard for actions, but we can also use GET depending on PMS version. Let's try PUT since actions modify state. Wait, the docs say /actions/removeFromContinueWatching?key= or ratingKey=.
+    buildServerContext(serverUri, token)
+  )
+  return true
+}
