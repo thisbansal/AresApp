@@ -243,6 +243,12 @@ video::-webkit-media-controls-text-track-display {
   scroll-snap-align: start end;
   scroll-margin-left: 45px;
   scroll-margin-right: 120px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45); /* High-performance static shadow */
+}
+
+/* Focused card state - snaps instantly to prevent layout paint thrashing */
+.focusable-item.focused .media-card {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 0 4px #ffffff; /* Deeper shadow + thick white focus ring */
 }
 
 .media-card-poster {
