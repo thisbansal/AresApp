@@ -48,6 +48,27 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
     setWasOnline(isOnline);
   }, [isOnline, wasOnline]);
 
+  useEffect(() => {
+    if (isNavbarExpanded) {
+      let targetId = 'nav-home';
+      if (activeTab?.type === 'settings') {
+        targetId = 'nav-settings';
+      } else if (activeTab?.type === 'library' && activeTab?.data) {
+        const lib = activeTab.data;
+        const uid = lib.serverClientId ? `${lib.serverClientId}-${lib.id}` : `own-${lib.id}`;
+        targetId = `nav-lib-${uid}`;
+      }
+      
+      const timer = setTimeout(() => {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.focus({ preventScroll: true });
+        }
+      }, 70);
+      return () => clearTimeout(timer);
+    }
+  }, [isNavbarExpanded, activeTab, libraries]);
+
   return (
     <FocusLayer id="navbar" isActive={isNavbarExpanded}>
       <div 

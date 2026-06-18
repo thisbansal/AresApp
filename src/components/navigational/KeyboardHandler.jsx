@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
+import { useBrowserStore } from '../../stores/browserStore';
 
 export function KeyboardHandler() {
   const { navigate: spatialNavigate, showExitDialog, setShowExitDialog, isNavbarExpanded, setIsNavbarExpanded } = useSpatialNavigation();
@@ -102,10 +103,24 @@ export function KeyboardHandler() {
           console.log('[AUTH FLOW] Back button triggered on entry/exit route or cold start. Handling Navbar/Exit.');
           if (!isNavbarExpanded) {
             setIsNavbarExpanded(true);
-            // Focus the home button on expansion
+            // Focus the active item on expansion
             setTimeout(() => {
-              const navHome = document.getElementById('nav-home');
-              if (navHome) navHome.focus({ preventScroll: true });
+              const activeTab = useBrowserStore.getState().activeTab;
+              let targetId = 'nav-home';
+              if (activeTab?.type === 'settings') {
+                targetId = 'nav-settings';
+              } else if (activeTab?.type === 'library' && activeTab?.data) {
+                const lib = activeTab.data;
+                const uid = lib.serverClientId ? `${lib.serverClientId}-${lib.id}` : `own-${lib.id}`;
+                targetId = `nav-lib-${uid}`;
+              }
+              const activeEl = document.getElementById(targetId);
+              if (activeEl) {
+                activeEl.focus({ preventScroll: true });
+              } else {
+                const navHome = document.getElementById('nav-home');
+                if (navHome) navHome.focus({ preventScroll: true });
+              }
             }, 100);
           } else {
             setIsNavbarExpanded(false);
