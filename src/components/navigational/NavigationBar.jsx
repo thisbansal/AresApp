@@ -137,19 +137,13 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             }}
             className={`nav-item ${activeTab?.type === 'home' ? 'active' : ''}`}
           >
-            {!isNavbarExpanded && activeTab?.type === 'home' && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
+            {activeTab?.type === 'home' && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
             
-            {!isNavbarExpanded && (
-              <div className="nav-icon-container">
-                <FiHome size={42} />
-              </div>
-            )}
+            <div className="nav-icon-container">
+              <FiHome size={42} />
+            </div>
 
-            {isNavbarExpanded ? (
-              <div className="nav-text-label">Home</div>
-            ) : (
-              activeTab?.type === 'home' && <div className="nav-text-label collapsed-label">Home</div>
-            )}
+            <div className="nav-text-label">Home</div>
           </FocusableItem>
 
           {/* Library Items */}
@@ -178,20 +172,13 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 }}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
-                {!isNavbarExpanded && isActive && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
+                {isActive && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
                 
-                {/* Only show library icon in collapsed mode */}
-                {!isNavbarExpanded && (
-                  <div className="nav-icon-container lib-icon">
-                    <FiArrowLeft size={42} />
-                  </div>
-                )}
+                <div className="nav-icon-container lib-icon">
+                  <FiArrowLeft size={42} />
+                </div>
 
-                {isNavbarExpanded ? (
-                  <div className="nav-text-label">{lib?.title || 'Library'}</div>
-                ) : (
-                  isActive && <div className="nav-text-label collapsed-label">{lib?.title || 'Library'}</div>
-                )}
+                <div className="nav-text-label">{lib?.title || 'Library'}</div>
               </FocusableItem>
             );
           })}
@@ -214,19 +201,13 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             }}
             className={`nav-item ${activeTab?.type === 'settings' ? 'active' : ''}`}
           >
-            {!isNavbarExpanded && activeTab?.type === 'settings' && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
+            {activeTab?.type === 'settings' && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
             
-            {!isNavbarExpanded && (
-              <div className="nav-icon-container">
-                <FiSettings size={42} />
-              </div>
-            )}
+            <div className="nav-icon-container">
+              <FiSettings size={42} />
+            </div>
 
-            {isNavbarExpanded ? (
-              <div className="nav-text-label">Settings</div>
-            ) : (
-              activeTab?.type === 'settings' && <div className="nav-text-label collapsed-label">Settings</div>
-            )}
+            <div className="nav-text-label">Settings</div>
           </FocusableItem>
         </div>
       </div>

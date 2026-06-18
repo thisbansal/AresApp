@@ -828,14 +828,13 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-wrapper.collapsed .nav-chevron {
-    display: none;
+    display: block;
+    margin-right: -10px; /* pull icon closer */
   }
 
   .nav-wrapper.collapsed .nav-icon-container {
-    width: 96px;
+    width: auto; /* let it shrink next to chevron */
     height: 96px;
-    border-radius: 50%;
-    background-color: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -870,7 +869,7 @@ video::-webkit-media-controls-text-track-display {
   .nav-item {
     height: 68px; /* Reduced from 90px */
     justify-content: flex-start;
-    border-radius: 0; /* Removed so active background touches edges flush */
+    border-radius: 25px; /* Matches active state pill corners */
     margin: 0px 10px;
     padding: 0;
   }
