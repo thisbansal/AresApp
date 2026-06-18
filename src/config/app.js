@@ -4,7 +4,7 @@ export const PLEX_CONFIG = {
   device: 'webOS TV',
   apiUrl: 'https://plex.tv/api/v2',
   appID: 'com.nookbyte.runex',
-  version: '1.0.0',
+  version: '2.1.0',
   features: {
     enableSmartTranscoding: true, // Set to false to disable smart transcode fallback
     enableImageCaching: false // Set to false to disable Base64 storage caching and fallback to native browser loading

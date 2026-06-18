@@ -8,7 +8,7 @@ import { FallbackImage } from '../components/media/FallbackImage'
 import { MediaCard } from '../components/media/MediaCard'
 import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
-import { KINDS } from '../config/app'
+import { KINDS, PLEX_CONFIG } from '../config/app'
 import { testConnectionToServer, getServers } from '../services/plex/plexAPIServer'
 import { resolveAccessibleServer } from '../services/plex/plexAccessService'
 import { getLibraries, getLibraryItems, buildImageUrl } from '../services/plex/plexContentService'
@@ -1244,6 +1244,21 @@ function ContentBrowserPage() {
                       <div className="setting-card-title">Sign Out</div>
                       <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
                         Back to login screen
+                      </div>
+                    </div>
+                  </FocusableItem>
+
+                  <FocusableItem
+                    id="setting-about-app"
+                    rowIndex={sharedServers.length > 0 ? 13 : 12}
+                    colIndex={1}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      <FiMonitor size={40} strokeWidth={2.5} color="#e5a93b" />
+                      <div className="setting-card-title">Runex</div>
+                      <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
+                        Version {PLEX_CONFIG.version}
                       </div>
                     </div>
                   </FocusableItem>

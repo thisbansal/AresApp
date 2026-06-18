@@ -218,18 +218,20 @@ export const useSpatialNavigation = () => {
 
 export const LayerContext = createContext('base');
 
-export const FocusLayer = ({ id, isActive = true, children }) => {
+export const FocusLayer = ({ id, isActive = true, autoFocusFirst = true, children }) => {
   const { pushLayer, popLayer, focusLayer } = useSpatialNavigation();
 
   useEffect(() => {
     if (isActive) {
       pushLayer(id);
-      setTimeout(() => focusLayer(id), 50);
+      if (autoFocusFirst) {
+        setTimeout(() => focusLayer(id), 50);
+      }
     } else {
       popLayer(id);
     }
     return () => popLayer(id);
-  }, [isActive, id, pushLayer, popLayer, focusLayer]);
+  }, [isActive, id, pushLayer, popLayer, focusLayer, autoFocusFirst]);
 
   // If not active, we still provide 'base' so children don't trap focus if layer is deactivated but still mounted
   return (
