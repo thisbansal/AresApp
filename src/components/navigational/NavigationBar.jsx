@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FocusableItem } from './FocusableItem';
 import { FiHome, FiSettings, FiUser, FiArrowLeft } from 'react-icons/fi';
-import { MdKeyboardArrowLeft } from 'react-icons/md';
 import { useSpatialNavigation, FocusLayer } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
 import { useServerStore } from '../../stores/serverStore';
@@ -170,8 +169,6 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
                 }}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
-                {isActive && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
-                
                 <div className="nav-icon-container lib-icon">
                   <FiArrowLeft size={42} />
                 </div>
@@ -199,8 +196,6 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             }}
             className={`nav-item ${activeTab?.type === 'settings' ? 'active' : ''}`}
           >
-            {activeTab?.type === 'settings' && <MdKeyboardArrowLeft size={38} className="nav-chevron" />}
-            
             <div className="nav-icon-container">
               <FiSettings size={42} />
             </div>

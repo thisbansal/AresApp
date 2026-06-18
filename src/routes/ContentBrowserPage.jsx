@@ -170,7 +170,7 @@ function ContentBrowserPage() {
       try {
         const mainToken = useAppStore.getState().mainToken || await getMainToken()
         const userToken = await verifyUserPin(mainToken, user.id, "")
-        
+
         sessionStorage.setItem('activeSession', 'true')
         await useAppStore.getState().setProfileSession(user.id, user.name, userToken, null, false, false)
         const newProfile = useAppStore.getState().userProfile
@@ -267,7 +267,7 @@ function ContentBrowserPage() {
       }
 
       setLibraries(allNavLibs)
-      
+
       if (activeTab && activeTab.type === 'library') {
         const stillExists = allNavLibs.some(l => l.id === activeTab.data?.id && l.serverClientId === activeTab.data?.serverClientId)
         if (!stillExists) {
@@ -342,7 +342,7 @@ function ContentBrowserPage() {
           useServerStore.setState({ activeServer: nextServerInfo })
           loadAllSelectedLibraries(resolvedServer.uri, resolvedServer.token).catch(e => console.warn('Background loadAllSelectedLibraries failed:', e))
         }
-        
+
         // 3. Offline Fallback: If both fast path and discovery failed, reuse last known credentials
         if (!isCurrentHealthy && !resolvedServer && currentUri) {
           console.log('[init] Offline Fallback: Reusing stored server credentials for offline browsing.')
@@ -430,7 +430,7 @@ function ContentBrowserPage() {
   const activeLibId = activeTab.type === 'library' ? activeTab.data?.id : null;
   const activeLibUri = activeTab.type === 'library' ? (activeTab.data?.serverUri || serverInfo?.uri) : null;
   const activeLibToken = activeTab.type === 'library' ? (activeTab.data?.token || serverInfo?.token) : null;
-  
+
   const {
     data: libraryItemsData,
     loading: libraryItemsLoading,
@@ -614,18 +614,18 @@ function ContentBrowserPage() {
         if (newUrls.length > 0) {
           await preloadImages([newUrls.map(thumb => ({ thumb }))])
         }
-        
+
         // We must fetch latest state from store since this is an async function
         const latestContinueWatching = useBrowserStore.getState().continueWatching || []
         const onDeckMap = new Map(onDeckData.map(i => [i.id, i]))
         const prevIds = new Set(latestContinueWatching.map(i => i.id))
-        
+
         // Keep existing items in their current order, but update them with fresh data if available
         const updatedPrev = latestContinueWatching.map(i => onDeckMap.has(i.id) ? onDeckMap.get(i.id) : i)
-        
+
         // Append entirely new items (like next episodes) to the end
         const newItems = onDeckData.filter(i => !prevIds.has(i.id))
-        
+
         setContinueWatching([...updatedPrev, ...newItems])
       } catch (err) {
         console.error('[handleToggleWatched] Failed to refresh On Deck items:', err)
@@ -1433,7 +1433,7 @@ const styles = {
     padding: '40px 30px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '30px',
+    // gap: '30px',
     overflowX: 'hidden',
   },
   settingsContainer: {
@@ -1546,7 +1546,7 @@ const styles = {
     flexWrap: 'nowrap',
     gap: '45px',
     overflowX: 'auto',
-    padding: '30px 45px', // Expand horizontal padding for focus zoom room
+    padding: '30px 45px 50px', // Expand horizontal padding for focus zoom room
     margin: '-10px -45px 0 -45px', // Expand negative margins to screen edges to prevent early clipping
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',

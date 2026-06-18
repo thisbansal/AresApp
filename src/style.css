@@ -243,12 +243,14 @@ video::-webkit-media-controls-text-track-display {
   scroll-snap-align: start end;
   scroll-margin-left: 45px;
   scroll-margin-right: 120px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45); /* High-performance static shadow */
+  /* box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45); High-performance static shadow */
+  box-shadow: 10px 8px 4px rgba(0, 0, 0, 0.75);
 }
 
 /* Focused card state - snaps instantly to prevent layout paint thrashing */
 .focusable-item.focused .media-card {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 0 4px #ffffff; /* Deeper shadow + thick white focus ring */
+  /* box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 0 4px #ffffff; Deeper shadow + thick white focus ring */
+  box-shadow: 16px 14px 4px rgba(0, 0, 0, 1);
 }
 
 .media-card-poster {
@@ -349,7 +351,9 @@ video::-webkit-media-controls-text-track-display {
 @media (min-width: 1200px) {
   .content-browser-grid {
     grid-template-columns: repeat(5, 240px);
-    gap: 35px;
+    /* gap: 55px; */
+    row-gap: 55px;
+    column-gap: 30px;
   }
 }
 
