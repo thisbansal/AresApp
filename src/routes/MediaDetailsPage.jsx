@@ -213,7 +213,7 @@ function MediaDetailsPage() {
       case 'movie':
         return <MovieDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       case 'show':
-        return <ShowDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} onRegisterPlay={handleRegisterPlay} />
+        return <ShowDetails item={item} contextItem={location.state?.item} serverInfo={serverInfo} onFocusItem={handleFocusItem} onRegisterPlay={handleRegisterPlay} />
       case 'season':
         return <SeasonDetails item={item} serverInfo={serverInfo} onFocusItem={handleFocusItem} />
       case 'episode':

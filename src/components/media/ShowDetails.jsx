@@ -10,7 +10,7 @@ import { findTargetSeason } from '../../utils/seasonSelector'
 import { useBrowserStore } from '../../stores/browserStore'
 import { FiChevronDown, FiCheck, FiX } from 'react-icons/fi'
 
-export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterPlay }) {
+export default function ShowDetails({ item, serverInfo, contextItem, onFocusItem, onRegisterPlay }) {
   const navigate = useNavigate()
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const [seasons, setSeasons] = useState([])
@@ -68,7 +68,25 @@ export default function ShowDetails({ item, serverInfo, onFocusItem, onRegisterP
         
         // Find the next active season using the multi-phase selection algorithm
         if (children.length > 0) {
-          const targetSeason = findTargetSeason(children)
+          let targetSeason = null
+          
+          if (contextItem) {
+            if (contextItem.type === 'season') {
+              targetSeason = children.find(s => String(s.id) === String(contextItem.id) || (s.ratingKey && contextItem.ratingKey && String(s.ratingKey) === String(contextItem.ratingKey)))
+            } else if (contextItem.type === 'episode' && contextItem.parentRatingKey) {
+              targetSeason = children.find(s => String(s.id) === String(contextItem.parentRatingKey) || (s.ratingKey && String(s.ratingKey) === String(contextItem.parentRatingKey)))
+            }
+          }
+          
+          if (!targetSeason) {
+            targetSeason = findTargetSeason(children)
+          }
+          
+          // Fallback to first available season if target isn't found
+          if (!targetSeason) {
+            targetSeason = children[0]
+          }
+          
           if (targetSeason) {
             setActiveSeasonId(targetSeason.id)
           }
