@@ -728,6 +728,10 @@ video::-webkit-media-controls-text-track-display {
     max-width: 400px;
     position: relative;
     z-index: 1;
+    will-change: width, max-height, border-radius;
+    transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                max-height 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                border-radius 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .nav-capsule::before {
@@ -737,11 +741,8 @@ video::-webkit-media-controls-text-track-display {
     background-color: #19191e; /* Solid color for performance */
     border: 1px solid #333333; /* Solid color */
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
-    border-radius: 30px;
+    border-radius: inherit; /* Smoothly inherits border-radius from capsule */
     z-index: -1;
-    transform-origin: center left;
-    will-change: transform, opacity;
-    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
   }
 
   .nav-header {
@@ -785,13 +786,14 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-wrapper.collapsed .nav-capsule {
-    width: auto;
-    max-width: 250px;
+    width: 96px;
+    height: 96px;
+    max-height: 96px;
+    border-radius: 50%;
   }
 
   .nav-wrapper.collapsed .nav-capsule::before {
-    opacity: 0;
-    transform: scaleX(0.3) scaleY(0.8); /* GPU accelerated collapse */
+    opacity: 1; /* Keep it always visible and opaque to prevent content peek */
   }
 
   .nav-wrapper.collapsed .nav-header {
@@ -815,13 +817,13 @@ video::-webkit-media-controls-text-track-display {
     display: flex;
     flex-direction: row;
     align-items: center;
-    background-color: #19191e;
-    border: 1px solid #333333;
-    border-radius: 50%; /* Perfect circle */
+    background-color: transparent; /* background and border are handled by capsule background */
+    border: none;
+    border-radius: 0;
     padding: 0;
     margin: 0;
     width: 96px;
-    height: 96px; /* 64 * 1.5 */
+    height: 96px;
     justify-content: center;
   }
 
