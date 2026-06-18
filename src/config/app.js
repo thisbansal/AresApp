@@ -3,7 +3,7 @@ export const PLEX_CONFIG = {
   product: 'Plex for LG',
   device: 'webOS TV',
   apiUrl: 'https://plex.tv/api/v2',
-  appID: 'com.nookbyte.aresapp',
+  appID: 'com.nookbyte.runex',
   version: '1.0.0',
   features: {
     enableSmartTranscoding: true, // Set to false to disable smart transcode fallback

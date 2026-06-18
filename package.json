@@ -1,5 +1,5 @@
 {
-  "name": "sampleapp",
+  "name": "runex",
   "private": true,
   "version": "3.0.0",
   "type": "module",
@@ -7,8 +7,8 @@
     "dev": "vite",
     "move": "rm -rf ./webos-meta/dist && mv ./dist/ ./webos-meta/ && cp -r webOSTVjs ./webos-meta/dist",
     "preview": "vite preview",
-    "start-remote": "rm -f ./*.ipk && ares-package --no-minify ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.aresapp --open",
-    "start": "rm -f ./*.ipk && ares-package --no-minify ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.aresapp",
+    "start-remote": "rm -f ./*.ipk && ares-package --no-minify ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.runex && BROWSER=chrome ares-inspect --device lg --app com.nookbyte.runex --open",
+    "start": "rm -f ./*.ipk && ares-package --no-minify ./webos-meta/ && ares-install --device lg ./*.ipk && ares-launch --device lg com.nookbyte.runex",
     "install": "rm -f ./*.ipk && ares-package --no-minify ./webos-meta/ && ares-install --device lg ./*.ipk",
     "test": "vitest run"
   },

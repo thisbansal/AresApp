@@ -27,7 +27,7 @@ const paramsObj = {
   'X-Plex-Token': serverInfo.token,
   'X-Plex-Client-Identifier': 'ares-webos-client',
   'X-Plex-Session-Identifier': playbackSessionId,
-  'X-Plex-Product': 'AresApp',
+  'X-Plex-Product': 'Runex',
   'X-Plex-Platform': 'webOS',
   'X-Plex-Client-Profile-Name': 'Generic',
   'X-Plex-Client-Profile-Extra': 'add-transcode-target(type=subtitleProfile&protocol=http&context=all&subtitleCodec=vtt&container=vtt)'
@@ -43,7 +43,7 @@ const headers = {
   'Accept': 'application/json, */*',
   'X-Plex-Token': serverInfo.token,
   'X-Plex-Client-Identifier': 'ares-webos-client',
-  'X-Plex-Product': 'AresApp',
+  'X-Plex-Product': 'Runex',
   'X-Plex-Platform': 'webOS',
   'X-Plex-Session-Id': playbackSessionId,
   'X-Plex-Client-Profile-Name': 'Generic',

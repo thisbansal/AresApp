@@ -1,10 +1,10 @@
 {
-  "id": "com.nookbyte.aresapp",
+  "id": "com.nookbyte.runex",
   "version": "2.1.0",
   "vendor": "My Company",
   "type": "web",
   "main": "./dist/index.html",
-  "title": "AresApp",
+  "title": "Runex",
   "icon": "./icon.png",
   "splashBackground": "./splashScreen.png",
   "bgColor": "#262626",
