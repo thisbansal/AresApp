@@ -1,5 +1,6 @@
 import { getData, setData, deleteData, DB_KINDS, initDB8Kind } from './lunaService'
 import { KINDS } from '../../config/app'
+import { clearAllStorage } from '../UniversalStorage/UniversalStorage'
 
 const MAIN_TOKEN_KEY = 'plexMainToken'
 const IS_VALID_USER = 'validPlexUser'
@@ -125,6 +126,43 @@ export const clearAllStoredInfo = async () => {
   }
   
   await Promise.all(promises)
+
+  // Clear Universal Storage (IndexedDB / WebOS DB)
+  try {
+    await clearAllStorage()
+  } catch (err) {
+    console.warn('[Storage] Failed to clear UniversalStorage:', err)
+  }
+
+  // Clear Shaka Player offline DBs via API if available
+  try {
+    const shaka = (await import('shaka-player')).default || await import('shaka-player')
+    if (shaka && shaka.offline && shaka.offline.Storage) {
+      await shaka.offline.Storage.deleteAll()
+      console.log('[Storage] Cleared Shaka offline storage')
+    }
+  } catch (err) {
+    console.warn('[Storage] Failed to clear Shaka offline DB via API:', err)
+  }
+
+  // Fallback: Clear Shaka DBs via indexedDB directly
+  if (typeof window !== 'undefined' && window.indexedDB) {
+    try {
+      if (window.indexedDB.databases) {
+        const dbs = await window.indexedDB.databases()
+        for (const db of dbs) {
+          if (db.name && db.name.startsWith('shaka_')) {
+            window.indexedDB.deleteDatabase(db.name)
+          }
+        }
+      } else {
+        // Direct deletion if databases() is not supported but we know the default name
+        window.indexedDB.deleteDatabase('shaka_offline_db')
+      }
+    } catch (e) {
+      console.warn('[Storage] Failed to delete Shaka DB via indexedDB:', e)
+    }
+  }
 
   // Free up space by explicitly clearing localStorage caches
   if (typeof localStorage !== 'undefined' && localStorage) {

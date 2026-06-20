@@ -25,9 +25,10 @@ function LibrarySelectPage() {
 
 
 
-  // Retrieve active servers from serverManagerStore
-  const smStore = useServerManagerStore.getState()
-  const servers = Object.values(smStore.servers)
+  // Retrieve active servers from serverManagerStore reactively
+  const serversMap = useServerManagerStore(state => state.servers)
+  const isDiscovering = useServerManagerStore(state => state.isDiscovering)
+  const servers = Object.values(serversMap)
 
   // Use usePlexQuery to load and cache libraries across servers
   const {
@@ -35,7 +36,7 @@ function LibrarySelectPage() {
     loading: queriedLibrariesLoading,
     error: queriedLibrariesError,
   } = usePlexQuery(
-    ['all_servers_libraries', servers.map(s => s.clientIdentifier).join('_')],
+    ['all_servers_libraries', servers.map(s => s.clientIdentifier).join('_'), servers.map(s => s.accessToken).join('_')],
     async () => {
       if (servers.length === 0) return [];
       const allLibs = [];
@@ -62,7 +63,7 @@ function LibrarySelectPage() {
       await Promise.allSettled(promises);
       return allLibs;
     },
-    { enabled: servers.length > 0 }
+    { enabled: servers.length > 0 && !isDiscovering }
   );
 
   useEffect(() => {
@@ -80,8 +81,8 @@ function LibrarySelectPage() {
   }, [queriedLibrariesData]);
 
   useEffect(() => {
-    setLoading(queriedLibrariesLoading);
-  }, [queriedLibrariesLoading]);
+    setLoading(queriedLibrariesLoading || isDiscovering);
+  }, [queriedLibrariesLoading, isDiscovering]);
 
   useEffect(() => {
     if (queriedLibrariesError) {
