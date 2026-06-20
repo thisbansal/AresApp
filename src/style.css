@@ -36,12 +36,21 @@
   text-decoration: none;
   outline: none;
 }
+.focusable-item.focused .capsule-btn,
 .capsule-btn.focused {
-  background-color: #000000 !important;
-  color: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
   -webkit-transform: scale(1.05) translate3d(0, -2px, 0);
   transform: scale(1.05) translate3d(0, -2px, 0);
   box-shadow: 0 8px 25px rgba(255,255,255,0.25);
+}
+
+.focusable-item:active .capsule-btn,
+.capsule-btn:active {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  -webkit-transform: scale(0.98) translate3d(0, 0, 0);
+  transform: scale(0.98) translate3d(0, 0, 0);
 }
 .capsule-btn svg {
   stroke: currentColor;

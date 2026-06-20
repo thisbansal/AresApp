@@ -242,8 +242,8 @@ export function HeroBanner({ items = [] }) {
             onClick={handleNextSlide}
             onFocus={() => setUserInteracted(true)}
           >
-            <div className="capsule-btn" style={{ width: '48px', height: '48px', padding: 0, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '50%' }}>
-              <MdOutlineKeyboardArrowRight size={24} />
+            <div className="capsule-btn" style={{ width: '56px', height: '56px', padding: 0, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '50%' }}>
+              <MdOutlineKeyboardArrowRight size={28} />
             </div>
           </FocusableItem>
         </div>
