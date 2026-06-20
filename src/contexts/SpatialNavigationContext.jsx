@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
 import { useBrowserStore } from '../stores/browserStore';
-import { forceSmoothScroll } from '../utils/scrollUtils';
 
 const SpatialNavigationContext = createContext(null);
 
