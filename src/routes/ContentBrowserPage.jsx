@@ -476,12 +476,20 @@ function ContentBrowserPage() {
   useEffect(() => {
     if (activeTab.type === 'home') {
       const hasHomeCache = continueWatching.length > 0 || recentMovies.length > 0 || recentTv.length > 0;
-      setLoading((continueWatchingLoading || recentAddedLoading) && !hasHomeCache);
+      if (!serverInfo) {
+        setLoading(!hasHomeCache);
+      } else {
+        setLoading((continueWatchingLoading || recentAddedLoading) && !hasHomeCache);
+      }
       setLibraryOffline(false);
     } else if (activeTab.type === 'library') {
-      setLoading(libraryItemsLoading);
-      // Decouple: show offline error screen if network call errored or offline, and there is no cached content
       const hasCache = libraryContent.all && libraryContent.all.length > 0;
+      if (!serverInfo && !activeTab.data?.serverUri) {
+        setLoading(!hasCache);
+      } else {
+        setLoading(libraryItemsLoading);
+      }
+      // Decouple: show offline error screen if network call errored or offline, and there is no cached content
       const isLibOffline = activeTab.data?.isOffline || !!libraryItemsError;
       setLibraryOffline(isLibOffline && !hasCache);
     } else {
@@ -490,6 +498,7 @@ function ContentBrowserPage() {
     }
   }, [
     activeTab,
+    serverInfo,
     continueWatchingLoading,
     recentAddedLoading,
     libraryItemsLoading,
