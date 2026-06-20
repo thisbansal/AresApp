@@ -49,9 +49,9 @@ export const SpatialNavigationProvider = ({ children }) => {
         if (window.wheelSnapCooldown) return;
 
         if (e.deltaY > 0) {
-          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
         } else if (e.deltaY < 0) {
-          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
         }
 
         window.wheelSnapCooldown = true;

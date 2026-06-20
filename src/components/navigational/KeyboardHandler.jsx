@@ -252,11 +252,7 @@ export function KeyboardHandler() {
           break;
         case 'ArrowDown':
           e.preventDefault();
-          if (isNavbarExpanded) {
-            setIsNavbarExpanded(false);
-          } else {
-            spatialNavigate('down');
-          }
+          spatialNavigate('down');
           break;
         // Enter and Space are naturally handled by the browser on focused buttons/links, 
         // but we handle them natively in useFocusable as well.
