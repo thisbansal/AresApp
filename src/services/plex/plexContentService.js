@@ -57,8 +57,8 @@ export const getLibraries = async (serverUri, token) => {
  */
 export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit = 20) => {
   const endpoint = libraryId
-    ? `/library/sections/${libraryId}/recentlyAdded`
-    : '/library/recentlyAdded'
+    ? `/library/sections/${libraryId}/recentlyAdded?includeExtras=1&includeGuids=1&includeAdvanced=1`
+    : '/library/recentlyAdded?includeExtras=1&includeGuids=1&includeAdvanced=1'
 
   const response = await plexBridge.request(endpoint, {}, buildServerContext(serverUri, token))
   const data = await response.json()
@@ -100,7 +100,7 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
  * Get on deck (continue watching) items
  */
 export const getOnDeck = async (serverUri, token, limit = 20) => {
-  const response = await plexBridge.request('/library/onDeck', {}, buildServerContext(serverUri, token))
+  const response = await plexBridge.request('/library/onDeck?includeExtras=1&includeGuids=1&includeAdvanced=1', {}, buildServerContext(serverUri, token))
   const data = await response.json()
 
   const items = (data.MediaContainer.Metadata || []).slice(0, limit).map(item => ({
@@ -132,7 +132,7 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
  * OPTIMIZED: Returns small thumbnails for grid view
  */
 export const getLibraryItems = async (serverUri, token, libraryId) => {
-  const response = await plexBridge.request(`/library/sections/${libraryId}/all`, {}, buildServerContext(serverUri, token))
+  const response = await plexBridge.request(`/library/sections/${libraryId}/all?includeExtras=1&includeGuids=1&includeAdvanced=1`, {}, buildServerContext(serverUri, token))
   const data = await response.json()
 
   const items = (data.MediaContainer.Metadata || []).map(item => ({
