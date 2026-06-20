@@ -159,7 +159,7 @@ export const SpatialNavigationProvider = ({ children }) => {
       
       // Prevent browser native scroll jumping by using smooth scrollIntoView
       // Ensure we lock scroll on D-pad navigation to stop fighting with React layouts
-      if (closestNode.id.startsWith('hero-')) {
+      if (closestNode.id.startsWith('hero-') || closestNode.id.startsWith('nav-')) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (direction === 'down' && document.activeElement?.id?.startsWith('hero-')) {
         // TUNE THIS VALUE: adjust how far the D-Pad snaps down when leaving Hero Banner (0.6 = 60vh)
