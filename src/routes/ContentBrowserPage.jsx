@@ -6,6 +6,10 @@ import { usePlexQuery } from '../hooks/usePlexQuery'
 import { ServerOfflineMessage } from '../components/ServerOfflineMessage'
 import { FallbackImage } from '../components/media/FallbackImage'
 import { MediaCard } from '../components/media/MediaCard'
+import { DynamicBackdrop } from '../components/media/DynamicBackdrop'
+import { HeroBanner } from '../components/media/HeroBanner'
+import { SkeletonRow } from '../components/media/SkeletonRow'
+import { EmptyState } from '../components/media/EmptyState'
 import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS, PLEX_CONFIG } from '../config/app'
@@ -33,6 +37,7 @@ function ContentBrowserPage() {
 
   // State
   const [clickedItemId, setClickedItemId] = useState(globalClickedItemId)
+  const [focusedItem, setFocusedItem] = useState(null)
 
   // State
   const [serverInfo, setServerInfo] = useState(null)
@@ -696,7 +701,7 @@ function ContentBrowserPage() {
     setActiveTab(navItem)
   }
 
-  const renderCard = (item, rowIndex, colIndex, prefix) => {
+  const renderCard = (item, rowIndex, colIndex, prefix, variant = 'poster') => {
     return (
       <MediaCard
         key={`${prefix}-${item.id}-${colIndex}`}
@@ -709,12 +714,15 @@ function ContentBrowserPage() {
         handleToggleWatched={handleToggleWatched}
         handleRemoveFromOnDeck={handleRemoveFromOnDeck}
         clickedItemId={clickedItemId}
+        variant={variant}
+        onFocus={setFocusedItem}
       />
     )
   }
 
   return (
     <div style={styles.container} className="page-layout-container">
+      <DynamicBackdrop focusedItem={focusedItem} />
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
@@ -960,25 +968,44 @@ function ContentBrowserPage() {
           <ServerOfflineMessage />
         </div>
       ) : loading ? (
-        <div style={{ ...styles.emptyContainer, flexDirection: 'column', gap: '20px', height: '60vh' }}>
-          <div className="spinner" style={{ borderLeftColor: '#ffffff', width: '50px', height: '50px', borderWidth: '3px' }}></div>
-          <div style={{ ...styles.loadingText, fontSize: '24px', color: '#88888f' }}>Loading Content...</div>
-        </div>
+        activeTab.type === 'home' ? (
+          <div style={{ paddingTop: '50vh', paddingBottom: '50px' }}>
+            <div style={{...styles.section, marginTop: '20px'}} className="row">
+              <h2 style={styles.sectionTitle}>Continue Watching</h2>
+              <SkeletonRow variant="landscape" />
+            </div>
+            <div style={styles.section} className="row">
+              <h2 style={styles.sectionTitle}>Recently Added Movies</h2>
+              <SkeletonRow variant="poster" />
+            </div>
+            <div style={styles.section} className="row">
+              <h2 style={styles.sectionTitle}>Recently Added TV Shows</h2>
+              <SkeletonRow variant="square" />
+            </div>
+          </div>
+        ) : (
+          <div style={{ ...styles.emptyContainer, flexDirection: 'column', gap: '20px', height: '60vh' }}>
+            <div className="spinner" style={{ borderLeftColor: '#ffffff', width: '50px', height: '50px', borderWidth: '3px' }}></div>
+            <div style={{ ...styles.loadingText, fontSize: '24px', color: '#88888f' }}>Loading Content...</div>
+          </div>
+        )
       ) : (
         <>
           {activeTab.type === 'home' && (
             <>
               {continueWatching.length === 0 && recentMovies.length === 0 && recentTv.length === 0 ? (
-                <div style={styles.emptyContainer}>
-                  <div style={styles.emptyText}>No items found</div>
-                </div>
+                <EmptyState onRefresh={() => {
+                  setFocusedItem(null);
+                  // Quick re-fetch trigger could go here if needed
+                }} />
               ) : (
                 <>
+                  <HeroBanner focusedItem={focusedItem} />
                   {continueWatching.length > 0 && (
                     <div style={styles.section} className="row">
                       <h2 style={styles.sectionTitle}>Continue Watching</h2>
                       <div style={styles.row} className="hide-scrollbar row-items">
-                        {continueWatching.map((item, index) => renderCard(item, 0, index, 'cw'))}
+                        {continueWatching.map((item, index) => renderCard(item, 0, index, 'cw', 'landscape'))}
                       </div>
                     </div>
                   )}
@@ -987,7 +1014,7 @@ function ContentBrowserPage() {
                     <div style={styles.section} className="row">
                       <h2 style={styles.sectionTitle}>Recently Added Movies</h2>
                       <div style={styles.row} className="hide-scrollbar row-items">
-                        {recentMovies.map((item, index) => renderCard(item, 1, index, 'rm'))}
+                        {recentMovies.map((item, index) => renderCard(item, 1, index, 'rm', 'poster'))}
                       </div>
                     </div>
                   )}
@@ -996,7 +1023,7 @@ function ContentBrowserPage() {
                     <div style={styles.section} className="row">
                       <h2 style={styles.sectionTitle}>Recently Added TV Shows</h2>
                       <div style={styles.row} className="hide-scrollbar row-items">
-                        {recentTv.map((item, index) => renderCard(item, 2, index, 'rt'))}
+                        {recentTv.map((item, index) => renderCard(item, 2, index, 'rt', 'square'))}
                       </div>
                     </div>
                   )}
