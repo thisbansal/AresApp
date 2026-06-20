@@ -56,7 +56,9 @@ function ContentBrowserPage() {
       // If at top and wheeling down
       if (!currentIsScrolled && e.deltaY > 0) {
         e.preventDefault();
-        window.scrollTo({ top: window.innerHeight * 0.3, behavior: 'smooth' });
+        // TUNE THIS VALUE: adjust how far the wheel snaps down (0.6 = 60vh)
+        const SNAP_DOWN_OFFSET_VH = 0.6; 
+        window.scrollTo({ top: window.innerHeight * SNAP_DOWN_OFFSET_VH, behavior: 'smooth' });
       }
       
       // If snapped down and wheeling up near the top
@@ -1066,7 +1068,7 @@ function ContentBrowserPage() {
                   <div style={{ 
                     position: 'relative', 
                     zIndex: 10,
-                    marginTop: isScrolled ? '15vh' : '-20vh',
+                    marginTop: isScrolled ? '0' : '-20vh',
                     transition: 'margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
                   }}>
                     {continueWatching.length > 0 && (

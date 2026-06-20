@@ -161,8 +161,13 @@ export const SpatialNavigationProvider = ({ children }) => {
       // Ensure we lock scroll on D-pad navigation to stop fighting with React layouts
       if (closestNode.id.startsWith('hero-')) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (direction === 'down' && document.activeElement?.id?.startsWith('hero-')) {
+        // TUNE THIS VALUE: adjust how far the D-Pad snaps down when leaving Hero Banner (0.6 = 60vh)
+        const SNAP_DOWN_OFFSET_VH = 0.6;
+        window.scrollTo({ top: window.innerHeight * SNAP_DOWN_OFFSET_VH, behavior: 'smooth' });
       } else {
-        closestNode.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        // For everything else, center the row nicely
+        closestNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
       }
     } else {
       // Fallback: If we hit the boundary (no more items in that direction),
