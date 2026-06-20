@@ -1171,3 +1171,11 @@ video::-webkit-media-controls-text-track-display {
     transform: translate3d(0, 0, 0);
   }
 }
+@keyframes bounceFade {
+  0%, 100% { opacity: 0.4; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(10px); }
+}
+.scroll-down-arrow {
+  animation: bounceFade 2s infinite ease-in-out;
+  color: white;
+}
