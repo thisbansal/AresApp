@@ -24,6 +24,15 @@ export function HeroBanner({ items = [] }) {
         console.log(`Slide ${idx + 1} (${it.title}): Using ${artSource}`);
       });
       console.log('-------------------------------');
+
+      // Auto-focus play button on load
+      const timer = setTimeout(() => {
+        const playBtn = document.getElementById('hero-play-btn');
+        if (playBtn && (!document.activeElement || document.activeElement === document.body || document.activeElement.id.startsWith('nav-'))) {
+          playBtn.focus({ preventScroll: true });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
     }
   }, [items]);
 
