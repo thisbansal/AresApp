@@ -39,6 +39,13 @@ export function WebOSInputProvider({ children }) {
     const handleWheel = (e) => {
       // Only intercept primarily vertical scrolling
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        // If the Intent Navigation Engine is currently locked (e.g. Snap Down/Up is animating), 
+        // abort entirely so we don't fight it!
+        if (window.isNavigationLocked) {
+          targetScroll.current = document.scrollingElement.scrollTop || document.documentElement.scrollTop;
+          return;
+        }
+
         // Don't intercept if scrolling inside an internal scroll container
         const scrollContainer = e.target && e.target.closest ? e.target.closest('.stream-menu-popover, .nav-scroll-container, .settings-content-area') : null;
         if (scrollContainer && scrollContainer.scrollHeight > scrollContainer.clientHeight) {

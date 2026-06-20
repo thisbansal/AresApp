@@ -1035,6 +1035,8 @@ function ContentBrowserPage() {
               ) : (
                 <>
                   <HeroBanner items={heroItems} />
+
+
                   <div style={{ 
                     position: 'relative', 
                     zIndex: 10,

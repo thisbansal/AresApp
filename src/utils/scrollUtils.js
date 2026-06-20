@@ -1,7 +1,7 @@
 export const forceSmoothScroll = (targetY, duration = 400, onComplete) => {
   // Mathematically clamp the target so we don't scroll past the physical bottom of the document
-  // This prevents the browser from rubber-banding (bouncing back) when the animation finishes
-  const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  const scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+  const maxScroll = Math.max(0, scrollHeight - window.innerHeight);
   const clampedTargetY = Math.min(targetY, maxScroll);
   
   console.log(`[Navigation Engine] Scroll Requested: ${targetY}, Max Valid Scroll: ${maxScroll}, Clamped To: ${clampedTargetY}`);
