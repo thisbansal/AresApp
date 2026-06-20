@@ -1064,7 +1064,7 @@ function ContentBrowserPage() {
                       <div style={styles.section} className="row">
                         <h2 style={styles.sectionTitle}>Recently Added TV Shows</h2>
                         <div style={styles.row} className="hide-scrollbar row-items">
-                          {recentTv.map((item, index) => renderCard(item, 2, index, 'rt', 'square'))}
+                          {recentTv.map((item, index) => renderCard(item, 2, index, 'rt', 'poster'))}
                         </div>
                       </div>
                     )}
@@ -1691,7 +1691,8 @@ const styles = {
     gap: '20px',
     overflowX: 'auto',
     overflowY: 'hidden',
-    padding: '10px 45px 50px 45px',
+    padding: '30px 45px 50px 45px', // Restored top padding to prevent focus scale clipping
+    marginTop: '-20px', // Negative margin pulls the row up to keep it visually grouped with the title
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
     scrollSnapType: 'x mandatory'
