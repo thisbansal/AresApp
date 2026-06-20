@@ -1563,8 +1563,6 @@ const styles = {
     backgroundColor: '#141414',
     color: '#e8eaed',
     padding: 0,
-    display: 'flex',
-    flexDirection: 'column',
     overflowX: 'hidden',
     overflowY: 'auto',
     scrollSnapType: 'y mandatory',
