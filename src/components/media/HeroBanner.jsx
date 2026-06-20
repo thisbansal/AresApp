@@ -74,14 +74,13 @@ export function HeroBanner({ items = [] }) {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'flex-end',
-      height: '85vh', // Peek & Snap height
+      height: '75vh', // Peek & Snap height
       padding: '0 50px 80px 50px',
       color: '#fff',
       zIndex: 1,
       position: 'relative',
       overflow: 'hidden',
       borderRadius: '0 0 24px 24px',
-      margin: '-40px -30px 0 -45px', // Expand to edge
       scrollSnapAlign: 'start',
       flexShrink: 0 // Prevent squishing
     },
@@ -134,10 +133,10 @@ export function HeroBanner({ items = [] }) {
       fontWeight: 'bold'
     },
     summary: {
-      fontSize: '18px',
+      fontSize: '24px',
       color: '#e0e0e0',
-      maxWidth: '600px',
-      lineHeight: '1.5',
+      maxWidth: '800px',
+      lineHeight: '1.4',
       marginBottom: '30px',
       display: '-webkit-box',
       WebkitLineClamp: 3,
@@ -215,20 +214,21 @@ export function HeroBanner({ items = [] }) {
           {duration && <span>{duration}</span>}
         </div>
         {summary && <p style={styles.summary}>{summary}</p>}
-        
-        <div style={styles.actions}>
+      </div>
+      
+      <div style={styles.actions}>
           <FocusableItem 
-            id={`hero-play-btn-${item.id}`} 
+            id="hero-play-btn" 
             onClick={handlePlay}
             onFocus={() => setUserInteracted(true)}
           >
-            <div className="capsule-btn" style={{ border: 'none' }}>
+            <div className="capsule-btn" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}>
               <FiPlay style={{ marginRight: '10px' }} /> Play
             </div>
           </FocusableItem>
 
           <FocusableItem 
-            id={`hero-info-btn-${item.id}`} 
+            id="hero-info-btn" 
             onClick={handlePlay}
             onFocus={() => setUserInteracted(true)}
           >
@@ -247,7 +247,6 @@ export function HeroBanner({ items = [] }) {
             </div>
           </FocusableItem>
         </div>
-      </div>
 
       <div style={styles.dotsContainer}>
         {items.map((_, idx) => (

@@ -1546,7 +1546,7 @@ const styles = {
     height: '100vh',
     backgroundColor: '#141414',
     color: '#e8eaed',
-    padding: '40px 30px',
+    padding: 0,
     display: 'flex',
     flexDirection: 'column',
     overflowX: 'hidden',
@@ -1558,7 +1558,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '40px',
-    padding: '20px 0',
+    padding: '40px 30px',
     width: '100%',
   },
   settingsSection: {
@@ -1648,13 +1648,16 @@ const styles = {
   section: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
-    marginBottom: '10px',
+    gap: '20px',
+    marginBottom: '50px',
+    scrollSnapAlign: 'start',
+    scrollMarginTop: '25vh',
   },
   sectionTitle: {
     fontSize: '34px',
     color: '#a8a8af',
     margin: 0,
+    paddingLeft: '45px',
     fontWeight: '500',
     fontFamily: "'Outfit', 'Inter', -apple-system, sans-serif",
     letterSpacing: '-0.3px',
@@ -1665,9 +1668,6 @@ const styles = {
     overflowX: 'auto',
     overflowY: 'hidden',
     padding: '30px 45px 50px 45px', // Maintain padding for focus zoom
-    margin: '-10px -30px 0 -45px', // Extend right margin to -30px to cancel container's right padding and bleed to screen edge
-    scrollSnapAlign: 'start',
-    scrollMarginTop: '15vh',
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
     scrollSnapType: 'x mandatory',
