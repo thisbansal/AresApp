@@ -69,6 +69,36 @@ export function HeroBanner({ items = [] }) {
     setCurrentIndex(prev => (prev + 1) % items.length);
   };
 
+  const handleFocus = () => {
+    setUserInteracted(true);
+    // State 3 -> 2: If the user brings focus to the hero banner from below, smoothly scroll up.
+    if (window.scrollY > 0) {
+      const html = document.documentElement;
+      const originalSnap = html.style.scrollSnapType;
+      html.style.scrollSnapType = 'none';
+      
+      const startY = window.scrollY;
+      const duration = 500;
+      const startTime = performance.now();
+      
+      const animateScroll = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        
+        window.scrollTo(0, startY * (1 - easeProgress));
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        } else {
+          html.style.scrollSnapType = originalSnap;
+        }
+      };
+      
+      requestAnimationFrame(animateScroll);
+    }
+  };
+
   const styles = {
     container: {
       display: 'flex',
@@ -93,18 +123,9 @@ export function HeroBanner({ items = [] }) {
       objectFit: 'cover',
       objectPosition: 'top center',
       zIndex: -2,
-      opacity: 0.8,
+      opacity: 1,
       transition: 'opacity 0.8s ease-in-out',
       willChange: 'opacity'
-    },
-    vignette: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      zIndex: -1,
-      background: 'linear-gradient(to right, rgba(20,20,20,1) 0%, rgba(20,20,20,0.5) 40%, rgba(20,20,20,0) 100%), linear-gradient(to top, rgba(20,20,20,1) 0%, rgba(20,20,20,0) 60%)',
     },
     title: {
       fontSize: '64px',
@@ -231,15 +252,13 @@ export function HeroBanner({ items = [] }) {
             src={bgUrl} 
             style={{
               ...styles.bgImage,
-              opacity: currentIndex === idx ? 0.8 : 0,
+              opacity: currentIndex === idx ? 1 : 0,
               visibility: currentIndex === idx ? 'visible' : 'hidden'
             }} 
             alt="" 
           />
         );
       })}
-
-      <div style={styles.vignette} />
 
       <div key={item.id} style={styles.fadeContainer}>
         <h1 style={styles.title}>{title}</h1>
@@ -255,7 +274,7 @@ export function HeroBanner({ items = [] }) {
           <FocusableItem 
             id="hero-play-btn" 
             onClick={handlePlay}
-            onFocus={() => setUserInteracted(true)}
+            onFocus={handleFocus}
           >
             <div className="capsule-btn" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}>
               <FiPlay style={{ marginRight: '10px' }} /> Play
@@ -265,7 +284,7 @@ export function HeroBanner({ items = [] }) {
           <FocusableItem 
             id="hero-info-btn" 
             onClick={handlePlay}
-            onFocus={() => setUserInteracted(true)}
+            onFocus={handleFocus}
           >
             <div className="capsule-btn" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}>
               <FiInfo style={{ marginRight: '10px' }} /> More Info
@@ -275,7 +294,7 @@ export function HeroBanner({ items = [] }) {
           <FocusableItem 
             id="hero-next-btn" 
             onClick={handleNextSlide}
-            onFocus={() => setUserInteracted(true)}
+            onFocus={handleFocus}
           >
             <div className="capsule-btn" style={{ width: '56px', height: '56px', padding: 0, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '50%' }}>
               <MdOutlineKeyboardArrowRight size={28} />

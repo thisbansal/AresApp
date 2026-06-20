@@ -37,6 +37,16 @@ function ContentBrowserPage() {
   // State
   const [clickedItemId, setClickedItemId] = useState(globalClickedItemId)
   const [focusedItem, setFocusedItem] = useState(null)
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  // Track scroll state for dynamic Hero banner overlap effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > window.innerHeight * 0.1) // true if scrolled past 10vh
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // State
   const [serverInfo, setServerInfo] = useState(null)
@@ -1026,7 +1036,12 @@ function ContentBrowserPage() {
               ) : (
                 <>
                   <HeroBanner items={heroItems} />
-                  <div style={{ marginTop: '-20vh', position: 'relative', zIndex: 10 }}>
+                  <div style={{ 
+                    position: 'relative', 
+                    zIndex: 10,
+                    marginTop: isScrolled ? '0' : '-20vh',
+                    transition: 'margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}>
                     {continueWatching.length > 0 && (
                       <div style={styles.section} className="row">
                         <h2 style={styles.sectionTitle}>Continue Watching</h2>
@@ -1660,7 +1675,7 @@ const styles = {
     gap: '20px',
     marginBottom: '50px',
     scrollSnapAlign: 'start',
-    scrollMarginTop: '25vh',
+    scrollMarginTop: '20vh',
   },
   sectionTitle: {
     fontSize: '34px',
