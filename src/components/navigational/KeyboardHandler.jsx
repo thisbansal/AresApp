@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
 import { useBrowserStore } from '../../stores/browserStore';
-import { LayerContext } from '../../contexts/LayerContext';
 
 export function KeyboardHandler() {
   const { 
