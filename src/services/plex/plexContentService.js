@@ -25,7 +25,7 @@ export const buildImageUrl = (serverUri, path, token, width = 400, height = 600)
   const transcodeToken = token
 
   // WebOS TVs often struggle with WebP or complex formats, forcing jpeg ensures compatibility
-  return `${serverUri}/photo/:/transcode?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&minSize=1&upscale=1&format=jpeg&X-Plex-Token=${transcodeToken}`
+  return `${serverUri}/photo/:/transcode?url=${path}&width=${width}&height=${height}&minSize=1&upscale=1&format=jpeg&X-Plex-Token=${transcodeToken}`
 }
 
 const buildServerContext = (serverUri, token) => ({ uri: serverUri, token })
