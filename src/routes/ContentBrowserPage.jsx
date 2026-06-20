@@ -1559,13 +1559,13 @@ const APP_BASE_COLOR = '#ffffff'
 
 const styles = {
   container: {
-    height: '100vh',
+    minHeight: '100vh',
     backgroundColor: '#141414',
     color: '#e8eaed',
     padding: 0,
-    overflowX: 'hidden',
-    overflowY: 'auto',
-    scrollSnapType: 'y mandatory'
+    display: 'flex',
+    flexDirection: 'column',
+    overflowX: 'hidden'
   },
   settingsContainer: {
     display: 'flex',
