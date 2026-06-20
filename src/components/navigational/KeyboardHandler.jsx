@@ -189,9 +189,35 @@ export function KeyboardHandler() {
             }
           }
           
-          // State 2 -> State 1: User is at the Hero Banner, expand navbar
-          console.log('[KeyboardHandler] Back key: State 2 -> 1. Expanding navbar.');
+          // State 2 -> State 1: User is at the Hero Banner or top of Grid, expand navbar
+          console.log('[KeyboardHandler] Back key: State 2 -> 1. Expanding navbar and scrolling to top.');
           setIsNavbarExpanded(true);
+
+          if (window.scrollY > 0) {
+            const html = document.documentElement;
+            const originalSnap = html.style.scrollSnapType;
+            html.style.scrollSnapType = 'none';
+            
+            const startY = window.scrollY;
+            const duration = 500;
+            const startTime = performance.now();
+            
+            const animateScroll = (currentTime) => {
+              const elapsed = currentTime - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+              const easeProgress = 1 - Math.pow(1 - progress, 3);
+              
+              window.scrollTo(0, startY * (1 - easeProgress));
+              
+              if (progress < 1) {
+                requestAnimationFrame(animateScroll);
+              } else {
+                html.style.scrollSnapType = originalSnap;
+              }
+            };
+            
+            requestAnimationFrame(animateScroll);
+          }
           return;
         }
 
