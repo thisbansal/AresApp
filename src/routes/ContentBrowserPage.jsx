@@ -1031,7 +1031,7 @@ function ContentBrowserPage() {
               )}
             </>
             );
-          })}
+          })()}
 
           {activeTab.type === 'library' && (
             <>
