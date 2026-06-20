@@ -156,19 +156,50 @@ export function HeroBanner({ items = [] }) {
       right: '60px',
       bottom: '80px',
       display: 'flex',
-      gap: '10px',
       alignItems: 'center',
-      flexWrap: 'wrap',
-      maxWidth: '40%',
-      justifyContent: 'flex-end'
+      justifyContent: 'center',
+      maxWidth: '40%'
     },
-    dot: (isActive) => ({
-      width: isActive ? '24px' : '8px',
-      height: '8px',
-      borderRadius: '4px',
-      backgroundColor: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
-      transition: 'all 0.3s ease'
-    }),
+    dot: (distance, isActive) => {
+      let width, height, opacity, margin, scale;
+
+      if (distance === 0) {
+        width = '24px';
+        height = '8px';
+        opacity = 1;
+        margin = '0 5px';
+        scale = 1;
+      } else if (distance <= 2) {
+        width = '8px';
+        height = '8px';
+        opacity = 0.6;
+        margin = '0 5px';
+        scale = 1;
+      } else if (distance === 3) {
+        width = '8px';
+        height = '8px';
+        opacity = 0.3;
+        margin = '0 5px';
+        scale = 0.6;
+      } else {
+        width = '0px';
+        height = '8px';
+        opacity = 0;
+        margin = '0 0px';
+        scale = 0;
+      }
+
+      return {
+        width,
+        height,
+        opacity,
+        margin,
+        transform: `scale(${scale})`,
+        borderRadius: '4px',
+        backgroundColor: isActive ? '#fff' : 'rgba(255,255,255,1)',
+        transition: 'all 0.3s ease'
+      };
+    },
     fadeContainer: {
       key: currentIndex, // Forcing React to remount/reanimate on index change
       display: 'flex',
@@ -252,9 +283,12 @@ export function HeroBanner({ items = [] }) {
         </div>
 
       <div style={styles.dotsContainer}>
-        {items.map((_, idx) => (
-          <div key={idx} style={styles.dot(idx === currentIndex)} />
-        ))}
+        {items.map((_, idx) => {
+          // Calculate shortest circular distance
+          const d = Math.abs(idx - currentIndex);
+          const distance = Math.min(d, items.length - d);
+          return <div key={idx} style={styles.dot(distance, idx === currentIndex)} />;
+        })}
       </div>
     </div>
   );
