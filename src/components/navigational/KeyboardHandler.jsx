@@ -157,7 +157,8 @@ export function KeyboardHandler() {
             console.log('[KeyboardHandler] Back key: State 3 -> 2. Snapping to Hero Banner.');
             const heroBtn = document.getElementById('hero-play-btn');
             if (heroBtn) {
-              heroBtn.focus({ preventScroll: false });
+              heroBtn.focus({ preventScroll: true });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
               return;
             }
           }
