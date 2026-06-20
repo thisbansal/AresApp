@@ -74,8 +74,8 @@ export function HeroBanner({ items = [] }) {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'flex-end',
-      height: '75vh', // Peek & Snap height
-      padding: '0 50px 80px 140px', // Left padding clears the absolute pinned navbar
+      height: '100vh', // Full screen height
+      padding: '0 50px 25vh 140px', // Left padding clears the absolute pinned navbar, bottom padding clears overlapping rows
       color: '#fff',
       zIndex: 1,
       position: 'relative',
@@ -155,7 +155,7 @@ export function HeroBanner({ items = [] }) {
     dotsContainer: {
       position: 'absolute',
       right: '60px',
-      bottom: '80px',
+      bottom: '25vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

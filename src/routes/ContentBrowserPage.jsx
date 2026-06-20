@@ -1026,32 +1026,34 @@ function ContentBrowserPage() {
               ) : (
                 <>
                   <HeroBanner items={heroItems} />
-                  {continueWatching.length > 0 && (
-                    <div style={styles.section} className="row">
-                      <h2 style={styles.sectionTitle}>Continue Watching</h2>
-                      <div style={styles.row} className="hide-scrollbar row-items">
-                        {continueWatching.map((item, index) => renderCard(item, 0, index, 'cw', 'landscape'))}
+                  <div style={{ marginTop: '-20vh', position: 'relative', zIndex: 10 }}>
+                    {continueWatching.length > 0 && (
+                      <div style={styles.section} className="row">
+                        <h2 style={styles.sectionTitle}>Continue Watching</h2>
+                        <div style={styles.row} className="hide-scrollbar row-items">
+                          {continueWatching.map((item, index) => renderCard(item, 0, index, 'cw', 'landscape'))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {recentMovies.length > 0 && (
-                    <div style={styles.section} className="row">
-                      <h2 style={styles.sectionTitle}>Recently Added Movies</h2>
-                      <div style={styles.row} className="hide-scrollbar row-items">
-                        {recentMovies.map((item, index) => renderCard(item, 1, index, 'rm', 'poster'))}
+                    {recentMovies.length > 0 && (
+                      <div style={styles.section} className="row">
+                        <h2 style={styles.sectionTitle}>Recently Added Movies</h2>
+                        <div style={styles.row} className="hide-scrollbar row-items">
+                          {recentMovies.map((item, index) => renderCard(item, 1, index, 'rm', 'poster'))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {recentTv.length > 0 && (
-                    <div style={styles.section} className="row">
-                      <h2 style={styles.sectionTitle}>Recently Added TV Shows</h2>
-                      <div style={styles.row} className="hide-scrollbar row-items">
-                        {recentTv.map((item, index) => renderCard(item, 2, index, 'rt', 'square'))}
+                    {recentTv.length > 0 && (
+                      <div style={styles.section} className="row">
+                        <h2 style={styles.sectionTitle}>Recently Added TV Shows</h2>
+                        <div style={styles.row} className="hide-scrollbar row-items">
+                          {recentTv.map((item, index) => renderCard(item, 2, index, 'rt', 'square'))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </>
               )}
             </>
