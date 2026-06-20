@@ -5,7 +5,7 @@ import { useServerStore } from '../../stores/serverStore'
 /**
  * Build optimized image URL with specific size and format
  */
-export const buildImageUrl = (serverUri, path, token, width = 400, height = 600) => {
+export const buildImageUrl = (serverUri, path, token, width = 400, height = 600, format = 'jpeg') => {
   if (!path) return null
   const separator = path.includes('?') ? '&' : '?'
 
@@ -19,8 +19,9 @@ export const buildImageUrl = (serverUri, path, token, width = 400, height = 600)
   // Use the explicitly provided token for image transcode authorization
   const transcodeToken = token
 
-  // WebOS TVs often struggle with WebP or complex formats, forcing jpeg ensures compatibility
-  return `${serverUri}/photo/:/transcode?url=${path}&width=${width}&height=${height}&minSize=1&upscale=1&format=jpeg&X-Plex-Token=${transcodeToken}`
+  // WebOS TVs often struggle with WebP or complex formats, forcing jpeg ensures compatibility for posters/art.
+  // We use png specifically when transparency is required (e.g. clearLogos)
+  return `${serverUri}/photo/:/transcode?url=${path}&width=${width}&height=${height}&minSize=1&upscale=1&format=${format}&X-Plex-Token=${transcodeToken}`
 }
 
 export const extractClearLogo = (item) => {
@@ -72,7 +73,7 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
     rawThumb: item.thumb,
     art: buildImageUrl(serverUri, item.art || item.grandparentArt || item.parentArt, token, 800, 450), // Detail view
     rawArt: item.art || item.grandparentArt || item.parentArt,
-    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300),
+    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300, 'png'),
     rawLogo: extractClearLogo(item),
     rating: item.contentRating,
     summary: item.summary,
@@ -112,7 +113,7 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
     rawThumb: item.type === 'episode' ? (item.grandparentThumb || item.thumb) : item.thumb,
     art: buildImageUrl(serverUri, item.art || item.grandparentArt || item.parentArt, token, 800, 450),
     rawArt: item.art || item.grandparentArt || item.parentArt,
-    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300),
+    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300, 'png'),
     rawLogo: extractClearLogo(item),
     viewOffset: item.viewOffset,
     duration: item.duration,
@@ -142,7 +143,7 @@ export const getLibraryItems = async (serverUri, token, libraryId) => {
     year: item.year,
     thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600),
     rawThumb: item.thumb,
-    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300),
+    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300, 'png'),
     rawLogo: extractClearLogo(item),
     rating: item.contentRating,
     summary: item.summary,
@@ -171,7 +172,7 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
     year: item.year,
     thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Larger for detail view
     art: buildImageUrl(serverUri, item.art, token, 1280, 720), // Full art for background
-    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300),
+    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300, 'png'),
     rawLogo: extractClearLogo(item),
     rating: item.contentRating,
     summary: item.summary,
