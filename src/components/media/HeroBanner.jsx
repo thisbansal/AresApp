@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FocusableItem } from '../navigational/FocusableItem';
-import { FiPlay, FiInfo, FiChevronRight } from 'react-icons/fi';
+import { FiPlay, FiInfo } from 'react-icons/fi';
+import { MdOutlineKeyboardArrowRight } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
 import { buildImageUrl } from '../../services/plex/plexContentService';
@@ -241,7 +242,7 @@ export function HeroBanner({ items = [] }) {
             onFocus={() => setUserInteracted(true)}
           >
             <div className="capsule-btn" style={{ width: '48px', height: '48px', padding: 0, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '50%' }}>
-              <FiChevronRight size={24} />
+              <MdOutlineKeyboardArrowRight size={24} />
             </div>
           </FocusableItem>
         </div>
