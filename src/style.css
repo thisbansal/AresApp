@@ -27,8 +27,8 @@
 
   -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-  will-change: transform, background-color, color, box-shadow;
+  transition: transform 0.15s ease-out, background-color 0.15s ease-out, color 0.15s ease-out;
+  will-change: transform, background-color, color;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   -webkit-perspective: 1000;
@@ -41,8 +41,8 @@
 .capsule-btn.focused {
   background-color: #ffffff !important;
   color: #000000 !important;
-  -webkit-transform: scale(1.05) translate3d(0, -2px, 0);
-  transform: scale(1.05) translate3d(0, -2px, 0);
+  -webkit-transform: translate3d(0, -4px, 0);
+  transform: translate3d(0, -4px, 0);
   box-shadow: 0 8px 25px rgba(255,255,255,0.25);
 }
 
