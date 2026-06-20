@@ -43,6 +43,22 @@ export const SpatialNavigationProvider = ({ children }) => {
   // Global Intent-Based Wheel Listener
   useEffect(() => {
     const handleWheel = (e) => {
+      // If navbar is expanded, treat it as a popover: wheel scrolls left/right, page freezes
+      if (isNavbarExpanded) {
+        e.preventDefault();
+        if (window.wheelSnapCooldown) return;
+
+        if (e.deltaY > 0) {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+        } else if (e.deltaY < 0) {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+        }
+
+        window.wheelSnapCooldown = true;
+        setTimeout(() => { window.wheelSnapCooldown = false; }, 150);
+        return;
+      }
+
       const state = useBrowserStore.getState();
       if (state.activeTab?.type !== 'home') return;
 
@@ -105,7 +121,7 @@ export const SpatialNavigationProvider = ({ children }) => {
 
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [isNavbarExpanded]);
 
   const registerNode = useCallback((id, node, layerId = 'base') => {
     nodesRef.current.set(id, { node, layerId });

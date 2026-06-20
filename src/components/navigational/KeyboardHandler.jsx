@@ -147,13 +147,8 @@ export function KeyboardHandler() {
         }
 
         if (activeLayer === 'navbar') {
-          console.log('[KeyboardHandler] Back key: Collapsing navbar and opening exit dialog.');
+          console.log('[KeyboardHandler] Back key: Collapsing navbar.');
           setIsNavbarExpanded(false);
-          setShowExitDialog(true);
-          setTimeout(() => {
-             const cancelBtn = document.getElementById('exit-cancel');
-             if (cancelBtn) cancelBtn.focus({ preventScroll: true });
-          }, 50);
           return;
         }
 
@@ -256,7 +251,11 @@ export function KeyboardHandler() {
           break;
         case 'ArrowDown':
           e.preventDefault();
-          spatialNavigate('down');
+          if (isNavbarExpanded) {
+            setIsNavbarExpanded(false);
+          } else {
+            spatialNavigate('down');
+          }
           break;
         // Enter and Space are naturally handled by the browser on focused buttons/links, 
         // but we handle them natively in useFocusable as well.
