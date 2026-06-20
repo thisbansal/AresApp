@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getRecentlyAdded } from '../src/services/plex/plexContentService'
+import { getRecentlyAdded, buildImageUrl, extractClearLogo } from '../src/services/plex/plexContentService'
 import { useAppStore } from '../src/stores/AppStore'
 import { plexBridge } from '../src/services/plex/plexBridge'
 
@@ -86,5 +86,39 @@ describe('Plex Content Service - Image URL Token Isolation', () => {
     
     expect(item.thumb).toContain('X-Plex-Token=fallback-profile-token')
     expect(item.art).toContain('X-Plex-Token=fallback-profile-token')
+  })
+
+  it('should explicitly request PNG format for clearLogos to preserve transparency', () => {
+    const mockItem = {
+      Image: [{ alt: 'Logo', type: 'clearLogo', url: '/library/metadata/123/clearLogo' }]
+    }
+    const logoUrl = extractClearLogo(mockItem)
+    const builtUrl = buildImageUrl('http://pms:32400', logoUrl, 'token-xyz', 600, 300, 'png')
+
+    expect(builtUrl).toContain('format=png')
+    expect(builtUrl).toContain('url=/library/metadata/123/clearLogo')
+    expect(builtUrl).toContain('/photo/:/transcode')
+  })
+
+  it('should append includeExtras parameters to hub API requests', async () => {
+    useAppStore.setState({ mainToken: null })
+
+    const mockResponse = {
+      MediaContainer: {
+        Metadata: []
+      }
+    }
+    plexBridge.request.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse
+    })
+
+    await getRecentlyAdded('http://pms:32400', 'token-abc')
+
+    expect(plexBridge.request).toHaveBeenCalledWith(
+      expect.stringContaining('includeExtras=1&includeGuids=1&includeAdvanced=1'),
+      expect.any(Object),
+      expect.any(Object)
+    )
   })
 })
