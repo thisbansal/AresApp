@@ -163,12 +163,28 @@ export function KeyboardHandler() {
               const originalSnap = html.style.scrollSnapType;
               html.style.scrollSnapType = 'none';
               
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              // Robust JS-based smooth scroll for WebOS compatibility
+              const startY = window.scrollY;
+              const duration = 500;
+              const startTime = performance.now();
               
-              // Re-enable scroll snapping after animation completes
-              setTimeout(() => {
-                html.style.scrollSnapType = originalSnap;
-              }, 800);
+              const animateScroll = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // Ease out cubic
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                
+                window.scrollTo(0, startY * (1 - easeProgress));
+                
+                if (progress < 1) {
+                  requestAnimationFrame(animateScroll);
+                } else {
+                  // Re-enable scroll snapping after animation completes
+                  html.style.scrollSnapType = originalSnap;
+                }
+              };
+              
+              requestAnimationFrame(animateScroll);
               return;
             }
           }
