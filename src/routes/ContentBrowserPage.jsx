@@ -42,7 +42,7 @@ function ContentBrowserPage() {
 
   useEffect(() => {
     const logScroll = () => {
-      console.log(`[Native Scroll] scrollY: ${window.scrollY}`);
+      // console.log(`[Native Scroll] scrollY: ${window.scrollY}`);
     };
     window.addEventListener('scroll', logScroll, { passive: true });
     return () => window.removeEventListener('scroll', logScroll);
@@ -1359,7 +1359,7 @@ function ContentBrowserPage() {
                 <div style={styles.row} className="hide-scrollbar row-items">
                   <FocusableItem
                     id="setting-sign-out"
-                    rowIndex={sharedServers.length > 0 ? 15 : 14}
+                    rowIndex={14}
                     colIndex={0}
                     onClick={() => setShowSignoutConfirm(true)}
                     style={{ flexShrink: 0 }}
@@ -1375,7 +1375,7 @@ function ContentBrowserPage() {
 
                   <FocusableItem
                     id="setting-about-app"
-                    rowIndex={sharedServers.length > 0 ? 15 : 14}
+                    rowIndex={14}
                     colIndex={1}
                     style={{ flexShrink: 0 }}
                   >
@@ -1596,7 +1596,7 @@ const styles = {
   },
   settingsSubTitle: {
     fontSize: '34px',
-    color: '#e5a00d',
+    color: '#ffffff',
     margin: 0,
     fontWeight: '600',
     letterSpacing: '1px',

@@ -13,13 +13,28 @@ export const SpatialNavigationProvider = ({ children }) => {
   const activeLayer = layerStack.length > 0 ? layerStack[layerStack.length - 1] : 'base';
   const lastRemoteActionRef = useRef(0);
   const lastNavDirectionRef = useRef(null);
+  const focusHistoryRef = useRef({});
 
   const pushLayer = useCallback((layerId) => {
+    // Save the currently focused element for this new layer
+    if (document.activeElement && document.activeElement.tagName !== 'BODY') {
+      focusHistoryRef.current[layerId] = document.activeElement;
+    }
     setLayerStack(prev => [...prev.filter(id => id !== layerId), layerId]);
   }, []);
 
   const popLayer = useCallback((layerId) => {
     setLayerStack(prev => {
+      // If we are popping the currently active layer, restore focus
+      if (prev.length > 0 && prev[prev.length - 1] === layerId) {
+        const toFocus = focusHistoryRef.current[layerId];
+        if (toFocus && document.body.contains(toFocus)) {
+          setTimeout(() => toFocus.focus({ preventScroll: true }), 50);
+        }
+      }
+      // Cleanup the reference
+      delete focusHistoryRef.current[layerId];
+
       const newStack = prev.filter(id => id !== layerId);
       return newStack.length > 0 ? newStack : ['base'];
     });
@@ -28,6 +43,22 @@ export const SpatialNavigationProvider = ({ children }) => {
   // Global Intent-Based Wheel Listener
   useEffect(() => {
     const handleWheel = (e) => {
+      // If navbar is expanded, treat it as a popover: wheel scrolls left/right, page freezes
+      if (isNavbarExpanded) {
+        e.preventDefault();
+        if (window.wheelSnapCooldown) return;
+
+        if (e.deltaY > 0) {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+        } else if (e.deltaY < 0) {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+        }
+
+        window.wheelSnapCooldown = true;
+        setTimeout(() => { window.wheelSnapCooldown = false; }, 150);
+        return;
+      }
+
       const state = useBrowserStore.getState();
       if (state.activeTab?.type !== 'home') return;
 
@@ -90,7 +121,7 @@ export const SpatialNavigationProvider = ({ children }) => {
 
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [isNavbarExpanded]);
 
   const registerNode = useCallback((id, node, layerId = 'base') => {
     nodesRef.current.set(id, { node, layerId });

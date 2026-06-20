@@ -128,6 +128,11 @@ describe('Unified Global Remote Back Key Router & Exit Interceptor', () => {
       e.preventDefault();
       e.stopPropagation();
 
+      if (window.activeLayer === 'navbar') {
+        setShowExitDialogCalled = true;
+        return;
+      }
+
       const isLoginRoute = currentPath.includes('/login');
       const isUserSelectRoute = currentPath.includes('/user-select');
       const isHomeRoute = currentPath.includes('/browse') || currentPath.includes('/home');
@@ -205,8 +210,28 @@ describe('Unified Global Remote Back Key Router & Exit Interceptor', () => {
     handleGlobalKeyDown(mockEvent);
 
     expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
     expect(mockEvent.stopPropagation).toHaveBeenCalled();
     expect(setShowExitDialogCalled).toBe(true);
     expect(navigateReactRouter).not.toHaveBeenCalled();
+  });
+
+  it('should trigger the global exit dialog when navbar is expanded regardless of route', () => {
+    currentPath = '/details/12345'; // Not a route that normally shows exit dialog
+    window.activeLayer = 'navbar';
+    const mockEvent = {
+      key: 'BrowserBack',
+      keyCode: 461,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    };
+
+    handleGlobalKeyDown(mockEvent);
+
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(mockEvent.stopPropagation).toHaveBeenCalled();
+    expect(setShowExitDialogCalled).toBe(true);
+    expect(navigateReactRouter).not.toHaveBeenCalled();
+    delete window.activeLayer; // cleanup
   });
 });

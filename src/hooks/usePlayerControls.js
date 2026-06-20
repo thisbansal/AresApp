@@ -180,22 +180,26 @@ export function usePlayerControls({
           switch (e.key) {
             case 'ArrowLeft':
               e.preventDefault()
-              if (videoEl) {
-                const newTime = Math.max(0, currentTimeRef.current - 10)
-                executeSeek(newTime)
-                setCurrentTime(newTime)
-                const tl = document.getElementById('player-timeline')
-                if (tl) tl.focus({ preventScroll: true })
+              if (document.activeElement && document.activeElement.id === 'player-timeline') {
+                if (videoEl) {
+                  const newTime = Math.max(0, currentTimeRef.current - 10)
+                  executeSeek(newTime)
+                  setCurrentTime(newTime)
+                }
+              } else {
+                spatialNavigate('left')
               }
               break
             case 'ArrowRight':
               e.preventDefault()
-              if (videoEl) {
-                const newTime = Math.min(durationRef.current || 0, currentTimeRef.current + 30)
-                executeSeek(newTime)
-                setCurrentTime(newTime)
-                const tl = document.getElementById('player-timeline')
-                if (tl) tl.focus({ preventScroll: true })
+              if (document.activeElement && document.activeElement.id === 'player-timeline') {
+                if (videoEl) {
+                  const newTime = Math.min(durationRef.current || 0, currentTimeRef.current + 30)
+                  executeSeek(newTime)
+                  setCurrentTime(newTime)
+                }
+              } else {
+                spatialNavigate('right')
               }
               break
             case 'ArrowUp':

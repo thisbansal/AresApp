@@ -14,7 +14,8 @@ export function KeyboardHandler() {
     setShowSignoutConfirm,
     isNavbarExpanded, 
     setIsNavbarExpanded,
-    activeLayer
+    activeLayer,
+    navigationMode
   } = useSpatialNavigation();
   const navigateReactRouter = useNavigate();
   const location = useLocation();
@@ -98,6 +99,13 @@ export function KeyboardHandler() {
           return;
         }
 
+        // Issue 5: PIN pad backspace intercept
+        if (window.handlePinBackspace && window.handlePinBackspace()) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
@@ -140,13 +148,8 @@ export function KeyboardHandler() {
         }
 
         if (activeLayer === 'navbar') {
-          console.log('[KeyboardHandler] Back key: Collapsing navbar and opening exit dialog.');
-          setIsNavbarExpanded(false);
+          console.log('[KeyboardHandler] Back key: Showing exit dialog from navbar.');
           setShowExitDialog(true);
-          setTimeout(() => {
-             const cancelBtn = document.getElementById('exit-cancel');
-             if (cancelBtn) cancelBtn.focus({ preventScroll: true });
-          }, 50);
           return;
         }
 
@@ -181,16 +184,28 @@ export function KeyboardHandler() {
           return;
         }
 
-        if (isLoginRoute || isServerSelectRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
-          console.log('[KeyboardHandler] Back key: Expanding navbar.');
-          setIsNavbarExpanded(true);
+        if (isLoginRoute || isServerSelectRoute) {
+          console.log('[KeyboardHandler] Back key: On root auth route, opening exit dialog.');
+          setShowExitDialog(true);
+          setTimeout(() => {
+             const cancelBtn = document.getElementById('exit-cancel');
+             if (cancelBtn) cancelBtn.focus({ preventScroll: true });
+          }, 50);
           return;
         } else if (hash.includes('/play') || path.includes('/play')) {
           // Let video player internal back capture handle it
           return;
+        } else if (isColdStart) {
+          console.log('[KeyboardHandler] Back key: History index is 0. Opening exit dialog.');
+          setShowExitDialog(true);
+          setTimeout(() => {
+             const cancelBtn = document.getElementById('exit-cancel');
+             if (cancelBtn) cancelBtn.focus({ preventScroll: true });
+          }, 50);
+          return;
         } else {
           // If in-between (e.g. user-select), naturally redirect to the previous route
-          console.log('[AUTH FLOW] Back button triggered in setup flow. Traversing back in router history.');
+          console.log('[AUTH FLOW] Back button triggered. Traversing back in router history.');
           navigateReactRouter(-1);
         }
         return;
@@ -250,13 +265,33 @@ export function KeyboardHandler() {
       }
     };
 
+    const handlePointerClick = (e) => {
+      // If we are navigating using the remote (e.g. scroll wheel or D-Pad), 
+      // the physical mouse cursor might be lingering somewhere else on the screen.
+      // Pressing the OK button triggers a click at the mouse coordinates.
+      // We must redirect this click to the element that actually has spatial focus!
+      if (navigationMode === 'remote' && document.activeElement && document.activeElement !== document.body) {
+        // If the click is actually an untrusted synthetic click (like from React or our own .click()), let it pass.
+        // We only want to intercept genuine hardware pointer clicks (isTrusted = true) 
+        // that hit something other than the currently spatially focused element.
+        if (e.isTrusted && e.target !== document.activeElement && !document.activeElement.contains(e.target)) {
+          console.log('[KeyboardHandler] Redirecting remote pointer click from', e.target, 'to spatial focus:', document.activeElement);
+          e.preventDefault();
+          e.stopPropagation();
+          document.activeElement.click();
+        }
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown, true); // Use capture phase so we override routing and focus strictly
     window.addEventListener('keyup', handleKeyUp, true);
+    window.addEventListener('click', handlePointerClick, true); // Capture phase to intercept before React SyntheticEvents
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('keyup', handleKeyUp, true);
+      window.removeEventListener('click', handlePointerClick, true);
     };
-  }, [navigateReactRouter, spatialNavigate, showExitDialog, setShowExitDialog, isNavbarExpanded, setIsNavbarExpanded]);
+  }, [navigateReactRouter, spatialNavigate, showExitDialog, setShowExitDialog, isNavbarExpanded, setIsNavbarExpanded, activeLayer, navigationMode]);
 
   return null;
 }
