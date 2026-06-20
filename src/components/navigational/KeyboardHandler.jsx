@@ -148,8 +148,8 @@ export function KeyboardHandler() {
         }
 
         if (activeLayer === 'navbar') {
-          console.log('[KeyboardHandler] Back key: Collapsing navbar.');
-          setIsNavbarExpanded(false);
+          console.log('[KeyboardHandler] Back key: Showing exit dialog from navbar.');
+          setShowExitDialog(true);
           return;
         }
 
