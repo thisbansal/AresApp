@@ -399,7 +399,7 @@ function ContentBrowserPage() {
       if (!serverInfo) return [];
       return await getMultiServerOnDeck(50);
     },
-    { enabled: !!serverInfo && activeTab.type === 'home', initialData: continueWatching }
+    { enabled: !!serverInfo && activeTab.type === 'home', initialData: continueWatching.length > 0 ? continueWatching : null }
   );
 
   // Query Recent Added Content
@@ -412,7 +412,7 @@ function ContentBrowserPage() {
       if (!serverInfo) return [];
       return await getMultiServerRecentlyAdded(50);
     },
-    { enabled: !!serverInfo && activeTab.type === 'home', initialData: [] }
+    { enabled: !!serverInfo && activeTab.type === 'home', initialData: null }
   );
 
   // Sync Continue Watching & Recent Added to Browser Store when updated
@@ -705,7 +705,7 @@ function ContentBrowserPage() {
   }
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="page-layout-container">
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
@@ -788,6 +788,13 @@ function ContentBrowserPage() {
         .focusable-item.focused .card-rewind-button {
           opacity: 1 !important;
           transform: translateY(0) scale(1) !important;
+        }
+
+        /* Prevent navbar overlap on large screens (TV/Desktop) where navbar is on the left */
+        @media (min-width: 1024px) {
+          .page-layout-container {
+            padding-left: 140px !important;
+          }
         }
 
         /* Apple TV Settings Styles */
@@ -884,13 +891,16 @@ function ContentBrowserPage() {
         }
         .numpad-btn {
           border-radius: 50% !important;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
+          will-change: transform, background-color, color, border-color;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
         }
         .numpad-btn[style] {
-          transform: scale(1) !important;
+          transform: scale(1) translate3d(0, 0, 0) !important;
         }
         .numpad-btn.focused {
-          transform: scale(1.15) !important;
+          transform: scale(1.15) translate3d(0, 0, 0) !important;
         }
         .numpad-btn.focused div {
           background-color: #ffffff !important;
@@ -899,13 +909,16 @@ function ContentBrowserPage() {
         }
         .cancel-btn {
           border-radius: 50px !important;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
+          will-change: transform, background-color, color, border-color;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
         }
         .cancel-btn[style] {
-          transform: scale(1) !important;
+          transform: scale(1) translate3d(0, 0, 0) !important;
         }
         .cancel-btn.focused {
-          transform: scale(1.08) !important;
+          transform: scale(1.08) translate3d(0, 0, 0) !important;
           box-shadow: 0 0 20px rgba(255, 255, 255, 0.15) !important;
         }
         .cancel-btn.focused div {
@@ -1584,8 +1597,8 @@ const styles = {
     flexWrap: 'nowrap',
     gap: '45px',
     overflowX: 'auto',
-    padding: '30px 45px 50px', // Expand horizontal padding for focus zoom room
-    margin: '-10px -45px 0 -45px', // Expand negative margins to screen edges to prevent early clipping
+    padding: '30px 45px 50px 45px', // Maintain padding for focus zoom
+    margin: '-10px -30px 0 -45px', // Extend right margin to -30px to cancel container's right padding and bleed to screen edge
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
     scrollSnapType: 'x mandatory',
