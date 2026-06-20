@@ -1040,8 +1040,7 @@ function ContentBrowserPage() {
                   <div style={{ 
                     position: 'relative', 
                     zIndex: 10,
-                    marginTop: isHeroSnapped ? '0' : '-20vh',
-                    transition: 'margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                    marginTop: 0
                   }}>
                     {continueWatching.length > 0 && (
                       <div style={styles.section} className="row">

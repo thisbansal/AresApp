@@ -13,6 +13,12 @@ export function WebOSInputProvider({ children }) {
     targetScroll.current = scrollTarget.scrollTop;
 
     const animate = () => {
+      if (window.isNavigationLocked) {
+        animationFrame.current = null;
+        window.isVerticalScrolling = false;
+        window.isVerticalScrollAnimating = false;
+        return;
+      }
       const scrollTarget = document.scrollingElement || document.documentElement;
       const current = scrollTarget.scrollTop;
       const diff = targetScroll.current - current;
