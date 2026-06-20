@@ -6,19 +6,32 @@ import { useAppStore } from '../../stores/AppStore';
 import { useBrowserStore } from '../../stores/browserStore';
 
 export function KeyboardHandler() {
-  const { navigate: spatialNavigate, showExitDialog, setShowExitDialog, isNavbarExpanded, setIsNavbarExpanded } = useSpatialNavigation();
+  const { 
+    navigate: spatialNavigate, 
+    showExitDialog, 
+    setShowExitDialog, 
+    showSignoutConfirm,
+    setShowSignoutConfirm,
+    isNavbarExpanded, 
+    setIsNavbarExpanded,
+    activeLayer
+  } = useSpatialNavigation();
   const navigateReactRouter = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    console.log('KeyboardHandler mounted. ExitDialog State:', showExitDialog);
+    console.log('KeyboardHandler mounted. Active Layer:', activeLayer);
 
     const handleKeyDown = (e) => {
       const hash = window.location.hash || '';
       const path = window.location.pathname || '';
 
-      // Check if we are currently displaying the exit modal dialog
-      if (showExitDialog) {
+      // Check if we are currently displaying a dialog layer (exit or sign-out)
+      if (activeLayer === 'exit-dialog' || activeLayer === 'signout-dialog') {
+        const isExit = activeLayer === 'exit-dialog';
+        const cancelId = isExit ? 'exit-cancel' : 'signout-cancel';
+        const confirmId = isExit ? 'exit-exit' : 'signout-confirm';
+
         if (
           ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', ' ', 'Escape', 'Backspace', 'BrowserBack'].includes(e.key) ||
           e.keyCode === 461 ||
@@ -32,16 +45,26 @@ export function KeyboardHandler() {
 
           if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
             // Toggle focus state between Cancel and Yes buttons
-            const nextId = currentId === 'exit-exit' ? 'exit-cancel' : 'exit-exit';
+            const nextId = currentId === confirmId ? cancelId : confirmId;
             const nextEl = document.getElementById(nextId);
             if (nextEl) nextEl.focus({ preventScroll: true });
           } else if (e.key === 'Enter' || e.key === ' ') {
-            if (currentId === 'exit-exit') {
-              console.log('[ExitDialog] Confirmed exit. Shutting application down.');
-              if (window.close) window.close();
-              if (window.webOS && window.webOS.toApp) window.webOS.toApp('close');
+            if (currentId === confirmId) {
+              if (isExit) {
+                console.log('[ExitDialog] Confirmed exit. Shutting application down.');
+                if (window.close) window.close();
+                if (window.webOS && window.webOS.toApp) window.webOS.toApp('close');
+              } else {
+                // Trigger actual sign-out click handler on the confirm button
+                const confirmBtn = document.getElementById('signout-confirm');
+                if (confirmBtn) confirmBtn.click();
+              }
             } else {
-              setShowExitDialog(false);
+              if (isExit) {
+                setShowExitDialog(false);
+              } else {
+                setShowSignoutConfirm(false);
+              }
             }
           } else if (
             e.key === 'Escape' ||
@@ -50,7 +73,11 @@ export function KeyboardHandler() {
             e.keyCode === 461 ||
             e.keyCode === 10009
           ) {
-            setShowExitDialog(false);
+            if (isExit) {
+              setShowExitDialog(false);
+            } else {
+              setShowSignoutConfirm(false);
+            }
           }
           return;
         }
@@ -99,42 +126,39 @@ export function KeyboardHandler() {
           return;
         }
 
+        // Layer-based back key navigation resolver
+        if (activeLayer === 'signout-dialog') {
+          console.log('[KeyboardHandler] Back key: Closing sign-out dialog.');
+          setShowSignoutConfirm(false);
+          return;
+        }
+
+        if (activeLayer === 'exit-dialog') {
+          console.log('[KeyboardHandler] Back key: Closing exit dialog.');
+          setShowExitDialog(false);
+          return;
+        }
+
+        if (activeLayer === 'navbar') {
+          console.log('[KeyboardHandler] Back key: Collapsing navbar and opening exit dialog.');
+          setIsNavbarExpanded(false);
+          setShowExitDialog(true);
+          setTimeout(() => {
+             const cancelBtn = document.getElementById('exit-cancel');
+             if (cancelBtn) cancelBtn.focus({ preventScroll: true });
+          }, 50);
+          return;
+        }
+
         if (isLoginRoute || isServerSelectRoute || isHomeRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
-          console.log('[AUTH FLOW] Back button triggered on entry/exit route or cold start. Handling Navbar/Exit.');
-          if (!isNavbarExpanded) {
-            setIsNavbarExpanded(true);
-            // Focus the active item on expansion
-            setTimeout(() => {
-              const activeTab = useBrowserStore.getState().activeTab;
-              let targetId = 'nav-home';
-              if (activeTab?.type === 'settings') {
-                targetId = 'nav-settings';
-              } else if (activeTab?.type === 'library' && activeTab?.data) {
-                const lib = activeTab.data;
-                const uid = lib.serverClientId ? `${lib.serverClientId}-${lib.id}` : `own-${lib.id}`;
-                targetId = `nav-lib-${uid}`;
-              }
-              const activeEl = document.getElementById(targetId);
-              if (activeEl) {
-                activeEl.focus({ preventScroll: true });
-              } else {
-                const navHome = document.getElementById('nav-home');
-                if (navHome) navHome.focus({ preventScroll: true });
-              }
-            }, 100);
-          } else {
-            setIsNavbarExpanded(false);
-            setShowExitDialog(true);
-            setTimeout(() => {
-               const cancelBtn = document.getElementById('exit-cancel');
-               if (cancelBtn) cancelBtn.focus({ preventScroll: true });
-            }, 100);
-          }
+          console.log('[KeyboardHandler] Back key: Expanding navbar.');
+          setIsNavbarExpanded(true);
+          return;
         } else if (hash.includes('/play') || path.includes('/play')) {
           // Let video player internal back capture handle it
           return;
         } else {
-          // 2. If in-between (e.g. user-select), naturally redirect to the previous route (traverse back in react router history)
+          // If in-between (e.g. user-select), naturally redirect to the previous route
           console.log('[AUTH FLOW] Back button triggered in setup flow. Traversing back in router history.');
           navigateReactRouter(-1);
         }
