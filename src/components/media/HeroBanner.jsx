@@ -157,7 +157,10 @@ export function HeroBanner({ items = [] }) {
       bottom: '80px',
       display: 'flex',
       gap: '10px',
-      alignItems: 'center'
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      maxWidth: '40%',
+      justifyContent: 'flex-end'
     },
     dot: (isActive) => ({
       width: isActive ? '24px' : '8px',

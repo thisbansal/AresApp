@@ -64,18 +64,34 @@ function ContentBrowserPage() {
   // Settings State from Store
   const heroItems = useMemo(() => {
     // Only use items that have some artwork
-    const combined = [...recentMovies, ...recentTv].filter(item => item.rawArt || item.rawThumb || item.art || item.thumb);
-    if (combined.length === 0) return [];
+    const validItems = [...recentMovies, ...recentTv].filter(item => item.rawArt || item.rawThumb || item.art || item.thumb);
+    if (validItems.length === 0) return [];
+
+    // Filter out multiple seasons/episodes of the same show
+    const seenShows = new Set();
+    const uniqueItems = validItems.filter(item => {
+      // Determine the core show ID if it's a season or episode
+      const showId = item.grandparentRatingKey || item.parentRatingKey || item.ratingKey || item.id;
+      
+      // For movies, item.type is usually 'movie', so they won't typically conflict unless they have same ID
+      if (item.type !== 'movie') {
+        if (seenShows.has(showId)) {
+          return false;
+        }
+        seenShows.add(showId);
+      }
+      return true;
+    });
     
-    // Deterministic shuffle based on IDs to avoid reshuffling on every render if data doesn't change
-    const sorted = [...combined].sort((a, b) => {
+    // Deterministic shuffle based on IDs to avoid reshreshuffling on every render if data doesn't change
+    const sorted = [...uniqueItems].sort((a, b) => {
       const aHash = String(a.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const bHash = String(b.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       return (aHash % 10) - (bHash % 10);
     });
     
-    // Take top 5
-    return sorted.slice(0, 5);
+    // Return all unique items (don't limit to 5)
+    return sorted;
   }, [recentMovies, recentTv]);
 
 
