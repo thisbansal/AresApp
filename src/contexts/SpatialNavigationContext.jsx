@@ -80,6 +80,8 @@ export const SpatialNavigationProvider = ({ children }) => {
         setTimeout(() => {
           console.log(`[Navigation Engine] Snap UP completed.`);
           window.isNavigationLocked = false;
+          const heroBtn = document.getElementById('hero-play-btn');
+          if (heroBtn) heroBtn.focus({ preventScroll: true });
           window.wheelSnapCooldown = true;
           setTimeout(() => { window.wheelSnapCooldown = false; }, 500);
         }, 500);

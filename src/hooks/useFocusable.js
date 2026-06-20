@@ -124,11 +124,9 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
     }
 
     setNavigationMode('cursor');
-    hoverTimeoutRef.current = setTimeout(() => {
-      if (ref.current) {
-        ref.current.focus({ preventScroll: true });
-      }
-    }, 500);
+    if (ref.current) {
+      ref.current.focus({ preventScroll: true });
+    }
   }, [setNavigationMode, lastRemoteActionRef, layerId, activeLayer]);
 
   const handleMouseLeave = useCallback(() => {
