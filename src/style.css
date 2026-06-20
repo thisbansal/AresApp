@@ -887,8 +887,13 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-wrapper.collapsed .nav-item.active.focused {
-    background-color: transparent !important; /* Keep it transparent to show capsule dark background */
-    box-shadow: none !important;
+    background-color: white !important; /* Make it white on focus */
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.15) !important;
+  }
+
+  .nav-wrapper.collapsed .nav-item.active.focused .nav-icon-container,
+  .nav-wrapper.collapsed .nav-item.active.focused .nav-chevron {
+    color: black !important; /* Black icon on white background */
   }
 
   .nav-wrapper.collapsed .nav-chevron {

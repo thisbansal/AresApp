@@ -1565,8 +1565,7 @@ const styles = {
     padding: 0,
     overflowX: 'hidden',
     overflowY: 'auto',
-    scrollSnapType: 'y mandatory',
-    scrollBehavior: 'smooth'
+    scrollSnapType: 'y mandatory'
   },
   settingsContainer: {
     display: 'flex',
@@ -1684,8 +1683,7 @@ const styles = {
     padding: '30px 45px 50px 45px', // Maintain padding for focus zoom
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
-    scrollSnapType: 'x mandatory',
-    scrollBehavior: 'smooth',
+    scrollSnapType: 'x mandatory'
   },
   exitOverlay: {
     position: 'fixed',

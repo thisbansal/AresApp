@@ -152,7 +152,7 @@ export const SpatialNavigationProvider = ({ children }) => {
     });
 
     if (closestNode) {
-      closestNode.focus({ preventScroll: true });
+      closestNode.focus({ preventScroll: false });
     } else {
       // Fallback: If we hit the boundary (no more items in that direction),
       // scroll the horizontal row-items container to the absolute end/start.
