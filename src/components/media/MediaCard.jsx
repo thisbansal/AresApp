@@ -15,7 +15,9 @@ export function MediaCard({
   handleItemClick,
   handleToggleWatched,
   handleRemoveFromOnDeck,
-  clickedItemId
+  clickedItemId,
+  variant = 'poster',
+  onFocus
 }) {
   let isUnwatched = false;
 
@@ -35,6 +37,29 @@ export function MediaCard({
     }
   }
 
+  // Map variant to specific CSS classes or inline styles
+  let width = 240;
+  let height = 360; // default poster (2:3)
+  if (variant === 'landscape') {
+    width = 320;
+    height = 180; // 16:9
+  } else if (variant === 'square') {
+    width = 240;
+    height = 240; // 1:1
+  }
+
+  // Update thumbUrl to use art if landscape, as thumbnails are often posters
+  if (variant === 'landscape' && (item.rawArt || item.art)) {
+    if (item._serverContext?.clientId) {
+      const s = useServerManagerStore.getState().servers[item._serverContext.clientId];
+      if (s && s.uri && s.accessToken) {
+        thumbUrl = buildImageUrl(s.uri, item.rawArt || item.art, s.accessToken, 640, 360);
+      }
+    } else {
+      thumbUrl = item.rawArt || item.art;
+    }
+  }
+
   return (
     <FocusableItem
       key={`${prefix}-${item.id}-${colIndex}`}
@@ -42,18 +67,24 @@ export function MediaCard({
       rowIndex={rowIndex}
       colIndex={colIndex}
       onClick={() => handleItemClick(item, prefix === 'cw', uid)}
+      onFocus={() => onFocus && onFocus(item)}
       style={{ flexShrink: 0 }}
       className="media-card-focusable"
     >
       <div 
         className="media-card"
-        style={{ viewTransitionName: clickedItemId === uid ? 'active-poster' : 'none' }}
+        style={{ 
+          viewTransitionName: clickedItemId === uid ? 'active-poster' : 'none',
+          width: `${width}px`,
+          height: `${height}px`
+        }}
       >
         <FallbackImage
           src={thumbUrl}
           itemId={item.id}
           alt={item.grandparentTitle || item.title}
           className="media-card-poster"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           loading="lazy"
           decoding="async"
         />

@@ -3,6 +3,7 @@ import { useSpatialNavigation, LayerContext } from '../contexts/SpatialNavigatio
 
 export function useFocusable({ id, onFocus, onBlur, onClick }) {
   const ref = useRef(null);
+  const hoverTimeoutRef = useRef(null);
   const [focused, setFocused] = useState(false);
   const { registerNode, unregisterNode, setNavigationMode, lastRemoteActionRef, lastNavDirectionRef, activeLayer } = useSpatialNavigation();
   const layerId = useContext(LayerContext);
@@ -26,9 +27,10 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
         const rect = ref.current.getBoundingClientRect();
         
         // Vertical scroll handling (page level)
-        // Only auto-center vertically if the user used the remote/D-pad UP or DOWN.
+        // Only auto-center vertically if the user used the remote/D-pad UP or DOWN,
+        // and ONLY if a global Navigation Lock isn't already handling the scroll animation!
         const isRemoteAction = Date.now() - lastRemoteActionRef.current <= 500;
-        if (isRemoteAction && (lastNavDirectionRef.current === 'up' || lastNavDirectionRef.current === 'down')) {
+        if (isRemoteAction && !window.isNavigationLocked && (lastNavDirectionRef.current === 'up' || lastNavDirectionRef.current === 'down')) {
           const isVisible = rect.top >= 100 && rect.bottom <= window.innerHeight - 100;
 
           if (!isVisible) {
@@ -127,6 +129,13 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
     }
   }, [setNavigationMode, lastRemoteActionRef, layerId, activeLayer]);
 
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  }, []);
+
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -151,6 +160,7 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
       onFocus: handleFocus,
       onBlur: handleBlur,
       onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
       onKeyDown: handleKeyDown,
       onClick: handleClick
     }

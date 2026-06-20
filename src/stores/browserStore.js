@@ -4,6 +4,9 @@ export const useBrowserStore = create((set) => ({
   activeTab: { type: 'home' },
   setActiveTab: (tab) => set({ activeTab: tab }),
 
+  isHeroSnapped: false,
+  setIsHeroSnapped: (val) => set({ isHeroSnapped: val }),
+
   continueWatching: [],
   setContinueWatching: (data) => set({ continueWatching: data }),
 

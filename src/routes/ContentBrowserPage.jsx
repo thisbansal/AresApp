@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
@@ -6,6 +6,9 @@ import { usePlexQuery } from '../hooks/usePlexQuery'
 import { ServerOfflineMessage } from '../components/ServerOfflineMessage'
 import { FallbackImage } from '../components/media/FallbackImage'
 import { MediaCard } from '../components/media/MediaCard'
+import { HeroBanner } from '../components/media/HeroBanner'
+import { SkeletonRow } from '../components/media/SkeletonRow'
+import { EmptyState } from '../components/media/EmptyState'
 import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { KINDS, PLEX_CONFIG } from '../config/app'
@@ -33,7 +36,17 @@ function ContentBrowserPage() {
 
   // State
   const [clickedItemId, setClickedItemId] = useState(globalClickedItemId)
+  const [focusedItem, setFocusedItem] = useState(null)
+  
+  const isHeroSnapped = useBrowserStore(state => state.isHeroSnapped)
 
+  useEffect(() => {
+    const logScroll = () => {
+      console.log(`[Native Scroll] scrollY: ${window.scrollY}`);
+    };
+    window.addEventListener('scroll', logScroll, { passive: true });
+    return () => window.removeEventListener('scroll', logScroll);
+  }, []);
   // State
   const [serverInfo, setServerInfo] = useState(null)
   const [libraries, setLibraries] = useState([])
@@ -58,6 +71,38 @@ function ContentBrowserPage() {
   const setLibraryContent = useBrowserStore((state) => state.setLibraryContent)
 
   // Settings State from Store
+  const heroItems = useMemo(() => {
+    // Only use items that have some artwork
+    const validItems = [...recentMovies, ...recentTv].filter(item => item.rawArt || item.rawThumb || item.art || item.thumb);
+    if (validItems.length === 0) return [];
+
+    // Filter out multiple seasons/episodes of the same show
+    const seenShows = new Set();
+    const uniqueItems = validItems.filter(item => {
+      // Determine the core show ID if it's a season or episode
+      const showId = item.grandparentRatingKey || item.parentRatingKey || item.ratingKey || item.id;
+
+      // For movies, item.type is usually 'movie', so they won't typically conflict unless they have same ID
+      if (item.type !== 'movie') {
+        if (seenShows.has(showId)) {
+          return false;
+        }
+        seenShows.add(showId);
+      }
+      return true;
+    });
+
+    // Deterministic shuffle based on IDs to avoid reshreshuffling on every render if data doesn't change
+    const sorted = [...uniqueItems].sort((a, b) => {
+      const aHash = String(a.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const bHash = String(b.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return (aHash % 10) - (bHash % 10);
+    });
+
+    // Return all unique items (don't limit to 5)
+    return sorted;
+  }, [recentMovies, recentTv]);
+
 
   const setSubtitleWeight = useBrowserStore((state) => state.setSubtitleWeight)
   const subtitleColor = useBrowserStore((state) => state.subtitleColor)
@@ -399,7 +444,7 @@ function ContentBrowserPage() {
       if (!serverInfo) return [];
       return await getMultiServerOnDeck(50);
     },
-    { enabled: !!serverInfo && activeTab.type === 'home', initialData: continueWatching }
+    { enabled: !!serverInfo && activeTab.type === 'home', initialData: continueWatching.length > 0 ? continueWatching : null }
   );
 
   // Query Recent Added Content
@@ -412,7 +457,7 @@ function ContentBrowserPage() {
       if (!serverInfo) return [];
       return await getMultiServerRecentlyAdded(50);
     },
-    { enabled: !!serverInfo && activeTab.type === 'home', initialData: [] }
+    { enabled: !!serverInfo && activeTab.type === 'home', initialData: null }
   );
 
   // Sync Continue Watching & Recent Added to Browser Store when updated
@@ -476,12 +521,20 @@ function ContentBrowserPage() {
   useEffect(() => {
     if (activeTab.type === 'home') {
       const hasHomeCache = continueWatching.length > 0 || recentMovies.length > 0 || recentTv.length > 0;
-      setLoading((continueWatchingLoading || recentAddedLoading) && !hasHomeCache);
+      if (!serverInfo) {
+        setLoading(!hasHomeCache);
+      } else {
+        setLoading((continueWatchingLoading || recentAddedLoading) && !hasHomeCache);
+      }
       setLibraryOffline(false);
     } else if (activeTab.type === 'library') {
-      setLoading(libraryItemsLoading);
-      // Decouple: show offline error screen if network call errored or offline, and there is no cached content
       const hasCache = libraryContent.all && libraryContent.all.length > 0;
+      if (!serverInfo && !activeTab.data?.serverUri) {
+        setLoading(!hasCache);
+      } else {
+        setLoading(libraryItemsLoading);
+      }
+      // Decouple: show offline error screen if network call errored or offline, and there is no cached content
       const isLibOffline = activeTab.data?.isOffline || !!libraryItemsError;
       setLibraryOffline(isLibOffline && !hasCache);
     } else {
@@ -490,6 +543,7 @@ function ContentBrowserPage() {
     }
   }, [
     activeTab,
+    serverInfo,
     continueWatchingLoading,
     recentAddedLoading,
     libraryItemsLoading,
@@ -687,7 +741,7 @@ function ContentBrowserPage() {
     setActiveTab(navItem)
   }
 
-  const renderCard = (item, rowIndex, colIndex, prefix) => {
+  const renderCard = (item, rowIndex, colIndex, prefix, variant = 'poster') => {
     return (
       <MediaCard
         key={`${prefix}-${item.id}-${colIndex}`}
@@ -700,12 +754,14 @@ function ContentBrowserPage() {
         handleToggleWatched={handleToggleWatched}
         handleRemoveFromOnDeck={handleRemoveFromOnDeck}
         clickedItemId={clickedItemId}
+        variant={variant}
+        onFocus={setFocusedItem}
       />
     )
   }
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="page-layout-container">
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
@@ -790,6 +846,7 @@ function ContentBrowserPage() {
           transform: translateY(0) scale(1) !important;
         }
 
+        /* Prevent navbar overlap on large screens (TV/Desktop) where navbar is on the left */
         /* Apple TV Settings Styles */
         .settings-rows-container {
           display: flex;
@@ -884,13 +941,22 @@ function ContentBrowserPage() {
         }
         .numpad-btn {
           border-radius: 50% !important;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
+          will-change: transform, background-color, color, border-color;
+          -webkit-transform: translate3d(0, 0, 0);
+          transform: translate3d(0, 0, 0);
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+          -webkit-perspective: 1000;
+          perspective: 1000;
         }
         .numpad-btn[style] {
-          transform: scale(1) !important;
+          -webkit-transform: scale(1) translate3d(0, 0, 0) !important;
+          transform: scale(1) translate3d(0, 0, 0) !important;
         }
         .numpad-btn.focused {
-          transform: scale(1.15) !important;
+          -webkit-transform: scale(1.15) translate3d(0, 0, 0) !important;
+          transform: scale(1.15) translate3d(0, 0, 0) !important;
         }
         .numpad-btn.focused div {
           background-color: #ffffff !important;
@@ -899,13 +965,22 @@ function ContentBrowserPage() {
         }
         .cancel-btn {
           border-radius: 50px !important;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
+          will-change: transform, background-color, color, border-color;
+          -webkit-transform: translate3d(0, 0, 0);
+          transform: translate3d(0, 0, 0);
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+          -webkit-perspective: 1000;
+          perspective: 1000;
         }
         .cancel-btn[style] {
-          transform: scale(1) !important;
+          -webkit-transform: scale(1) translate3d(0, 0, 0) !important;
+          transform: scale(1) translate3d(0, 0, 0) !important;
         }
         .cancel-btn.focused {
-          transform: scale(1.08) !important;
+          -webkit-transform: scale(1.08) translate3d(0, 0, 0) !important;
+          transform: scale(1.08) translate3d(0, 0, 0) !important;
           box-shadow: 0 0 20px rgba(255, 255, 255, 0.15) !important;
         }
         .cancel-btn.focused div {
@@ -926,50 +1001,79 @@ function ContentBrowserPage() {
           <ServerOfflineMessage />
         </div>
       ) : loading ? (
-        <div style={{ ...styles.emptyContainer, flexDirection: 'column', gap: '20px', height: '60vh' }}>
-          <div className="spinner" style={{ borderLeftColor: '#ffffff', width: '50px', height: '50px', borderWidth: '3px' }}></div>
-          <div style={{ ...styles.loadingText, fontSize: '24px', color: '#88888f' }}>Loading Content...</div>
-        </div>
+        activeTab.type === 'home' ? (
+          <div style={{ paddingTop: '50vh', paddingBottom: '50px' }}>
+            <div style={{...styles.section, marginTop: '20px'}} className="row">
+              <h2 style={styles.sectionTitle}>Continue Watching</h2>
+              <SkeletonRow variant="landscape" />
+            </div>
+            <div style={styles.section} className="row">
+              <h2 style={styles.sectionTitle}>Recently Added Movies</h2>
+              <SkeletonRow variant="poster" />
+            </div>
+            <div style={styles.section} className="row">
+              <h2 style={styles.sectionTitle}>Recently Added TV Shows</h2>
+              <SkeletonRow variant="square" />
+            </div>
+          </div>
+        ) : (
+          <div style={{ ...styles.emptyContainer, flexDirection: 'column', gap: '20px', height: '60vh' }}>
+            <div className="spinner" style={{ borderLeftColor: '#ffffff', width: '50px', height: '50px', borderWidth: '3px' }}></div>
+            <div style={{ ...styles.loadingText, fontSize: '24px', color: '#88888f' }}>Loading Content...</div>
+          </div>
+        )
       ) : (
         <>
-          {activeTab.type === 'home' && (
+          {activeTab.type === 'home' && (() => {
+            return (
             <>
               {continueWatching.length === 0 && recentMovies.length === 0 && recentTv.length === 0 ? (
-                <div style={styles.emptyContainer}>
-                  <div style={styles.emptyText}>No items found</div>
-                </div>
+                <EmptyState onRefresh={() => {
+                  setFocusedItem(null);
+                  // Quick re-fetch trigger could go here if needed
+                }} />
               ) : (
                 <>
-                  {continueWatching.length > 0 && (
-                    <div style={styles.section} className="row">
-                      <h2 style={styles.sectionTitle}>Continue Watching</h2>
-                      <div style={styles.row} className="hide-scrollbar row-items">
-                        {continueWatching.map((item, index) => renderCard(item, 0, index, 'cw'))}
-                      </div>
-                    </div>
-                  )}
+                  <HeroBanner items={heroItems} />
 
-                  {recentMovies.length > 0 && (
-                    <div style={styles.section} className="row">
-                      <h2 style={styles.sectionTitle}>Recently Added Movies</h2>
-                      <div style={styles.row} className="hide-scrollbar row-items">
-                        {recentMovies.map((item, index) => renderCard(item, 1, index, 'rm'))}
-                      </div>
-                    </div>
-                  )}
 
-                  {recentTv.length > 0 && (
-                    <div style={styles.section} className="row">
-                      <h2 style={styles.sectionTitle}>Recently Added TV Shows</h2>
-                      <div style={styles.row} className="hide-scrollbar row-items">
-                        {recentTv.map((item, index) => renderCard(item, 2, index, 'rt'))}
+                  <div style={{ 
+                    position: 'relative', 
+                    zIndex: 10,
+                    marginTop: 0
+                  }}>
+                    {continueWatching.length > 0 && (
+                      <div style={styles.section} className="row">
+                        <h2 style={styles.sectionTitle}>Continue Watching</h2>
+                        <div style={styles.row} className="hide-scrollbar row-items">
+                          {continueWatching.map((item, index) => renderCard(item, 0, index, 'cw', 'landscape'))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                    {recentMovies.length > 0 && (
+                      <div style={styles.section} className="row">
+                        <h2 style={styles.sectionTitle}>Recently Added Movies</h2>
+                        <div style={styles.row} className="hide-scrollbar row-items">
+                          {recentMovies.map((item, index) => renderCard(item, 1, index, 'rm', 'poster'))}
+                        </div>
+                      </div>
+                    )}
+
+                    {recentTv.length > 0 && (
+                      <div style={styles.section} className="row">
+                        <h2 style={styles.sectionTitle}>Recently Added TV Shows</h2>
+                        <div style={styles.row} className="hide-scrollbar row-items">
+                          {recentTv.map((item, index) => renderCard(item, 2, index, 'rt', 'poster'))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </>
-          )}
+            );
+          })()}
 
           {activeTab.type === 'library' && (
             <>
@@ -1467,18 +1571,18 @@ const APP_BASE_COLOR = '#ffffff'
 const styles = {
   container: {
     minHeight: '100vh',
+    backgroundColor: '#141414',
     color: '#e8eaed',
-    padding: '40px 30px',
+    padding: 0,
     display: 'flex',
     flexDirection: 'column',
-    // gap: '30px',
-    overflowX: 'hidden',
+    overflowX: 'hidden'
   },
   settingsContainer: {
     display: 'flex',
     flexDirection: 'column',
     gap: '40px',
-    padding: '20px 0',
+    padding: '40px 30px',
     width: '100%',
   },
   settingsSection: {
@@ -1568,28 +1672,28 @@ const styles = {
   section: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
-    marginBottom: '10px',
+    gap: '20px',
+    paddingTop: '60px',
   },
   sectionTitle: {
     fontSize: '34px',
     color: '#a8a8af',
     margin: 0,
+    paddingLeft: '45px',
     fontWeight: '500',
     fontFamily: "'Outfit', 'Inter', -apple-system, sans-serif",
     letterSpacing: '-0.3px',
   },
   row: {
     display: 'flex',
-    flexWrap: 'nowrap',
-    gap: '45px',
+    gap: '20px',
     overflowX: 'auto',
-    padding: '30px 45px 50px', // Expand horizontal padding for focus zoom room
-    margin: '-10px -45px 0 -45px', // Expand negative margins to screen edges to prevent early clipping
+    overflowY: 'hidden',
+    padding: '30px 45px 50px 45px', // Restored top padding to prevent focus scale clipping
+    marginTop: '-20px', // Negative margin pulls the row up to keep it visually grouped with the title
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
-    scrollSnapType: 'x mandatory',
-    scrollBehavior: 'smooth',
+    scrollSnapType: 'x mandatory'
   },
   exitOverlay: {
     position: 'fixed',

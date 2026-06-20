@@ -25,7 +25,7 @@ export const buildImageUrl = (serverUri, path, token, width = 400, height = 600)
   const transcodeToken = token
 
   // WebOS TVs often struggle with WebP or complex formats, forcing jpeg ensures compatibility
-  return `${serverUri}/photo/:/transcode?url=${path}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${transcodeToken}`
+  return `${serverUri}/photo/:/transcode?url=${path}&width=${width}&height=${height}&minSize=1&upscale=1&format=jpeg&X-Plex-Token=${transcodeToken}`
 }
 
 const buildServerContext = (serverUri, token) => ({ uri: serverUri, token })
@@ -64,8 +64,8 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
     year: item.year,
     thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Grid thumbnail
     rawThumb: item.thumb,
-    art: buildImageUrl(serverUri, item.art, token, 800, 450), // Detail view
-    rawArt: item.art,
+    art: buildImageUrl(serverUri, item.art || item.grandparentArt || item.parentArt, token, 800, 450), // Detail view
+    rawArt: item.art || item.grandparentArt || item.parentArt,
     rating: item.contentRating,
     summary: item.summary,
     duration: item.duration,
@@ -102,8 +102,8 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
     year: item.year,
     thumb: buildImageUrl(serverUri, item.type === 'episode' ? (item.grandparentThumb || item.thumb) : item.thumb, token, 400, 600),
     rawThumb: item.type === 'episode' ? (item.grandparentThumb || item.thumb) : item.thumb,
-    art: buildImageUrl(serverUri, item.art, token, 800, 450),
-    rawArt: item.art,
+    art: buildImageUrl(serverUri, item.art || item.grandparentArt || item.parentArt, token, 800, 450),
+    rawArt: item.art || item.grandparentArt || item.parentArt,
     viewOffset: item.viewOffset,
     duration: item.duration,
     grandparentTitle: item.grandparentTitle,

@@ -1,5 +1,5 @@
 // KeyboardHandler.jsx
-import { useEffect } from 'react';
+import { useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
@@ -150,7 +150,38 @@ export function KeyboardHandler() {
           return;
         }
 
-        if (isLoginRoute || isServerSelectRoute || isHomeRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
+        if (isHomeRoute) {
+          const activeEl = document.activeElement;
+          
+          if (window.isNavigationLocked) return;
+
+          // State 3 -> State 2: User is scrolled down
+          if (window.scrollY > 100) {
+            console.log('[KeyboardHandler] Back key: State 3 -> 2. Snapping to Hero Banner.');
+            window.isNavigationLocked = true;
+            useBrowserStore.getState().setIsHeroSnapped(false);
+            if (document.documentElement.scrollTop > 0 || document.body.scrollTop > 0) {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              setTimeout(() => {
+                window.isNavigationLocked = false;
+                const heroBtn = document.getElementById('hero-play-btn');
+                if (heroBtn) {
+                  heroBtn.focus({ preventScroll: true });
+                } else {
+                  setIsNavbarExpanded(true);
+                }
+              }, 400);
+            }
+            return;
+          }
+          
+          // State 2 -> State 1: User is at the top, expand navbar
+          console.log('[KeyboardHandler] Back key: State 2 -> 1. Expanding navbar.');
+          setIsNavbarExpanded(true);
+          return;
+        }
+
+        if (isLoginRoute || isServerSelectRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
           console.log('[KeyboardHandler] Back key: Expanding navbar.');
           setIsNavbarExpanded(true);
           return;

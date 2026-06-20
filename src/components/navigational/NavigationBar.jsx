@@ -58,18 +58,15 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
         targetId = `nav-lib-${uid}`;
       }
       
-      const timer = setTimeout(() => {
-        const el = document.getElementById(targetId);
-        if (el) {
-          el.focus({ preventScroll: true });
-        }
-      }, 70);
-      return () => clearTimeout(timer);
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.focus({ preventScroll: true });
+      }
     }
   }, [isNavbarExpanded, activeTab, libraries]);
 
   return (
-    <FocusLayer id="navbar" isActive={isNavbarExpanded}>
+    <FocusLayer id="navbar" isActive={isNavbarExpanded} autoFocusFirst={false}>
       <div 
         className={`nav-wrapper ${isNavbarExpanded ? 'expanded' : 'collapsed'} ${!isOnline ? 'offline' : ''}`} 
         onBlur={(e) => {

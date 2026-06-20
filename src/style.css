@@ -12,28 +12,46 @@
 
 /* Global Capsule Button (Single Source of Truth) */
 .capsule-btn {
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #333333;
+  color: #ffffff;
   border-radius: 50px;
   padding: 16px 36px;
   font-size: 20px;
   font-weight: 600;
   font-family: 'Outfit', 'Inter', sans-serif;
-  border: 2px solid #ffffff;
+  border: 2px solid transparent;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.15s ease-out, background-color 0.15s ease-out, color 0.15s ease-out;
+  will-change: transform, background-color, color;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
   box-shadow: 0 4px 15px rgba(0,0,0,0.4);
   text-decoration: none;
   outline: none;
 }
+.focusable-item.focused .capsule-btn,
 .capsule-btn.focused {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  -webkit-transform: translate3d(0, -4px, 0);
+  transform: translate3d(0, -4px, 0);
+  box-shadow: 0 8px 25px rgba(255,255,255,0.25);
+}
+
+.focusable-item:active .capsule-btn,
+.capsule-btn:active {
   background-color: #000000 !important;
   color: #ffffff !important;
-  transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255,255,255,0.25);
+  -webkit-transform: scale(0.98) translate3d(0, 0, 0);
+  transform: scale(0.98) translate3d(0, 0, 0);
 }
 .capsule-btn svg {
   stroke: currentColor;
@@ -42,6 +60,9 @@
 
 *:focus {
   outline: none !important;
+}
+
+html {
 }
 
 body {
@@ -158,14 +179,14 @@ body::-webkit-scrollbar {
 }
 
 .exit-btn.confirm.focused, .exit-btn.confirm:hover {
-  background-color: rgba(10, 132, 255, 0.35) !important;
+  background-color: #0a84ff !important;
   border-color: #0a84ff !important;
   color: #ffffff !important;
   box-shadow: 0 0 25px rgba(10, 132, 255, 0.65) !important;
 }
 
 .exit-btn.danger.focused, .exit-btn.danger:hover {
-  background-color: rgba(217, 56, 56, 0.35) !important;
+  background-color: #d93838 !important;
   border-color: #d93838 !important;
   color: #ffffff !important;
   box-shadow: 0 0 25px rgba(217, 56, 56, 0.65) !important;
@@ -252,6 +273,13 @@ video::-webkit-media-controls-text-track-display {
   scroll-margin-right: 120px;
   /* box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45); High-performance static shadow */
   box-shadow: 8px 8px 10px rgba(0, 0, 0, 0.75);
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform, box-shadow;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
 }
 
 /* Focused card state - snaps instantly to prevent layout paint thrashing */
@@ -382,6 +410,13 @@ video::-webkit-media-controls-text-track-display {
   z-index: 9999;
   pointer-events: none;
   transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
 }
 
 .player-hud-container {
@@ -394,6 +429,13 @@ video::-webkit-media-controls-text-track-display {
   flex-direction: column;
   gap: 24px;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+  will-change: transform, opacity;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
 }
 
 .player-hud-meta {
@@ -721,7 +763,7 @@ video::-webkit-media-controls-text-track-display {
 
 @media (min-width: 1024px) {
   .nav-wrapper {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: auto;
@@ -791,7 +833,12 @@ video::-webkit-media-controls-text-track-display {
     will-change: opacity, transform;
     transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     opacity: 1;
-    transform: translateX(0);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
     max-width: 200px;
     overflow: hidden;
   }
@@ -844,8 +891,13 @@ video::-webkit-media-controls-text-track-display {
   }
 
   .nav-wrapper.collapsed .nav-item.active.focused {
-    background-color: transparent !important; /* Keep it transparent to show capsule dark background */
-    box-shadow: none !important;
+    background-color: white !important; /* Make it white on focus */
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.15) !important;
+  }
+
+  .nav-wrapper.collapsed .nav-item.active.focused .nav-icon-container,
+  .nav-wrapper.collapsed .nav-item.active.focused .nav-chevron {
+    color: black !important; /* Black icon on white background */
   }
 
   .nav-wrapper.collapsed .nav-chevron {
@@ -864,7 +916,8 @@ video::-webkit-media-controls-text-track-display {
 
   .nav-wrapper.collapsed .nav-text-label {
     opacity: 0;
-    transform: translateX(-15px); /* Slide text in */
+    -webkit-transform: translate3d(-15px, 0, 0); /* Slide text in */
+    transform: translate3d(-15px, 0, 0); /* Slide text in */
     max-width: 0;
     padding-left: 0;
     display: none;
@@ -1106,4 +1159,15 @@ video::-webkit-media-controls-text-track-display {
   height: 100%;
   pointer-events: none;
   z-index: 99999;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }

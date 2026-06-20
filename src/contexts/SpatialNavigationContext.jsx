@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
+import { useBrowserStore } from '../stores/browserStore';
 
 const SpatialNavigationContext = createContext(null);
 
@@ -22,6 +23,73 @@ export const SpatialNavigationProvider = ({ children }) => {
       const newStack = prev.filter(id => id !== layerId);
       return newStack.length > 0 ? newStack : ['base'];
     });
+  }, []);
+
+  // Global Intent-Based Wheel Listener
+  useEffect(() => {
+    const handleWheel = (e) => {
+      const state = useBrowserStore.getState();
+      if (state.activeTab?.type !== 'home') return;
+
+      if (window.isNavigationLocked || window.wheelSnapCooldown) {
+        // e.preventDefault(); // Temporarily disabled preventDefault here to not spam logs, but we still return
+        return;
+      }
+
+      const currentIsHeroSnapped = state.isHeroSnapped;
+
+      // Intent: requestSnapDown
+      if (!currentIsHeroSnapped && e.deltaY > 0) {
+        console.log(`[Navigation Engine] Snap DOWN triggered! deltaY: ${e.deltaY}, scrollY: ${window.scrollY}`);
+        e.preventDefault();
+        window.isNavigationLocked = true;
+        document.activeElement?.blur();
+        
+        state.setIsHeroSnapped(true);
+        
+        // Anchor Approach: scroll smoothly to the first row!
+        const firstRow = document.querySelector('.row');
+        if (firstRow) {
+          firstRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+        }
+
+        // Lock navigation briefly to allow smooth scroll to finish without trackpad bouncing
+        setTimeout(() => {
+          console.log(`[Navigation Engine] Snap DOWN completed.`);
+          window.isNavigationLocked = false;
+          window.wheelSnapCooldown = true;
+          setTimeout(() => { window.wheelSnapCooldown = false; }, 500);
+        }, 500);
+      }
+
+      // Intent: requestSnapUp
+      // Trigger snap up if we are anywhere near the first row (e.g. scrollY < 1.1 * innerHeight)
+      if (currentIsHeroSnapped && e.deltaY < 0 && window.scrollY < window.innerHeight * 1.1) {
+        console.log(`[Navigation Engine] Snap UP triggered! deltaY: ${e.deltaY}, scrollY: ${window.scrollY}`);
+        e.preventDefault();
+        window.isNavigationLocked = true;
+        document.activeElement?.blur();
+        
+        state.setIsHeroSnapped(false);
+        
+        // Anchor Approach: scroll smoothly back to the top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        setTimeout(() => {
+          console.log(`[Navigation Engine] Snap UP completed.`);
+          window.isNavigationLocked = false;
+          const heroBtn = document.getElementById('hero-play-btn');
+          if (heroBtn) heroBtn.focus({ preventScroll: true });
+          window.wheelSnapCooldown = true;
+          setTimeout(() => { window.wheelSnapCooldown = false; }, 500);
+        }, 500);
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
   }, []);
 
   const registerNode = useCallback((id, node, layerId = 'base') => {
@@ -79,7 +147,7 @@ export const SpatialNavigationProvider = ({ children }) => {
     lastNavDirectionRef.current = direction;
 
     const activeElement = document.activeElement;
-    
+
     // Check if the current active element is actually registered in the active layer
     let isActiveElementInActiveLayer = false;
     if (activeElement && activeElement !== document.body) {
@@ -92,10 +160,20 @@ export const SpatialNavigationProvider = ({ children }) => {
 
     if (!isActiveElementInActiveLayer) {
       // If nothing is focused OR the currently focused element is NOT in the active layer,
-      // focus the first registered node IN THE ACTIVE LAYER
+      // focus the first fully visible node in the active layer.
       const nodesInActiveLayer = Array.from(nodesRef.current.values()).filter(entry => entry.layerId === activeLayer);
-      const firstNode = nodesInActiveLayer[0]?.node;
-      if (firstNode) firstNode.focus({ preventScroll: true });
+      
+      const visibleNode = nodesInActiveLayer.find(entry => {
+        const rect = entry.node.getBoundingClientRect();
+        // Check if fully visible on screen (with a tiny buffer to avoid rounding issues)
+        return rect.top >= 0 && rect.bottom <= window.innerHeight && rect.width > 0 && rect.height > 0;
+      });
+
+      if (visibleNode) {
+        visibleNode.node.focus({ preventScroll: true });
+      } else if (nodesInActiveLayer[0]) {
+        nodesInActiveLayer[0].node.focus({ preventScroll: true });
+      }
       return;
     }
 
@@ -122,9 +200,12 @@ export const SpatialNavigationProvider = ({ children }) => {
       if (node === activeElement) return;
       if (!document.body.contains(node)) return;
 
+      const computedStyle = window.getComputedStyle(node);
+      if (computedStyle.opacity === '0' || computedStyle.visibility === 'hidden' || computedStyle.display === 'none') return;
+
       const nodeRect = node.getBoundingClientRect();
       // Only consider elements that have layout
-      if (nodeRect.width === 0 && nodeRect.height === 0) return;
+      if (nodeRect.width === 0 || nodeRect.height === 0) return;
 
       // Restrict horizontal (left/right) navigation to keep focus within its active row/grid row
       if (direction === 'left' || direction === 'right') {
@@ -153,6 +234,31 @@ export const SpatialNavigationProvider = ({ children }) => {
 
     if (closestNode) {
       closestNode.focus({ preventScroll: true });
+
+      if (window.isNavigationLocked) return;
+
+      // Prevent browser native scroll jumping by using smooth scrollIntoView
+      // Ensure we lock scroll on D-pad navigation to stop fighting with React layouts
+      if (closestNode.id.startsWith('hero-') || closestNode.id.startsWith('nav-')) {
+        window.isNavigationLocked = true;
+        useBrowserStore.getState().setIsHeroSnapped(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => { window.isNavigationLocked = false; }, 400);
+      } else if (direction === 'down' && document.activeElement?.id?.startsWith('hero-')) {
+        // TUNE THIS VALUE: adjust how far the D-Pad snaps down when leaving Hero Banner
+        window.isNavigationLocked = true;
+        useBrowserStore.getState().setIsHeroSnapped(true);
+        const firstRow = document.querySelector('.row');
+        if (firstRow) {
+          firstRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+        }
+        setTimeout(() => { window.isNavigationLocked = false; }, 400);
+      } else {
+        // For everything else, center the row nicely
+        closestNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      }
     } else {
       // Fallback: If we hit the boundary (no more items in that direction),
       // scroll the horizontal row-items container to the absolute end/start.
@@ -221,18 +327,20 @@ export const useSpatialNavigation = () => {
 
 export const LayerContext = createContext('base');
 
-export const FocusLayer = ({ id, isActive = true, children }) => {
+export const FocusLayer = ({ id, isActive = true, autoFocusFirst = true, children }) => {
   const { pushLayer, popLayer, focusLayer } = useSpatialNavigation();
 
   useEffect(() => {
     if (isActive) {
       pushLayer(id);
-      setTimeout(() => focusLayer(id), 50);
+      if (autoFocusFirst) {
+        setTimeout(() => focusLayer(id), 50);
+      }
     } else {
       popLayer(id);
     }
     return () => popLayer(id);
-  }, [isActive, id, pushLayer, popLayer, focusLayer]);
+  }, [isActive, id, pushLayer, popLayer, focusLayer, autoFocusFirst]);
 
   // If not active, we still provide 'base' so children don't trap focus if layer is deactivated but still mounted
   return (
