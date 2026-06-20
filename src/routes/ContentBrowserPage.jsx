@@ -1573,7 +1573,7 @@ const styles = {
     backgroundColor: '#141414',
     color: '#e8eaed',
     padding: 0,
-    paddingBottom: '80vh', // Ensure enough scroll space for 80% snap-down on short pages
+    paddingBottom: '120vh', // Ensure enough scroll space for 100vh snap-down on short pages
     display: 'flex',
     flexDirection: 'column',
     overflowX: 'hidden'
