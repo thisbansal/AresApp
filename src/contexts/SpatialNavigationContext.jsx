@@ -79,7 +79,7 @@ export const SpatialNavigationProvider = ({ children }) => {
     lastNavDirectionRef.current = direction;
 
     const activeElement = document.activeElement;
-    
+
     // Check if the current active element is actually registered in the active layer
     let isActiveElementInActiveLayer = false;
     if (activeElement && activeElement !== document.body) {
@@ -156,14 +156,14 @@ export const SpatialNavigationProvider = ({ children }) => {
 
     if (closestNode) {
       closestNode.focus({ preventScroll: true });
-      
+
       // Prevent browser native scroll jumping by using smooth scrollIntoView
       // Ensure we lock scroll on D-pad navigation to stop fighting with React layouts
       if (closestNode.id.startsWith('hero-') || closestNode.id.startsWith('nav-')) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (direction === 'down' && document.activeElement?.id?.startsWith('hero-')) {
-        // TUNE THIS VALUE: adjust how far the D-Pad snaps down when leaving Hero Banner (0.6 = 60vh)
-        const SNAP_DOWN_OFFSET_VH = 0.6;
+        // TUNE THIS VALUE: adjust how far the D-Pad snaps down when leaving Hero Banner
+        const SNAP_DOWN_OFFSET_VH = 0.8;
         window.scrollTo({ top: window.innerHeight * SNAP_DOWN_OFFSET_VH, behavior: 'smooth' });
       } else {
         // For everything else, center the row nicely

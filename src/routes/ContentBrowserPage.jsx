@@ -45,32 +45,43 @@ function ContentBrowserPage() {
       setIsScrolled(window.scrollY > window.innerHeight * 0.1) // true if scrolled past 10vh
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
-    
+
     // Eagerly snap with mouse wheel
+    let isWheelSnapping = false;
+
     const handleWheel = (e) => {
       const state = useBrowserStore.getState();
       if (state.activeTab?.type !== 'home') return;
+      
+      if (isWheelSnapping) {
+        e.preventDefault();
+        return;
+      }
       
       const currentIsScrolled = window.scrollY > window.innerHeight * 0.1;
       
       // If at top and wheeling down
       if (!currentIsScrolled && e.deltaY > 0) {
         e.preventDefault();
-        // TUNE THIS VALUE: adjust how far the wheel snaps down (0.6 = 60vh)
-        const SNAP_DOWN_OFFSET_VH = 0.6; 
+        isWheelSnapping = true;
+        // Scroll down 80% of the visible height to snap off hero
+        const SNAP_DOWN_OFFSET_VH = 0.8; 
         window.scrollTo({ top: window.innerHeight * SNAP_DOWN_OFFSET_VH, behavior: 'smooth' });
+        setTimeout(() => isWheelSnapping = false, 600);
       }
       
       // If snapped down and wheeling up near the top
       if (currentIsScrolled && e.deltaY < 0 && window.scrollY < window.innerHeight * 0.4) {
         e.preventDefault();
+        isWheelSnapping = true;
         window.scrollTo({ top: 0, behavior: 'smooth' });
         const heroBtn = document.getElementById('hero-play-btn');
         if (heroBtn) heroBtn.focus({ preventScroll: true });
+        setTimeout(() => isWheelSnapping = false, 600);
       }
     };
     window.addEventListener('wheel', handleWheel, { passive: false });
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('wheel', handleWheel);
@@ -111,7 +122,7 @@ function ContentBrowserPage() {
     const uniqueItems = validItems.filter(item => {
       // Determine the core show ID if it's a season or episode
       const showId = item.grandparentRatingKey || item.parentRatingKey || item.ratingKey || item.id;
-      
+
       // For movies, item.type is usually 'movie', so they won't typically conflict unless they have same ID
       if (item.type !== 'movie') {
         if (seenShows.has(showId)) {
@@ -121,14 +132,14 @@ function ContentBrowserPage() {
       }
       return true;
     });
-    
+
     // Deterministic shuffle based on IDs to avoid reshreshuffling on every render if data doesn't change
     const sorted = [...uniqueItems].sort((a, b) => {
       const aHash = String(a.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const bHash = String(b.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       return (aHash % 10) - (bHash % 10);
     });
-    
+
     // Return all unique items (don't limit to 5)
     return sorted;
   }, [recentMovies, recentTv]);
@@ -1065,8 +1076,8 @@ function ContentBrowserPage() {
               ) : (
                 <>
                   <HeroBanner items={heroItems} />
-                  <div style={{ 
-                    position: 'relative', 
+                  <div style={{
+                    position: 'relative',
                     zIndex: 10,
                     marginTop: isScrolled ? '0' : '-20vh',
                     transition: 'margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
