@@ -3,6 +3,7 @@ import { useSpatialNavigation, LayerContext } from '../contexts/SpatialNavigatio
 
 export function useFocusable({ id, onFocus, onBlur, onClick }) {
   const ref = useRef(null);
+  const hoverTimeoutRef = useRef(null);
   const [focused, setFocused] = useState(false);
   const { registerNode, unregisterNode, setNavigationMode, lastRemoteActionRef, lastNavDirectionRef, activeLayer } = useSpatialNavigation();
   const layerId = useContext(LayerContext);
@@ -122,10 +123,19 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
     }
 
     setNavigationMode('cursor');
-    if (ref.current) {
-      ref.current.focus({ preventScroll: true });
-    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      if (ref.current) {
+        ref.current.focus({ preventScroll: true });
+      }
+    }, 500);
   }, [setNavigationMode, lastRemoteActionRef, layerId, activeLayer]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  }, []);
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -151,6 +161,7 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
       onFocus: handleFocus,
       onBlur: handleBlur,
       onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
       onKeyDown: handleKeyDown,
       onClick: handleClick
     }

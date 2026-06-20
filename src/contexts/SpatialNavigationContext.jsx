@@ -43,6 +43,7 @@ export const SpatialNavigationProvider = ({ children }) => {
       if (!currentIsHeroSnapped && e.deltaY > 0) {
         e.preventDefault();
         window.isNavigationLocked = true;
+        document.activeElement?.blur();
         
         // Command Global Store to trigger CSS layout shift
         state.setIsHeroSnapped(true);
@@ -58,12 +59,11 @@ export const SpatialNavigationProvider = ({ children }) => {
       if (currentIsHeroSnapped && e.deltaY < 0 && window.scrollY < window.innerHeight * 0.4) {
         e.preventDefault();
         window.isNavigationLocked = true;
+        document.activeElement?.blur();
         
         state.setIsHeroSnapped(false);
         forceSmoothScroll(0, 400, () => {
           window.isNavigationLocked = false;
-          const heroBtn = document.getElementById('hero-play-btn');
-          if (heroBtn) heroBtn.focus({ preventScroll: true });
         });
       }
     };
@@ -140,10 +140,20 @@ export const SpatialNavigationProvider = ({ children }) => {
 
     if (!isActiveElementInActiveLayer) {
       // If nothing is focused OR the currently focused element is NOT in the active layer,
-      // focus the first registered node IN THE ACTIVE LAYER
+      // focus the first fully visible node in the active layer.
       const nodesInActiveLayer = Array.from(nodesRef.current.values()).filter(entry => entry.layerId === activeLayer);
-      const firstNode = nodesInActiveLayer[0]?.node;
-      if (firstNode) firstNode.focus({ preventScroll: true });
+      
+      const visibleNode = nodesInActiveLayer.find(entry => {
+        const rect = entry.node.getBoundingClientRect();
+        // Check if fully visible on screen (with a tiny buffer to avoid rounding issues)
+        return rect.top >= 0 && rect.bottom <= window.innerHeight && rect.width > 0 && rect.height > 0;
+      });
+
+      if (visibleNode) {
+        visibleNode.node.focus({ preventScroll: true });
+      } else if (nodesInActiveLayer[0]) {
+        nodesInActiveLayer[0].node.focus({ preventScroll: true });
+      }
       return;
     }
 
