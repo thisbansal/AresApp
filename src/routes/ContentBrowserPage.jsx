@@ -49,6 +49,31 @@ function ContentBrowserPage() {
     // Eagerly snap with mouse wheel
     let isWheelSnapping = false;
 
+    const forceSmoothScroll = (targetY, duration = 400) => {
+      const startY = window.scrollY;
+      const distance = targetY - startY;
+      const startTime = performance.now();
+      
+      // Temporarily lock native scrolling so trackpads don't cancel the animation
+      document.documentElement.style.overflow = 'hidden';
+      
+      const animateScroll = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        
+        window.scrollTo(0, startY + distance * easeProgress);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        } else {
+          document.documentElement.style.overflow = '';
+          isWheelSnapping = false;
+        }
+      };
+      requestAnimationFrame(animateScroll);
+    };
+
     const handleWheel = (e) => {
       const state = useBrowserStore.getState();
       if (state.activeTab?.type !== 'home') return;
@@ -66,18 +91,16 @@ function ContentBrowserPage() {
         isWheelSnapping = true;
         // Scroll down 80% of the visible height to snap off hero
         const SNAP_DOWN_OFFSET_VH = 0.8; 
-        window.scrollTo({ top: window.innerHeight * SNAP_DOWN_OFFSET_VH, behavior: 'smooth' });
-        setTimeout(() => isWheelSnapping = false, 600);
+        forceSmoothScroll(window.innerHeight * SNAP_DOWN_OFFSET_VH);
       }
       
       // If snapped down and wheeling up near the top
       if (currentIsScrolled && e.deltaY < 0 && window.scrollY < window.innerHeight * 0.4) {
         e.preventDefault();
         isWheelSnapping = true;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        forceSmoothScroll(0);
         const heroBtn = document.getElementById('hero-play-btn');
         if (heroBtn) heroBtn.focus({ preventScroll: true });
-        setTimeout(() => isWheelSnapping = false, 600);
       }
     };
     window.addEventListener('wheel', handleWheel, { passive: false });
@@ -1614,6 +1637,7 @@ const styles = {
     backgroundColor: '#141414',
     color: '#e8eaed',
     padding: 0,
+    paddingBottom: '80vh', // Ensure enough scroll space for 80% snap-down on short pages
     display: 'flex',
     flexDirection: 'column',
     overflowX: 'hidden'
