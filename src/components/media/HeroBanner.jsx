@@ -18,7 +18,7 @@ export function HeroBanner({ item }) {
   const summary = item.summary;
 
   let backgroundUrl = null;
-  const artwork = item.art || item.thumb;
+  const artwork = item.rawArt || item.rawThumb;
   if (artwork) {
     if (item._serverContext?.clientId) {
       const s = useServerManagerStore.getState().servers[item._serverContext.clientId];

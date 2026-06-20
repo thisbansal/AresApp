@@ -49,14 +49,14 @@ export function MediaCard({
   }
 
   // Update thumbUrl to use art if landscape, as thumbnails are often posters
-  if (variant === 'landscape' && item.art) {
+  if (variant === 'landscape' && (item.rawArt || item.art)) {
     if (item._serverContext?.clientId) {
       const s = useServerManagerStore.getState().servers[item._serverContext.clientId];
       if (s && s.uri && s.accessToken) {
-        thumbUrl = buildImageUrl(s.uri, item.art, s.accessToken, 640, 360);
+        thumbUrl = buildImageUrl(s.uri, item.rawArt || item.art, s.accessToken, 640, 360);
       }
     } else {
-      thumbUrl = item.art;
+      thumbUrl = item.rawArt || item.art;
     }
   }
 
