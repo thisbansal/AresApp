@@ -122,9 +122,12 @@ export const SpatialNavigationProvider = ({ children }) => {
       if (node === activeElement) return;
       if (!document.body.contains(node)) return;
 
+      const computedStyle = window.getComputedStyle(node);
+      if (computedStyle.opacity === '0' || computedStyle.visibility === 'hidden' || computedStyle.display === 'none') return;
+
       const nodeRect = node.getBoundingClientRect();
       // Only consider elements that have layout
-      if (nodeRect.width === 0 && nodeRect.height === 0) return;
+      if (nodeRect.width === 0 || nodeRect.height === 0) return;
 
       // Restrict horizontal (left/right) navigation to keep focus within its active row/grid row
       if (direction === 'left' || direction === 'right') {

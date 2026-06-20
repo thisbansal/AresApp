@@ -14,6 +14,19 @@ export function HeroBanner({ items = [] }) {
   
   const timerRef = useRef(null);
 
+  useEffect(() => {
+    if (items && items.length > 0) {
+      console.log('--- Hero Banner Art Sources ---');
+      items.forEach((it, idx) => {
+        let artSource = 'None';
+        if (it.rawArt) artSource = 'rawArt (art/grandparentArt/parentArt)';
+        else if (it.rawThumb) artSource = 'rawThumb (poster)';
+        console.log(`Slide ${idx + 1} (${it.title}): Using ${artSource}`);
+      });
+      console.log('-------------------------------');
+    }
+  }, [items]);
+
   // Auto-advance logic
   useEffect(() => {
     if (!items || items.length === 0 || userInteracted) {
