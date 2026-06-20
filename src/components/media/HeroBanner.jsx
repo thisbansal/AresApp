@@ -84,7 +84,7 @@ export function HeroBanner({ items = [] }) {
         targetServerInfo = { uri: s.uri, token: s.accessToken, owned: s.owned };
       }
     }
-    const path = item.type === 'episode' || item.type === 'movie' ? `/player/${item.ratingKey}` : `/details/${item.ratingKey}`;
+    const path = item.type === 'episode' || item.type === 'movie' ? `/play/${item.id}` : `/details/${item.id}`;
     navigate(path, { state: { serverInfo: targetServerInfo, item: item } });
   };
 
@@ -97,7 +97,7 @@ export function HeroBanner({ items = [] }) {
         targetServerInfo = { uri: s.uri, token: s.accessToken, owned: s.owned };
       }
     }
-    navigate(`/details/${item.ratingKey}`, { state: { serverInfo: targetServerInfo, item: item } });
+    navigate(`/details/${item.id}`, { state: { serverInfo: targetServerInfo, item: item } });
   };
 
   const handleNextSlide = (e) => {
