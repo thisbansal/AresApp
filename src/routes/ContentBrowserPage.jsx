@@ -40,8 +40,13 @@ function ContentBrowserPage() {
   
   const isHeroSnapped = useBrowserStore(state => state.isHeroSnapped)
 
-
-
+  useEffect(() => {
+    const logScroll = () => {
+      console.log(`[Native Scroll] scrollY: ${window.scrollY}`);
+    };
+    window.addEventListener('scroll', logScroll, { passive: true });
+    return () => window.removeEventListener('scroll', logScroll);
+  }, []);
   // State
   const [serverInfo, setServerInfo] = useState(null)
   const [libraries, setLibraries] = useState([])

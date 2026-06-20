@@ -33,7 +33,7 @@ export const SpatialNavigationProvider = ({ children }) => {
       if (state.activeTab?.type !== 'home') return;
 
       if (window.isNavigationLocked || window.wheelSnapCooldown) {
-        e.preventDefault();
+        // e.preventDefault(); // Temporarily disabled preventDefault here to not spam logs, but we still return
         return;
       }
 
@@ -41,33 +41,34 @@ export const SpatialNavigationProvider = ({ children }) => {
 
       // Intent: requestSnapDown
       if (!currentIsHeroSnapped && e.deltaY > 0) {
+        console.log(`[Navigation Engine] Snap DOWN triggered! deltaY: ${e.deltaY}, scrollY: ${window.scrollY}`);
         e.preventDefault();
         window.isNavigationLocked = true;
         document.activeElement?.blur();
         
-        // Command Global Store to trigger CSS layout shift
         state.setIsHeroSnapped(true);
-        
-        // Drive JS Animation
         const SNAP_DOWN_OFFSET_VH = 1.0;
         forceSmoothScroll(window.innerHeight * SNAP_DOWN_OFFSET_VH, 400, () => {
+          console.log(`[Navigation Engine] Snap DOWN completed.`);
           window.isNavigationLocked = false;
           window.wheelSnapCooldown = true;
-          setTimeout(() => window.wheelSnapCooldown = false, 500);
+          setTimeout(() => { window.wheelSnapCooldown = false; }, 500);
         });
       }
 
       // Intent: requestSnapUp
       if (currentIsHeroSnapped && e.deltaY < 0 && window.scrollY < window.innerHeight * 0.4) {
+        console.log(`[Navigation Engine] Snap UP triggered! deltaY: ${e.deltaY}, scrollY: ${window.scrollY}`);
         e.preventDefault();
         window.isNavigationLocked = true;
         document.activeElement?.blur();
         
         state.setIsHeroSnapped(false);
         forceSmoothScroll(0, 400, () => {
+          console.log(`[Navigation Engine] Snap UP completed.`);
           window.isNavigationLocked = false;
           window.wheelSnapCooldown = true;
-          setTimeout(() => window.wheelSnapCooldown = false, 500);
+          setTimeout(() => { window.wheelSnapCooldown = false; }, 500);
         });
       }
     };
