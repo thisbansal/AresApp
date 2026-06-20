@@ -32,7 +32,7 @@ export const SpatialNavigationProvider = ({ children }) => {
       const state = useBrowserStore.getState();
       if (state.activeTab?.type !== 'home') return;
 
-      if (window.isNavigationLocked) {
+      if (window.isNavigationLocked || window.wheelSnapCooldown) {
         e.preventDefault();
         return;
       }
@@ -49,9 +49,11 @@ export const SpatialNavigationProvider = ({ children }) => {
         state.setIsHeroSnapped(true);
         
         // Drive JS Animation
-        const SNAP_DOWN_OFFSET_VH = 0.8;
+        const SNAP_DOWN_OFFSET_VH = 1.0;
         forceSmoothScroll(window.innerHeight * SNAP_DOWN_OFFSET_VH, 400, () => {
           window.isNavigationLocked = false;
+          window.wheelSnapCooldown = true;
+          setTimeout(() => window.wheelSnapCooldown = false, 500);
         });
       }
 
@@ -64,6 +66,8 @@ export const SpatialNavigationProvider = ({ children }) => {
         state.setIsHeroSnapped(false);
         forceSmoothScroll(0, 400, () => {
           window.isNavigationLocked = false;
+          window.wheelSnapCooldown = true;
+          setTimeout(() => window.wheelSnapCooldown = false, 500);
         });
       }
     };
@@ -227,7 +231,7 @@ export const SpatialNavigationProvider = ({ children }) => {
         // TUNE THIS VALUE: adjust how far the D-Pad snaps down when leaving Hero Banner
         window.isNavigationLocked = true;
         useBrowserStore.getState().setIsHeroSnapped(true);
-        const SNAP_DOWN_OFFSET_VH = 0.8;
+        const SNAP_DOWN_OFFSET_VH = 1.0;
         forceSmoothScroll(window.innerHeight * SNAP_DOWN_OFFSET_VH, 400, () => { window.isNavigationLocked = false; });
       } else {
         // For everything else, center the row nicely

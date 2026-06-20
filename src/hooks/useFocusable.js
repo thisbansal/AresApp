@@ -27,9 +27,10 @@ export function useFocusable({ id, onFocus, onBlur, onClick }) {
         const rect = ref.current.getBoundingClientRect();
         
         // Vertical scroll handling (page level)
-        // Only auto-center vertically if the user used the remote/D-pad UP or DOWN.
+        // Only auto-center vertically if the user used the remote/D-pad UP or DOWN,
+        // and ONLY if a global Navigation Lock isn't already handling the scroll animation!
         const isRemoteAction = Date.now() - lastRemoteActionRef.current <= 500;
-        if (isRemoteAction && (lastNavDirectionRef.current === 'up' || lastNavDirectionRef.current === 'down')) {
+        if (isRemoteAction && !window.isNavigationLocked && (lastNavDirectionRef.current === 'up' || lastNavDirectionRef.current === 'down')) {
           const isVisible = rect.top >= 100 && rect.bottom <= window.innerHeight - 100;
 
           if (!isVisible) {
