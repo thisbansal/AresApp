@@ -175,7 +175,8 @@ export function HeroBanner({ items = [] }) {
     },
     dotsContainer: {
       position: 'absolute',
-      right: '60px',
+      left: '50%',
+      transform: 'translateX(-50%)',
       bottom: '25vh',
       display: 'flex',
       alignItems: 'center',
