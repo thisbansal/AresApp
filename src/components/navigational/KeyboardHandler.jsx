@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
 import { useBrowserStore } from '../../stores/browserStore';
+import { forceSmoothScroll } from '../../utils/scrollUtils';
 
 export function KeyboardHandler() {
   const { 
@@ -152,72 +153,25 @@ export function KeyboardHandler() {
 
         if (isHomeRoute) {
           const activeEl = document.activeElement;
-          // State 3 -> State 2: User is scrolled down (focused in a row or grid)
-          if (activeEl && (activeEl.closest('.row-items') || activeEl.closest('.grid') || window.scrollY > 100)) {
+          
+          if (window.isNavigationLocked) return;
+
+          // State 3 -> State 2: User is scrolled down
+          if (window.scrollY > 100) {
             console.log('[KeyboardHandler] Back key: State 3 -> 2. Snapping to Hero Banner.');
-            const heroBtn = document.getElementById('hero-play-btn');
-            if (heroBtn) {
-              heroBtn.focus({ preventScroll: true });
-              // WebKit cancels smooth scrolls if scroll-snap is active. Temporarily disable it.
-              const html = document.documentElement;
-              const originalSnap = html.style.scrollSnapType;
-              html.style.scrollSnapType = 'none';
-              
-              // Robust JS-based smooth scroll for WebOS compatibility
-              const startY = window.scrollY;
-              const duration = 500;
-              const startTime = performance.now();
-              
-              const animateScroll = (currentTime) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                // Ease out cubic
-                const easeProgress = 1 - Math.pow(1 - progress, 3);
-                
-                window.scrollTo(0, startY * (1 - easeProgress));
-                
-                if (progress < 1) {
-                  requestAnimationFrame(animateScroll);
-                } else {
-                  // Re-enable scroll snapping after animation completes
-                  html.style.scrollSnapType = originalSnap;
-                }
-              };
-              
-              requestAnimationFrame(animateScroll);
-              return;
-            }
+            window.isNavigationLocked = true;
+            useBrowserStore.getState().setIsHeroSnapped(false);
+            forceSmoothScroll(0, 400, () => {
+              window.isNavigationLocked = false;
+              const heroBtn = document.getElementById('hero-play-btn');
+              if (heroBtn) heroBtn.focus({ preventScroll: true });
+            });
+            return;
           }
           
-          // State 2 -> State 1: User is at the Hero Banner or top of Grid, expand navbar
-          console.log('[KeyboardHandler] Back key: State 2 -> 1. Expanding navbar and scrolling to top.');
+          // State 2 -> State 1: User is at the top, expand navbar
+          console.log('[KeyboardHandler] Back key: State 2 -> 1. Expanding navbar.');
           setIsNavbarExpanded(true);
-
-          if (window.scrollY > 0) {
-            const html = document.documentElement;
-            const originalSnap = html.style.scrollSnapType;
-            html.style.scrollSnapType = 'none';
-            
-            const startY = window.scrollY;
-            const duration = 500;
-            const startTime = performance.now();
-            
-            const animateScroll = (currentTime) => {
-              const elapsed = currentTime - startTime;
-              const progress = Math.min(elapsed / duration, 1);
-              const easeProgress = 1 - Math.pow(1 - progress, 3);
-              
-              window.scrollTo(0, startY * (1 - easeProgress));
-              
-              if (progress < 1) {
-                requestAnimationFrame(animateScroll);
-              } else {
-                html.style.scrollSnapType = originalSnap;
-              }
-            };
-            
-            requestAnimationFrame(animateScroll);
-          }
           return;
         }
 

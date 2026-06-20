@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
+import { useBrowserStore } from '../stores/browserStore';
+import { forceSmoothScroll } from '../utils/scrollUtils';
 
 const SpatialNavigationContext = createContext(null);
 
@@ -22,6 +24,52 @@ export const SpatialNavigationProvider = ({ children }) => {
       const newStack = prev.filter(id => id !== layerId);
       return newStack.length > 0 ? newStack : ['base'];
     });
+  }, []);
+
+  // Global Intent-Based Wheel Listener
+  useEffect(() => {
+    const handleWheel = (e) => {
+      const state = useBrowserStore.getState();
+      if (state.activeTab?.type !== 'home') return;
+
+      if (window.isNavigationLocked) {
+        e.preventDefault();
+        return;
+      }
+
+      const currentIsHeroSnapped = state.isHeroSnapped;
+
+      // Intent: requestSnapDown
+      if (!currentIsHeroSnapped && e.deltaY > 0) {
+        e.preventDefault();
+        window.isNavigationLocked = true;
+        
+        // Command Global Store to trigger CSS layout shift
+        state.setIsHeroSnapped(true);
+        
+        // Drive JS Animation
+        const SNAP_DOWN_OFFSET_VH = 0.8;
+        forceSmoothScroll(window.innerHeight * SNAP_DOWN_OFFSET_VH, 400, () => {
+          window.isNavigationLocked = false;
+        });
+      }
+
+      // Intent: requestSnapUp
+      if (currentIsHeroSnapped && e.deltaY < 0 && window.scrollY < window.innerHeight * 0.4) {
+        e.preventDefault();
+        window.isNavigationLocked = true;
+        
+        state.setIsHeroSnapped(false);
+        forceSmoothScroll(0, 400, () => {
+          window.isNavigationLocked = false;
+          const heroBtn = document.getElementById('hero-play-btn');
+          if (heroBtn) heroBtn.focus({ preventScroll: true });
+        });
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
   }, []);
 
   const registerNode = useCallback((id, node, layerId = 'base') => {
@@ -157,14 +205,20 @@ export const SpatialNavigationProvider = ({ children }) => {
     if (closestNode) {
       closestNode.focus({ preventScroll: true });
 
+      if (window.isNavigationLocked) return;
+
       // Prevent browser native scroll jumping by using smooth scrollIntoView
       // Ensure we lock scroll on D-pad navigation to stop fighting with React layouts
       if (closestNode.id.startsWith('hero-') || closestNode.id.startsWith('nav-')) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.isNavigationLocked = true;
+        useBrowserStore.getState().setIsHeroSnapped(false);
+        forceSmoothScroll(0, 400, () => { window.isNavigationLocked = false; });
       } else if (direction === 'down' && document.activeElement?.id?.startsWith('hero-')) {
         // TUNE THIS VALUE: adjust how far the D-Pad snaps down when leaving Hero Banner
+        window.isNavigationLocked = true;
+        useBrowserStore.getState().setIsHeroSnapped(true);
         const SNAP_DOWN_OFFSET_VH = 0.8;
-        window.scrollTo({ top: window.innerHeight * SNAP_DOWN_OFFSET_VH, behavior: 'smooth' });
+        forceSmoothScroll(window.innerHeight * SNAP_DOWN_OFFSET_VH, 400, () => { window.isNavigationLocked = false; });
       } else {
         // For everything else, center the row nicely
         closestNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });

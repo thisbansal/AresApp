@@ -37,79 +37,10 @@ function ContentBrowserPage() {
   // State
   const [clickedItemId, setClickedItemId] = useState(globalClickedItemId)
   const [focusedItem, setFocusedItem] = useState(null)
-  const [isScrolled, setIsScrolled] = useState(false)
+  
+  const isHeroSnapped = useBrowserStore(state => state.isHeroSnapped)
 
-  // Track scroll state for dynamic Hero banner overlap effect
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > window.innerHeight * 0.1) // true if scrolled past 10vh
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
 
-    // Eagerly snap with mouse wheel
-    let isWheelSnapping = false;
-
-    const forceSmoothScroll = (targetY, duration = 400) => {
-      const startY = window.scrollY;
-      const distance = targetY - startY;
-      const startTime = performance.now();
-      
-      // Temporarily lock native scrolling so trackpads don't cancel the animation
-      document.documentElement.style.overflow = 'hidden';
-      
-      const animateScroll = (currentTime) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easeProgress = 1 - Math.pow(1 - progress, 3);
-        
-        window.scrollTo(0, startY + distance * easeProgress);
-        
-        if (progress < 1) {
-          requestAnimationFrame(animateScroll);
-        } else {
-          document.documentElement.style.overflow = '';
-          isWheelSnapping = false;
-        }
-      };
-      requestAnimationFrame(animateScroll);
-    };
-
-    const handleWheel = (e) => {
-      const state = useBrowserStore.getState();
-      if (state.activeTab?.type !== 'home') return;
-      
-      if (isWheelSnapping) {
-        e.preventDefault();
-        return;
-      }
-      
-      const currentIsScrolled = window.scrollY > window.innerHeight * 0.1;
-      
-      // If at top and wheeling down
-      if (!currentIsScrolled && e.deltaY > 0) {
-        e.preventDefault();
-        isWheelSnapping = true;
-        // Scroll down 80% of the visible height to snap off hero
-        const SNAP_DOWN_OFFSET_VH = 0.8; 
-        forceSmoothScroll(window.innerHeight * SNAP_DOWN_OFFSET_VH);
-      }
-      
-      // If snapped down and wheeling up near the top
-      if (currentIsScrolled && e.deltaY < 0 && window.scrollY < window.innerHeight * 0.4) {
-        e.preventDefault();
-        isWheelSnapping = true;
-        forceSmoothScroll(0);
-        const heroBtn = document.getElementById('hero-play-btn');
-        if (heroBtn) heroBtn.focus({ preventScroll: true });
-      }
-    };
-    window.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('wheel', handleWheel);
-    }
-  }, [])
 
   // State
   const [serverInfo, setServerInfo] = useState(null)
@@ -1099,10 +1030,10 @@ function ContentBrowserPage() {
               ) : (
                 <>
                   <HeroBanner items={heroItems} />
-                  <div style={{
-                    position: 'relative',
+                  <div style={{ 
+                    position: 'relative', 
                     zIndex: 10,
-                    marginTop: isScrolled ? '0' : '-20vh',
+                    marginTop: isHeroSnapped ? '0' : '-20vh',
                     transition: 'margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
                   }}>
                     {continueWatching.length > 0 && (

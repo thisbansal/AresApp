@@ -94,32 +94,6 @@ export function HeroBanner({ items = [] }) {
 
   const handleFocus = () => {
     setUserInteracted(true);
-    // State 3 -> 2: If the user brings focus to the hero banner from below, smoothly scroll up.
-    if (window.scrollY > 0) {
-      const html = document.documentElement;
-      const originalSnap = html.style.scrollSnapType;
-      html.style.scrollSnapType = 'none';
-      
-      const startY = window.scrollY;
-      const duration = 500;
-      const startTime = performance.now();
-      
-      const animateScroll = (currentTime) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easeProgress = 1 - Math.pow(1 - progress, 3);
-        
-        window.scrollTo(0, startY * (1 - easeProgress));
-        
-        if (progress < 1) {
-          requestAnimationFrame(animateScroll);
-        } else {
-          html.style.scrollSnapType = originalSnap;
-        }
-      };
-      
-      requestAnimationFrame(animateScroll);
-    }
   };
 
   const styles = {
