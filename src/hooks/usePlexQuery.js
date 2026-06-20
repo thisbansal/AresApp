@@ -70,9 +70,9 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
       console.warn(`[usePlexQuery] Revalidation failed for key ${cacheKey}:`, err.message);
       setError(err);
       
-      // If we got a network error, update global isOnline status
-      const isNetworkError = err.name === 'AbortError' || err instanceof TypeError || err.message.includes('fetch');
-      if (isNetworkError) {
+      // If we got a network error (excluding component unmount aborts), update global isOnline status
+      const isNetworkError = err instanceof TypeError || err.message.includes('fetch');
+      if (isNetworkError && err.name !== 'AbortError') {
         useServerStore.getState().setServerState(false, err.message);
       }
     } finally {

@@ -244,6 +244,13 @@ export const plexBridge = {
 
     clearTimeout(timeoutId)
     const err = lastErr;
+
+    // If the component or user explicitly aborted the request, do not treat it as a server failure
+    const isComponentAbort = options.signal && options.signal.aborted;
+    if (isComponentAbort) {
+      throw err;
+    }
+
     const isNetworkError = err.name === 'AbortError' || err instanceof TypeError
     
     const currentState = useServerStore.getState()
