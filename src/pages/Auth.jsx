@@ -18,7 +18,18 @@ function AuthRoute({
   const activeHasLibraries = hasLibraries !== undefined ? hasLibraries : store.hasLibraries
   const activeHasSession = hasSession !== undefined ? hasSession : store.hasSession
 
-  console.log(`[AUTH ROUTE] Path: "${location.pathname}" | requireAuth: ${requireAuth} | isAuthenticated: ${activeIsAuthenticated} | hasServer: ${activeHasServer} | hasLibraries: ${activeHasLibraries} | hasSession: ${activeHasSession} | allowIncompleteSession: ${allowIncompleteSession}`)
+  // Define the strict sequential order of onboarding steps
+  const onboardingSteps = [
+    { path: '/login', isComplete: activeIsAuthenticated },
+    { path: '/user-select', isComplete: activeHasSession },
+    { path: '/server-select', isComplete: activeHasServer },
+    { path: '/library-select', isComplete: activeHasLibraries }
+  ]
+
+  const targetStepIndex = onboardingSteps.findIndex(step => step.path === location.pathname)
+  const requiredStepIndex = onboardingSteps.findIndex(step => !step.isComplete)
+
+  console.log(`[AUTH ROUTE] Path: "${location.pathname}" | targetIdx: ${targetStepIndex} | requiredIdx: ${requiredStepIndex}`)
 
   // Protected routes
   if (requireAuth) {
@@ -27,36 +38,19 @@ function AuthRoute({
       return <Navigate to="/login" replace />
     }
 
-    // If we are trying to access a fully protected route (like /browse)
     if (!allowIncompleteSession) {
-      if (!activeHasSession) {
-        console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (No profile session). Redirecting to /user-select`)
-        return <Navigate to="/user-select" replace />
-      } else if (!activeHasServer) {
-        console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (No server selected). Redirecting to /server-select`)
-        return <Navigate to="/server-select" replace />
-      } else if (!activeHasLibraries) {
-        console.log(`[AUTH ROUTE] Denied protected route "${location.pathname}" (No libraries selected). Redirecting to /library-select`)
-        return <Navigate to="/library-select" replace />
+      // For fully protected routes (e.g. /browse), all steps must be complete
+      if (requiredStepIndex !== -1) {
+        const targetPath = onboardingSteps[requiredStepIndex].path
+        console.log(`[AUTH ROUTE] Denied fully protected route. Redirecting to ${targetPath}`)
+        return <Navigate to={targetPath} replace />
       }
-    }
-
-    // Enforce linear setup progression if allowIncompleteSession is true
-    // If they are on a setup page, ensure they don't skip ahead.
-    if (allowIncompleteSession) {
-      if (location.pathname === "/server-select" && !activeHasSession) {
-        console.log(`[AUTH ROUTE] Enforcing progression: Missing session for server-select. Redirecting to /user-select`)
-        return <Navigate to="/user-select" replace />
-      }
-      if (location.pathname === "/library-select") {
-        if (!activeHasSession) {
-          console.log(`[AUTH ROUTE] Enforcing progression: Missing session for library-select. Redirecting to /user-select`)
-          return <Navigate to="/user-select" replace />
-        }
-        if (!activeHasServer) {
-          console.log(`[AUTH ROUTE] Enforcing progression: Missing server for library-select. Redirecting to /server-select`)
-          return <Navigate to="/server-select" replace />
-        }
+    } else {
+      // For onboarding routes, enforce linear progression to prevent skipping ahead
+      if (targetStepIndex !== -1 && requiredStepIndex !== -1 && targetStepIndex > requiredStepIndex) {
+        const targetPath = onboardingSteps[requiredStepIndex].path
+        console.log(`[AUTH ROUTE] Enforcing progression. Redirecting to ${targetPath}`)
+        return <Navigate to={targetPath} replace />
       }
     }
 
@@ -64,23 +58,12 @@ function AuthRoute({
     return children
   }
 
-  // Public route (Login page)
+  // Public route (e.g., /login)
   if (activeIsAuthenticated) {
-    if (activeHasSession) {
-      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with valid session. Redirecting to /browse`)
-      return <Navigate to="/browse" replace />
-    }
-
-    if (!activeHasSession) {
-      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with no session. Redirecting to /user-select`)
-      return <Navigate to="/user-select" replace />
-    } else if (!activeHasServer) {
-      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with session but no server. Redirecting to /server-select`)
-      return <Navigate to="/server-select" replace />
-    } else if (!activeHasLibraries) {
-      console.log(`[AUTH ROUTE] Public route "${location.pathname}" accessed with session and server, no libraries. Redirecting to /library-select`)
-      return <Navigate to="/library-select" replace />
-    }
+    // If user is authenticated but hits a public route, send them to their next required step or browse
+    const redirectTo = requiredStepIndex !== -1 ? onboardingSteps[requiredStepIndex].path : '/browse'
+    console.log(`[AUTH ROUTE] Public route accessed by authenticated user. Redirecting to ${redirectTo}`)
+    return <Navigate to={redirectTo} replace />
   }
 
   console.log(`[AUTH ROUTE] Granted public route "${location.pathname}"`)

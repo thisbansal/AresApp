@@ -12,12 +12,20 @@ vi.mock('../../services/plex/plexContentService', () => ({
   getLibraries: vi.fn()
 }))
 
-vi.mock('../../stores/serverManagerStore', () => ({
-  useServerManagerStore: {
-    getState: vi.fn(),
-    setState: vi.fn()
-  }
-}))
+vi.mock('../../stores/serverManagerStore', () => {
+  const store = {
+    getState: vi.fn(() => ({
+      servers: {},
+      isDiscovering: false
+    }))
+  };
+  const useServerManagerStore = vi.fn((selector) => {
+    if (selector) return selector(store.getState());
+    return store.getState();
+  });
+  useServerManagerStore.getState = store.getState;
+  return { useServerManagerStore };
+})
 
 vi.mock('../../stores/AppStore', () => {
   const store = {
