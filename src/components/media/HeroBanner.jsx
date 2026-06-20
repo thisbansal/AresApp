@@ -1,14 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FocusableItem } from '../navigational/FocusableItem';
-import { FiPlay, FiInfo } from 'react-icons/fi';
+import { FiPlay, FiInfo, FiChevronRight } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
-
 import { buildImageUrl } from '../../services/plex/plexContentService';
 
-export function HeroBanner({ item }) {
+export function HeroBanner({ items = [] }) {
   const navigate = useNavigate();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userInteracted, setUserInteracted] = useState(false);
+  
+  const timerRef = useRef(null);
 
+  // Auto-advance logic
+  useEffect(() => {
+    if (!items || items.length === 0 || userInteracted) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+
+    timerRef.current = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % items.length);
+    }, 8000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [items, userInteracted, items.length]);
+
+  // Global keydown listener to stop timer on remote interaction
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Any navigation keys
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
+        setUserInteracted(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  if (!items || items.length === 0) return null;
+
+  const item = items[currentIndex];
   if (!item) return null;
 
   const title = item.title || 'Unknown Title';
@@ -16,19 +50,6 @@ export function HeroBanner({ item }) {
   const rating = item.contentRating;
   const duration = item.duration ? Math.round(item.duration / 60000) + ' min' : null;
   const summary = item.summary;
-
-  let backgroundUrl = null;
-  const artwork = item.rawArt || item.rawThumb;
-  if (artwork) {
-    if (item._serverContext?.clientId) {
-      const s = useServerManagerStore.getState().servers[item._serverContext.clientId];
-      if (s && s.uri && s.accessToken) {
-        backgroundUrl = buildImageUrl(s.uri, artwork, s.accessToken, 1920, 1080);
-      }
-    } else {
-      backgroundUrl = artwork;
-    }
-  }
 
   const handlePlay = () => {
     let targetServerInfo = null;
@@ -42,19 +63,26 @@ export function HeroBanner({ item }) {
     navigate(path, { state: { serverInfo: targetServerInfo, item: item } });
   };
 
+  const handleNextSlide = () => {
+    setUserInteracted(true);
+    setCurrentIndex(prev => (prev + 1) % items.length);
+  };
+
   const styles = {
     container: {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'flex-end',
-      height: '60vh', // Hero takes up top 60% of screen
-      padding: '0 50px 40px 50px',
+      height: '85vh', // Peek & Snap height
+      padding: '0 50px 80px 50px',
       color: '#fff',
       zIndex: 1,
       position: 'relative',
       overflow: 'hidden',
       borderRadius: '0 0 24px 24px',
-      marginBottom: '40px'
+      margin: '-40px -30px 0 -45px', // Expand to edge
+      scrollSnapAlign: 'start',
+      flexShrink: 0 // Prevent squishing
     },
     bgImage: {
       position: 'absolute',
@@ -64,7 +92,9 @@ export function HeroBanner({ item }) {
       height: '100%',
       objectFit: 'cover',
       zIndex: -2,
-      opacity: 0.8
+      opacity: 0.8,
+      transition: 'opacity 0.8s ease-in-out',
+      willChange: 'opacity'
     },
     vignette: {
       position: 'absolute',
@@ -82,7 +112,8 @@ export function HeroBanner({ item }) {
       fontFamily: "'Outfit', sans-serif",
       letterSpacing: '-1px',
       textShadow: '0 4px 12px rgba(0,0,0,0.5)',
-      maxWidth: '80%'
+      maxWidth: '80%',
+      animation: 'fadeInUp 0.5s ease-out forwards'
     },
     metaRow: {
       display: 'flex',
@@ -91,7 +122,8 @@ export function HeroBanner({ item }) {
       fontSize: '18px',
       color: '#ccc',
       marginBottom: '20px',
-      fontWeight: '500'
+      fontWeight: '500',
+      animation: 'fadeInUp 0.6s ease-out forwards'
     },
     ratingBadge: {
       border: '1px solid #ccc',
@@ -110,77 +142,115 @@ export function HeroBanner({ item }) {
       WebkitLineClamp: 3,
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden',
-      textShadow: '0 2px 8px rgba(0,0,0,0.5)'
+      textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+      animation: 'fadeInUp 0.7s ease-out forwards'
     },
     actions: {
       display: 'flex',
-      gap: '15px'
+      gap: '15px',
+      animation: 'fadeInUp 0.8s ease-out forwards'
     },
-    playBtn: {
+    dotsContainer: {
+      position: 'absolute',
+      right: '60px',
+      bottom: '80px',
       display: 'flex',
-      alignItems: 'center',
       gap: '10px',
-      backgroundColor: '#fff',
-      color: '#000',
-      padding: '12px 32px',
-      borderRadius: '30px',
-      fontSize: '20px',
-      fontWeight: 'bold',
-      border: 'none',
-      cursor: 'pointer',
-      transform: 'translateZ(0)',
-      transition: 'transform 0.2s, background-color 0.2s',
-      willChange: 'transform'
+      alignItems: 'center'
     },
-    infoBtn: {
+    dot: (isActive) => ({
+      width: isActive ? '24px' : '8px',
+      height: '8px',
+      borderRadius: '4px',
+      backgroundColor: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
+      transition: 'all 0.3s ease'
+    }),
+    fadeContainer: {
+      key: currentIndex, // Forcing React to remount/reanimate on index change
       display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      color: '#fff',
-      padding: '12px 32px',
-      borderRadius: '30px',
-      fontSize: '20px',
-      fontWeight: 'bold',
-      border: '1px solid rgba(255,255,255,0.4)',
-      cursor: 'pointer',
-      transform: 'translateZ(0)',
-      transition: 'transform 0.2s, background-color 0.2s',
-      willChange: 'transform'
+      flexDirection: 'column'
     }
   };
 
   return (
     <div style={styles.container}>
-      {backgroundUrl && <img src={backgroundUrl} style={styles.bgImage} alt="" />}
+      {/* Background with crossfade key mapping */}
+      {items.map((it, idx) => {
+        let bgUrl = null;
+        const art = it.rawArt || it.rawThumb;
+        if (art) {
+          if (it._serverContext?.clientId) {
+            const s = useServerManagerStore.getState().servers[it._serverContext.clientId];
+            if (s && s.uri && s.accessToken) {
+              bgUrl = buildImageUrl(s.uri, art, s.accessToken, 1920, 1080);
+            }
+          } else {
+            bgUrl = art;
+          }
+        }
+        
+        return (
+          <img 
+            key={it.id}
+            src={bgUrl} 
+            style={{
+              ...styles.bgImage,
+              opacity: currentIndex === idx ? 0.8 : 0,
+              visibility: currentIndex === idx ? 'visible' : 'hidden'
+            }} 
+            alt="" 
+          />
+        );
+      })}
+
       <div style={styles.vignette} />
 
-      <h1 style={styles.title}>{title}</h1>
-      <div style={styles.metaRow}>
-        {year && <span>{year}</span>}
-        {rating && <span style={styles.ratingBadge}>{rating}</span>}
-        {duration && <span>{duration}</span>}
-      </div>
-      {summary && <p style={styles.summary}>{summary}</p>}
-      
-      <div style={styles.actions}>
-        <FocusableItem 
-          id="hero-play-btn" 
-          onClick={handlePlay}
-        >
-          <div className="capsule-btn" style={{ border: 'none' }}>
-            <FiPlay style={{ marginRight: '10px' }} /> Play
-          </div>
-        </FocusableItem>
+      <div key={item.id} style={styles.fadeContainer}>
+        <h1 style={styles.title}>{title}</h1>
+        <div style={styles.metaRow}>
+          {year && <span>{year}</span>}
+          {rating && <span style={styles.ratingBadge}>{rating}</span>}
+          {duration && <span>{duration}</span>}
+        </div>
+        {summary && <p style={styles.summary}>{summary}</p>}
+        
+        <div style={styles.actions}>
+          <FocusableItem 
+            id={`hero-play-btn-${item.id}`} 
+            onClick={handlePlay}
+            onFocus={() => setUserInteracted(true)}
+          >
+            <div className="capsule-btn" style={{ border: 'none' }}>
+              <FiPlay style={{ marginRight: '10px' }} /> Play
+            </div>
+          </FocusableItem>
 
-        <FocusableItem 
-          id="hero-info-btn" 
-          onClick={handlePlay} // Both navigate to details/player for now
-        >
-          <div className="capsule-btn" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}>
-            <FiInfo style={{ marginRight: '10px' }} /> More Info
-          </div>
-        </FocusableItem>
+          <FocusableItem 
+            id={`hero-info-btn-${item.id}`} 
+            onClick={handlePlay}
+            onFocus={() => setUserInteracted(true)}
+          >
+            <div className="capsule-btn" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}>
+              <FiInfo style={{ marginRight: '10px' }} /> More Info
+            </div>
+          </FocusableItem>
+
+          <FocusableItem 
+            id="hero-next-btn" 
+            onClick={handleNextSlide}
+            onFocus={() => setUserInteracted(true)}
+          >
+            <div className="capsule-btn" style={{ width: '48px', height: '48px', padding: 0, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '50%' }}>
+              <FiChevronRight size={24} />
+            </div>
+          </FocusableItem>
+        </div>
+      </div>
+
+      <div style={styles.dotsContainer}>
+        {items.map((_, idx) => (
+          <div key={idx} style={styles.dot(idx === currentIndex)} />
+        ))}
       </div>
     </div>
   );

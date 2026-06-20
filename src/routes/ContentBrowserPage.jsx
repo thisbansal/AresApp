@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
@@ -62,6 +62,22 @@ function ContentBrowserPage() {
   const setLibraryContent = useBrowserStore((state) => state.setLibraryContent)
 
   // Settings State from Store
+  const heroItems = useMemo(() => {
+    // Only use items that have some artwork
+    const combined = [...recentMovies, ...recentTv].filter(item => item.rawArt || item.rawThumb || item.art || item.thumb);
+    if (combined.length === 0) return [];
+    
+    // Deterministic shuffle based on IDs to avoid reshuffling on every render if data doesn't change
+    const sorted = [...combined].sort((a, b) => {
+      const aHash = String(a.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const bHash = String(b.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return (aHash % 10) - (bHash % 10);
+    });
+    
+    // Take top 5
+    return sorted.slice(0, 5);
+  }, [recentMovies, recentTv]);
+
 
   const setSubtitleWeight = useBrowserStore((state) => state.setSubtitleWeight)
   const subtitleColor = useBrowserStore((state) => state.subtitleColor)
@@ -990,7 +1006,6 @@ function ContentBrowserPage() {
       ) : (
         <>
           {activeTab.type === 'home' && (() => {
-            const heroItem = continueWatching[0] || recentMovies[0] || recentTv[0] || null;
             return (
             <>
               {continueWatching.length === 0 && recentMovies.length === 0 && recentTv.length === 0 ? (
@@ -1000,7 +1015,7 @@ function ContentBrowserPage() {
                 }} />
               ) : (
                 <>
-                  <HeroBanner item={heroItem} />
+                  <HeroBanner items={heroItems} />
                   {continueWatching.length > 0 && (
                     <div style={styles.section} className="row">
                       <h2 style={styles.sectionTitle}>Continue Watching</h2>
@@ -1528,14 +1543,16 @@ const APP_BASE_COLOR = '#ffffff'
 
 const styles = {
   container: {
-    minHeight: '100vh',
+    height: '100vh',
     backgroundColor: '#141414',
     color: '#e8eaed',
     padding: '40px 30px',
     display: 'flex',
     flexDirection: 'column',
-    // gap: '30px',
     overflowX: 'hidden',
+    overflowY: 'auto',
+    scrollSnapType: 'y mandatory',
+    scrollBehavior: 'smooth'
   },
   settingsContainer: {
     display: 'flex',
@@ -1644,11 +1661,13 @@ const styles = {
   },
   row: {
     display: 'flex',
-    flexWrap: 'nowrap',
-    gap: '45px',
+    gap: '20px',
     overflowX: 'auto',
+    overflowY: 'hidden',
     padding: '30px 45px 50px 45px', // Maintain padding for focus zoom
     margin: '-10px -30px 0 -45px', // Extend right margin to -30px to cancel container's right padding and bleed to screen edge
+    scrollSnapAlign: 'start',
+    scrollMarginTop: '15vh',
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
     scrollSnapType: 'x mandatory',
