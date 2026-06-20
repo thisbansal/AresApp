@@ -1359,7 +1359,7 @@ function ContentBrowserPage() {
                 <div style={styles.row} className="hide-scrollbar row-items">
                   <FocusableItem
                     id="setting-sign-out"
-                    rowIndex={sharedServers.length > 0 ? 15 : 14}
+                    rowIndex={14}
                     colIndex={0}
                     onClick={() => setShowSignoutConfirm(true)}
                     style={{ flexShrink: 0 }}
@@ -1375,7 +1375,7 @@ function ContentBrowserPage() {
 
                   <FocusableItem
                     id="setting-about-app"
-                    rowIndex={sharedServers.length > 0 ? 15 : 14}
+                    rowIndex={14}
                     colIndex={1}
                     style={{ flexShrink: 0 }}
                   >

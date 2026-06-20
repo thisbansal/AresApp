@@ -46,9 +46,29 @@ function UserSelectPage() {
     }
   }, [showPinPrompt])
 
+  // Auto-focus first user on load
+  useEffect(() => {
+    if (!loading && !showPinPrompt && users.length > 0) {
+      setTimeout(() => {
+        const firstUser = document.getElementById(`user-${users[0].id}`);
+        if (firstUser) {
+          firstUser.focus({ preventScroll: true });
+        }
+      }, 150);
+    }
+  }, [loading, showPinPrompt, users])
+
   // Direct remote control number entry for PIN code
   useEffect(() => {
     if (!showPinPrompt) return
+
+    window.handlePinBackspace = () => {
+      if (pin.length > 0) {
+        setPin(prev => prev.slice(0, -1));
+        return true;
+      }
+      return false;
+    }
 
     const handlePinKeyDown = (e) => {
       if (/^[0-9]$/.test(e.key)) {
@@ -62,15 +82,14 @@ function UserSelectPage() {
             setTimeout(() => handlePinSubmit(newPin), 200)
           }
         }
-      } else if (e.key === 'Backspace') {
-        e.preventDefault()
-        e.stopPropagation()
-        setPin(prev => prev.slice(0, -1))
       }
     }
 
     window.addEventListener('keydown', handlePinKeyDown, true)
-    return () => window.removeEventListener('keydown', handlePinKeyDown, true)
+    return () => {
+      window.removeEventListener('keydown', handlePinKeyDown, true)
+      delete window.handlePinBackspace;
+    }
   }, [showPinPrompt, pin, selectedUser])
 
   const checkExistingSession = async () => {
@@ -218,12 +237,13 @@ function UserSelectPage() {
             transition: transform 0.11s cubic-bezier(0.16, 1, 0.3, 1) !important;
           }
           .numpad-btn.focused {
-            transform: scale(1.12) translate3d(0, 0, 0) !important;
+            transform: scale(1.15) translate3d(0, 0, 0) !important;
           }
           .numpad-btn.focused div {
-            background-color: #ffffff !important;
-            border-color: #ffffff !important;
-            color: #0d0f11 !important;
+            border: 4px solid #e5a00d !important;
+            box-shadow: 0 0 25px rgba(229, 160, 13, 0.55) !important;
+            background-color: rgba(229, 160, 13, 0.15) !important;
+            color: #ffffff !important;
           }
           .numpad-btn:active {
             transform: scale(0.95) translate3d(0, 0, 0) !important;

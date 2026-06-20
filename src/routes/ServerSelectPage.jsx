@@ -21,6 +21,15 @@ function ServerSelectPage() {
     loadServers()
   }, [])
 
+  useEffect(() => {
+    if (!loading && servers.length > 0) {
+      setTimeout(() => {
+        const el = document.getElementById(`server-${servers[0].clientIdentifier}`)
+        if (el) el.focus({ preventScroll: true })
+      }, 100)
+    }
+  }, [loading, servers])
+
   const loadServers = async () => {
     console.log('[AUTH FLOW] ServerSelectPage: Starting to load Plex Media Servers...')
     try {

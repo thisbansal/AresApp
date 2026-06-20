@@ -98,6 +98,13 @@ export function KeyboardHandler() {
           return;
         }
 
+        // Issue 5: PIN pad backspace intercept
+        if (window.handlePinBackspace && window.handlePinBackspace()) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
@@ -181,16 +188,28 @@ export function KeyboardHandler() {
           return;
         }
 
-        if (isLoginRoute || isServerSelectRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
-          console.log('[KeyboardHandler] Back key: Expanding navbar.');
-          setIsNavbarExpanded(true);
+        if (isLoginRoute || isServerSelectRoute) {
+          console.log('[KeyboardHandler] Back key: On root auth route, opening exit dialog.');
+          setShowExitDialog(true);
+          setTimeout(() => {
+             const cancelBtn = document.getElementById('exit-cancel');
+             if (cancelBtn) cancelBtn.focus({ preventScroll: true });
+          }, 50);
           return;
         } else if (hash.includes('/play') || path.includes('/play')) {
           // Let video player internal back capture handle it
           return;
+        } else if (isColdStart) {
+          console.log('[KeyboardHandler] Back key: History index is 0. Opening exit dialog.');
+          setShowExitDialog(true);
+          setTimeout(() => {
+             const cancelBtn = document.getElementById('exit-cancel');
+             if (cancelBtn) cancelBtn.focus({ preventScroll: true });
+          }, 50);
+          return;
         } else {
           // If in-between (e.g. user-select), naturally redirect to the previous route
-          console.log('[AUTH FLOW] Back button triggered in setup flow. Traversing back in router history.');
+          console.log('[AUTH FLOW] Back button triggered. Traversing back in router history.');
           navigateReactRouter(-1);
         }
         return;
