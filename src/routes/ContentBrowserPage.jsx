@@ -1043,7 +1043,7 @@ function ContentBrowserPage() {
                     transition: 'margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
                   }}>
                     {continueWatching.length > 0 && (
-                      <div style={{ ...styles.section, opacity: isScrolled ? 1 : 0.5, transition: 'opacity 0.4s ease' }} className="row">
+                      <div style={styles.section} className="row">
                         <h2 style={styles.sectionTitle}>Continue Watching</h2>
                         <div style={styles.row} className="hide-scrollbar row-items">
                           {continueWatching.map((item, index) => renderCard(item, 0, index, 'cw', 'landscape'))}
