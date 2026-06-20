@@ -91,6 +91,7 @@ export function HeroBanner({ items = [] }) {
       width: '100%',
       height: '100%',
       objectFit: 'cover',
+      objectPosition: 'top center',
       zIndex: -2,
       opacity: 0.8,
       transition: 'opacity 0.8s ease-in-out',
