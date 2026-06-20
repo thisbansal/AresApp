@@ -158,7 +158,17 @@ export function KeyboardHandler() {
             const heroBtn = document.getElementById('hero-play-btn');
             if (heroBtn) {
               heroBtn.focus({ preventScroll: true });
+              // WebKit cancels smooth scrolls if scroll-snap is active. Temporarily disable it.
+              const html = document.documentElement;
+              const originalSnap = html.style.scrollSnapType;
+              html.style.scrollSnapType = 'none';
+              
               window.scrollTo({ top: 0, behavior: 'smooth' });
+              
+              // Re-enable scroll snapping after animation completes
+              setTimeout(() => {
+                html.style.scrollSnapType = originalSnap;
+              }, 800);
               return;
             }
           }
