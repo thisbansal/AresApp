@@ -148,6 +148,7 @@ export function HeroBanner({ items = [] }) {
     },
     actions: {
       display: 'flex',
+      alignItems: 'center',
       gap: '15px',
       animation: 'fadeInUp 0.8s ease-out forwards'
     },
