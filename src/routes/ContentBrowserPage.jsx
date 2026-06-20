@@ -989,7 +989,9 @@ function ContentBrowserPage() {
         )
       ) : (
         <>
-          {activeTab.type === 'home' && (
+          {activeTab.type === 'home' && (() => {
+            const heroItem = continueWatching[0] || recentMovies[0] || recentTv[0] || null;
+            return (
             <>
               {continueWatching.length === 0 && recentMovies.length === 0 && recentTv.length === 0 ? (
                 <EmptyState onRefresh={() => {
@@ -998,7 +1000,7 @@ function ContentBrowserPage() {
                 }} />
               ) : (
                 <>
-                  <HeroBanner focusedItem={focusedItem} />
+                  <HeroBanner item={heroItem} />
                   {continueWatching.length > 0 && (
                     <div style={styles.section} className="row">
                       <h2 style={styles.sectionTitle}>Continue Watching</h2>
@@ -1028,7 +1030,8 @@ function ContentBrowserPage() {
                 </>
               )}
             </>
-          )}
+            );
+          })}
 
           {activeTab.type === 'library' && (
             <>
