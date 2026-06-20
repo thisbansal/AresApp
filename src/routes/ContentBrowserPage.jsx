@@ -902,13 +902,19 @@ function ContentBrowserPage() {
           border-radius: 50% !important;
           transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
           will-change: transform, background-color, color, border-color;
+          -webkit-transform: translate3d(0, 0, 0);
           transform: translate3d(0, 0, 0);
+          -webkit-backface-visibility: hidden;
           backface-visibility: hidden;
+          -webkit-perspective: 1000;
+          perspective: 1000;
         }
         .numpad-btn[style] {
+          -webkit-transform: scale(1) translate3d(0, 0, 0) !important;
           transform: scale(1) translate3d(0, 0, 0) !important;
         }
         .numpad-btn.focused {
+          -webkit-transform: scale(1.15) translate3d(0, 0, 0) !important;
           transform: scale(1.15) translate3d(0, 0, 0) !important;
         }
         .numpad-btn.focused div {
@@ -920,13 +926,19 @@ function ContentBrowserPage() {
           border-radius: 50px !important;
           transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
           will-change: transform, background-color, color, border-color;
+          -webkit-transform: translate3d(0, 0, 0);
           transform: translate3d(0, 0, 0);
+          -webkit-backface-visibility: hidden;
           backface-visibility: hidden;
+          -webkit-perspective: 1000;
+          perspective: 1000;
         }
         .cancel-btn[style] {
+          -webkit-transform: scale(1) translate3d(0, 0, 0) !important;
           transform: scale(1) translate3d(0, 0, 0) !important;
         }
         .cancel-btn.focused {
+          -webkit-transform: scale(1.08) translate3d(0, 0, 0) !important;
           transform: scale(1.08) translate3d(0, 0, 0) !important;
           box-shadow: 0 0 20px rgba(255, 255, 255, 0.15) !important;
         }

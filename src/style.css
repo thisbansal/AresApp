@@ -25,9 +25,13 @@
   align-items: center;
   justify-content: center;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
   will-change: transform, background-color, color, box-shadow;
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
   box-shadow: 0 4px 15px rgba(0,0,0,0.4);
   text-decoration: none;
   outline: none;
@@ -35,6 +39,7 @@
 .capsule-btn.focused {
   background-color: #000000 !important;
   color: #ffffff !important;
+  -webkit-transform: scale(1.05) translate3d(0, -2px, 0);
   transform: scale(1.05) translate3d(0, -2px, 0);
   box-shadow: 0 8px 25px rgba(255,255,255,0.25);
 }
@@ -255,9 +260,13 @@ video::-webkit-media-controls-text-track-display {
   scroll-margin-right: 120px;
   /* box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45); High-performance static shadow */
   box-shadow: 8px 8px 10px rgba(0, 0, 0, 0.75);
+  -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
   will-change: transform, box-shadow;
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
 }
 
 /* Focused card state - snaps instantly to prevent layout paint thrashing */
@@ -389,8 +398,12 @@ video::-webkit-media-controls-text-track-display {
   pointer-events: none;
   transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity;
+  -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
 }
 
 .player-hud-container {
@@ -404,8 +417,12 @@ video::-webkit-media-controls-text-track-display {
   gap: 24px;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
   will-change: transform, opacity;
+  -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
 }
 
 .player-hud-meta {
@@ -803,8 +820,12 @@ video::-webkit-media-controls-text-track-display {
     will-change: opacity, transform;
     transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     opacity: 1;
+    -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
     max-width: 200px;
     overflow: hidden;
   }
@@ -877,6 +898,7 @@ video::-webkit-media-controls-text-track-display {
 
   .nav-wrapper.collapsed .nav-text-label {
     opacity: 0;
+    -webkit-transform: translate3d(-15px, 0, 0); /* Slide text in */
     transform: translate3d(-15px, 0, 0); /* Slide text in */
     max-width: 0;
     padding-left: 0;
