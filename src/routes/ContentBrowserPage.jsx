@@ -8,7 +8,7 @@ import { FallbackImage } from '../components/media/FallbackImage'
 import { MediaCard } from '../components/media/MediaCard'
 import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
-import { KINDS } from '../config/app'
+import { KINDS, PLEX_CONFIG } from '../config/app'
 import { testConnectionToServer, getServers } from '../services/plex/plexAPIServer'
 import { resolveAccessibleServer } from '../services/plex/plexAccessService'
 import { getLibraries, getLibraryItems, buildImageUrl } from '../services/plex/plexContentService'
@@ -17,7 +17,7 @@ import { getMultiServerOnDeck, getMultiServerRecentlyAdded } from '../services/p
 import { toggleWatchedState, removeFromOnDeck } from '../services/plex/plexWatchedService'
 import { useToggleWatched } from '../hooks/useToggleWatched'
 import { useBrowserStore } from '../stores/browserStore'
-import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
+import { useSpatialNavigation, FocusLayer } from '../contexts/SpatialNavigationContext'
 import { useServerStore } from '../stores/serverStore'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
@@ -37,7 +37,13 @@ function ContentBrowserPage() {
   // State
   const [serverInfo, setServerInfo] = useState(null)
   const [libraries, setLibraries] = useState([])
-  const { navigationMode, setNavigationMode, lastRemoteActionRef } = useSpatialNavigation()
+  const {
+    navigationMode,
+    setNavigationMode,
+    lastRemoteActionRef,
+    showSignoutConfirm,
+    setShowSignoutConfirm
+  } = useSpatialNavigation()
   const activeTab = useBrowserStore((state) => state.activeTab)
   const setActiveTab = useBrowserStore((state) => state.setActiveTab)
 
@@ -94,7 +100,6 @@ function ContentBrowserPage() {
   const [pinDialogUser, setPinDialogUser] = useState(null)
   const [enteredPin, setEnteredPin] = useState('')
   const [pinError, setPinError] = useState('')
-  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false)
 
   // Shared Server State
   const [sharedServers, setSharedServers] = useState([])
@@ -416,6 +421,17 @@ function ContentBrowserPage() {
       setContinueWatching(continueWatchingData);
     }
   }, [continueWatchingData, setContinueWatching]);
+
+  // Auto-focus Cancel button by default when sign-out dialog opens
+  useEffect(() => {
+    if (showSignoutConfirm) {
+      const timer = setTimeout(() => {
+        const cancelBtn = document.getElementById('signout-cancel');
+        if (cancelBtn) cancelBtn.focus({ preventScroll: true });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [showSignoutConfirm]);
 
   useEffect(() => {
     if (recentAddedData) {
@@ -1072,16 +1088,37 @@ function ContentBrowserPage() {
               <div style={styles.section} className="row">
                 <h2 style={styles.sectionTitle}>Preferences</h2>
                 <div style={styles.row} className="hide-scrollbar row-items">
+                  {/* Manage Libraries Setting */}
+                  <FocusableItem
+                    id="setting-manage-libraries"
+                    rowIndex={11}
+                    colIndex={0}
+                    onClick={() => {
+                      navigate('/library-select', {
+                        state: {
+                          isShared: false,
+                          from: 'settings'
+                        }
+                      })
+                    }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      <FiGrid size={48} color="#ffffff" strokeWidth={2.5} />
+                      <div className="setting-card-title">Manage Libraries</div>
+                    </div>
+                  </FocusableItem>
+
+                  {/* Seen indicators Setting */}
                   <FocusableItem
                     id="setting-toggle-unwatched"
                     rowIndex={11}
-                    colIndex={0}
+                    colIndex={1}
                     onClick={() => {
                       const newValue = !showUnwatchedIndicator
                       setShowUnwatchedIndicator(newValue)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator: newValue,
-
                         subtitleColor,
                         subtitleSize,
                         showSubtitleHUDControls
@@ -1095,16 +1132,21 @@ function ContentBrowserPage() {
                       ) : (
                         <FiEyeOff size={48} color="rgba(255, 255, 255, 0.4)" strokeWidth={2.5} />
                       )}
-                      <div className="setting-card-title">Unwatched Ribbon</div>
+                      <div className="setting-card-title">Seen indicators</div>
                     </div>
                   </FocusableItem>
+                </div>
+              </div>
 
-                  {/* Subtitle Weight Setting */}
+              {/* Row 12: Subtitles */}
+              <div style={styles.section} className="row">
+                <h2 style={styles.sectionTitle}>Subtitles</h2>
+                <div style={styles.row} className="hide-scrollbar row-items">
                   {/* Subtitle Color Setting */}
                   <FocusableItem
                     id="setting-subtitle-color"
-                    rowIndex={11}
-                    colIndex={1}
+                    rowIndex={12}
+                    colIndex={0}
                     onClick={() => {
                       const colors = ['#AAAAAA', '#737373']
                       const currentIndex = colors.indexOf(subtitleColor || '#AAAAAA')
@@ -1113,7 +1155,6 @@ function ContentBrowserPage() {
                       setSubtitleColor(newColor)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator,
-
                         subtitleColor: newColor,
                         subtitleSize,
                         showSubtitleHUDControls
@@ -1130,8 +1171,8 @@ function ContentBrowserPage() {
                   {/* Subtitle Size Setting */}
                   <FocusableItem
                     id="setting-subtitle-size"
-                    rowIndex={11}
-                    colIndex={2}
+                    rowIndex={12}
+                    colIndex={1}
                     onClick={() => {
                       const sizes = ['2.5rem', '3.0rem', '3.5rem']
                       const currentIndex = sizes.indexOf(subtitleSize || '2.5rem')
@@ -1140,7 +1181,6 @@ function ContentBrowserPage() {
                       setSubtitleSize(newSize)
                       setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
                         showUnwatchedIndicator,
-
                         subtitleColor,
                         subtitleSize: newSize,
                         showSubtitleHUDControls
@@ -1157,14 +1197,13 @@ function ContentBrowserPage() {
                   {/* Player HUD Controls Setting */}
                   <FocusableItem
                     id="setting-subtitle-hud"
-                    rowIndex={11}
-                    colIndex={3}
+                    rowIndex={12}
+                    colIndex={2}
                     onClick={() => {
                       const newValue = !showSubtitleHUDControls
                       setShowSubtitleHUDControls(newValue)
                       setData(DB_KINDS.PREFERENCES, `${KINDS.preferences}_${currentProfile?.id || useAppStore.getState().userProfile?.userId || 'default'}`, {
                         showUnwatchedIndicator,
-
                         subtitleColor,
                         subtitleSize,
                         showSubtitleHUDControls: newValue
@@ -1177,12 +1216,18 @@ function ContentBrowserPage() {
                       <div className="setting-card-title">Player Toggles: {showSubtitleHUDControls ? 'On' : 'Off'}</div>
                     </div>
                   </FocusableItem>
+                </div>
+              </div>
 
+              {/* Row 13: Audio */}
+              <div style={styles.section} className="row">
+                <h2 style={styles.sectionTitle}>Audio</h2>
+                <div style={styles.row} className="hide-scrollbar row-items">
                   {/* Audio Passthrough Setting */}
                   <FocusableItem
                     id="setting-audio-passthrough"
-                    rowIndex={11}
-                    colIndex={4}
+                    rowIndex={13}
+                    colIndex={0}
                     onClick={() => {
                       const newValue = !enableAudioPassthrough
                       setEnableAudioPassthrough(newValue)
@@ -1201,40 +1246,16 @@ function ContentBrowserPage() {
                       <div className="setting-card-title">Audio Passthrough: {enableAudioPassthrough ? 'On' : 'Off'}</div>
                     </div>
                   </FocusableItem>
-
-                  {/* Manage Libraries Setting */}
-                  <FocusableItem
-                    id="setting-manage-libraries"
-                    rowIndex={11}
-                    colIndex={5}
-                    onClick={() => {
-                      navigate('/library-select', {
-                        state: {
-                          isShared: false,
-                          from: 'settings'
-                        }
-                      })
-                    }}
-                    style={{ flexShrink: 0 }}
-                  >
-                    <div className="setting-card">
-                      <FiGrid size={48} color="#ffffff" strokeWidth={2.5} />
-                      <div className="setting-card-title">Manage Libraries</div>
-                    </div>
-                  </FocusableItem>
                 </div>
               </div>
 
-
-
-              {/* Row 13: System */}
+              {/* Row 14: System */}
               <div style={styles.section} className="row">
                 <h2 style={styles.sectionTitle}>System</h2>
                 <div style={styles.row} className="hide-scrollbar row-items">
-
                   <FocusableItem
                     id="setting-sign-out"
-                    rowIndex={sharedServers.length > 0 ? 13 : 12}
+                    rowIndex={sharedServers.length > 0 ? 15 : 14}
                     colIndex={0}
                     onClick={() => setShowSignoutConfirm(true)}
                     style={{ flexShrink: 0 }}
@@ -1248,40 +1269,57 @@ function ContentBrowserPage() {
                     </div>
                   </FocusableItem>
 
-                  {/* Sign-out Confirmation Dialog */}
-                  {showSignoutConfirm && (
-                    <div style={{ ...styles.exitOverlay, alignItems: 'flex-end' }} className="exit-overlay">
-                      <div style={styles.exitModal} className="exit-modal">
-                        <span style={styles.exitTitle}>Sign out of Plex?</span>
-                        <div style={styles.exitButtonRow}>
-                          <FocusableItem
-                            id="signout-cancel"
-                            rowIndex={999}
-                            colIndex={0}
-                            onClick={() => setShowSignoutConfirm(false)}
-                            className="exit-btn cancel"
-                          >
-                            No
-                          </FocusableItem>
-                          <FocusableItem
-                            id="signout-confirm"
-                            rowIndex={999}
-                            colIndex={1}
-                            onClick={async () => {
-                              try {
-                                await useAppStore.getState().signOut()
-                                navigate('/login')
-                              } catch (err) {
-                                console.error('Failed to sign out:', err)
-                              }
-                            }}
-                            className="exit-btn danger"
-                          >
-                            Yes
-                          </FocusableItem>
-                        </div>
+                  <FocusableItem
+                    id="setting-about-app"
+                    rowIndex={sharedServers.length > 0 ? 15 : 14}
+                    colIndex={1}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      <FiMonitor size={40} strokeWidth={2.5} color="#ffffff" />
+                      <div className="setting-card-title">Runex</div>
+                      <div className="setting-card-subtext" style={{ marginTop: '10px' }}>
+                        Version {PLEX_CONFIG.version}
                       </div>
                     </div>
+                  </FocusableItem>
+
+                  {/* Sign-out Confirmation Dialog */}
+                  {showSignoutConfirm && (
+                    <FocusLayer id="signout-dialog" isActive={true}>
+                      <div style={{ ...styles.exitOverlay, alignItems: 'flex-end' }} className="exit-overlay">
+                        <div style={styles.exitModal} className="exit-modal">
+                          <span style={styles.exitTitle}>Sign out of Plex?</span>
+                          <div style={styles.exitButtonRow}>
+                            <FocusableItem
+                              id="signout-cancel"
+                              rowIndex={999}
+                              colIndex={0}
+                              onClick={() => setShowSignoutConfirm(false)}
+                              className="exit-btn cancel"
+                            >
+                              No
+                            </FocusableItem>
+                            <FocusableItem
+                              id="signout-confirm"
+                              rowIndex={999}
+                              colIndex={1}
+                              onClick={async () => {
+                                try {
+                                  await useAppStore.getState().signOut()
+                                  navigate('/login')
+                                } catch (err) {
+                                  console.error('Failed to sign out:', err)
+                                }
+                              }}
+                              className="exit-btn danger"
+                            >
+                              Yes
+                            </FocusableItem>
+                          </div>
+                        </div>
+                      </div>
+                    </FocusLayer>
                   )}
                 </div>
               </div>

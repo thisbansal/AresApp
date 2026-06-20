@@ -6,6 +6,7 @@ export const SpatialNavigationProvider = ({ children }) => {
   const nodesRef = useRef(new Map());
   const [navigationMode, setNavigationMode] = useState('remote'); // 'remote' or 'cursor'
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
   const [isNavbarExpanded, setIsNavbarExpanded] = useState(false);
   const [layerStack, setLayerStack] = useState(['base']);
   const activeLayer = layerStack.length > 0 ? layerStack[layerStack.length - 1] : 'base';
@@ -191,6 +192,8 @@ export const SpatialNavigationProvider = ({ children }) => {
     setNavigationMode,
     showExitDialog,
     setShowExitDialog,
+    showSignoutConfirm,
+    setShowSignoutConfirm,
     isNavbarExpanded,
     setIsNavbarExpanded,
     activeLayer,
