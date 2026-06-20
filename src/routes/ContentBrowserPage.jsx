@@ -838,12 +838,6 @@ function ContentBrowserPage() {
         }
 
         /* Prevent navbar overlap on large screens (TV/Desktop) where navbar is on the left */
-        @media (min-width: 1024px) {
-          .page-layout-container {
-            padding-left: 140px !important;
-          }
-        }
-
         /* Apple TV Settings Styles */
         .settings-rows-container {
           display: flex;

@@ -150,7 +150,25 @@ export function KeyboardHandler() {
           return;
         }
 
-        if (isLoginRoute || isServerSelectRoute || isHomeRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
+        if (isHomeRoute) {
+          const activeEl = document.activeElement;
+          // State 3 -> State 2: User is scrolled down (focused in a row or grid)
+          if (activeEl && (activeEl.closest('.row-items') || activeEl.closest('.grid') || window.scrollY > 100)) {
+            console.log('[KeyboardHandler] Back key: State 3 -> 2. Snapping to Hero Banner.');
+            const heroBtn = document.getElementById('hero-play-btn');
+            if (heroBtn) {
+              heroBtn.focus({ preventScroll: false });
+              return;
+            }
+          }
+          
+          // State 2 -> State 1: User is at the Hero Banner, expand navbar
+          console.log('[KeyboardHandler] Back key: State 2 -> 1. Expanding navbar.');
+          setIsNavbarExpanded(true);
+          return;
+        }
+
+        if (isLoginRoute || isServerSelectRoute || (isColdStart && (isUserSelectRoute || isLibrarySelectRoute))) {
           console.log('[KeyboardHandler] Back key: Expanding navbar.');
           setIsNavbarExpanded(true);
           return;

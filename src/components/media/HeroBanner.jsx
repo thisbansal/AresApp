@@ -75,7 +75,7 @@ export function HeroBanner({ items = [] }) {
       flexDirection: 'column',
       justifyContent: 'flex-end',
       height: '75vh', // Peek & Snap height
-      padding: '0 50px 80px 50px',
+      padding: '0 50px 80px 140px', // Left padding clears the absolute pinned navbar
       color: '#fff',
       zIndex: 1,
       position: 'relative',
