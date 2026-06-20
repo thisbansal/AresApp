@@ -240,9 +240,9 @@ function UserSelectPage() {
             transform: scale(1.15) translate3d(0, 0, 0) !important;
           }
           .numpad-btn.focused div {
-            border: 4px solid #e5a00d !important;
-            box-shadow: 0 0 25px rgba(229, 160, 13, 0.55) !important;
-            background-color: rgba(229, 160, 13, 0.15) !important;
+            border: 4px solid #ffffff !important;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.55) !important;
+            background-color: rgba(255, 255, 255, 0.15) !important;
             color: #ffffff !important;
           }
           .numpad-btn:active {

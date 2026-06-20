@@ -1596,7 +1596,7 @@ const styles = {
   },
   settingsSubTitle: {
     fontSize: '34px',
-    color: '#e5a00d',
+    color: '#ffffff',
     margin: 0,
     fontWeight: '600',
     letterSpacing: '1px',

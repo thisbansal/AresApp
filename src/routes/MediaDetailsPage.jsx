@@ -149,7 +149,7 @@ function MediaDetailsPage() {
       let res = mediaObj.videoResolution
       if (res) {
         if (res.toLowerCase() === '4k' || res === '2160') {
-          badges.push({ text: '4K UHD', type: 'resolution', color: '#e5a00d' })
+          badges.push({ text: '4K UHD', type: 'resolution', color: '#ffffff' })
         } else if (res.toLowerCase() === '1080' || res.toLowerCase() === '1080p') {
           badges.push({ text: '1080p HD', type: 'resolution', color: '#ffffff' })
         } else if (res.toLowerCase() === '720' || res.toLowerCase() === '720p') {
@@ -162,7 +162,7 @@ function MediaDetailsPage() {
       // 2. HDR / Dolby Vision Badge
       if (mediaObj.videoCodec === 'hevc' && (res === '4k' || res === '2160' || res === '1080')) {
         badges.push({ text: 'HDR', type: 'hdr', color: '#ff5c5c' })
-        badges.push({ text: 'Dolby Vision', type: 'dolby-vision', color: '#e5a00d' })
+        badges.push({ text: 'Dolby Vision', type: 'dolby-vision', color: '#ffffff' })
       } else if (mediaObj.videoCodec === 'hevc') {
         badges.push({ text: 'HEVC', type: 'hdr', color: '#aaaaaa' })
       }
@@ -504,7 +504,7 @@ const styles = {
   progressBarFill: {
     height: '100%',
     width: '30%',
-    background: 'linear-gradient(90deg, transparent, #e5a00d, transparent)',
+    background: 'linear-gradient(90deg, transparent, #ffffff, transparent)',
     animation: 'shimmer 1.5s infinite linear',
   }
 }

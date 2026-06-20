@@ -34,7 +34,7 @@ export function EmptyState({ message = "It's quiet in here...", subtext = "Your 
     },
     btn: {
       padding: '12px 32px',
-      backgroundColor: '#e5a00d',
+      backgroundColor: '#ffffff',
       color: '#fff',
       border: 'none',
       borderRadius: '30px',
@@ -73,7 +73,7 @@ export function EmptyState({ message = "It's quiet in here...", subtext = "Your 
       
       {onRefresh && (
         <FocusableItem id="empty-state-refresh" onClick={onRefresh}>
-          <div className="capsule-btn" style={{ backgroundColor: '#e5a00d', color: '#fff', border: 'none' }}>
+          <div className="capsule-btn" style={{ backgroundColor: '#ffffff', color: '#fff', border: 'none' }}>
             Refresh Connection
           </div>
         </FocusableItem>
