@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FocusableItem } from '../navigational/FocusableItem';
-import { FiPlay, FiInfo } from 'react-icons/fi';
+import { FiPlay } from 'react-icons/fi';
+import { IoInformationCircleOutline } from 'react-icons/io5';
 import { MdOutlineKeyboardArrowRight } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
@@ -276,7 +277,7 @@ export function HeroBanner({ items = [] }) {
             onClick={handlePlay}
             onFocus={handleFocus}
           >
-            <div className="capsule-btn" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}>
+            <div className="capsule-btn" style={{ padding: '20px 48px', fontSize: '26px' }}>
               <FiPlay style={{ marginRight: '10px' }} /> Play
             </div>
           </FocusableItem>
@@ -286,8 +287,8 @@ export function HeroBanner({ items = [] }) {
             onClick={handlePlay}
             onFocus={handleFocus}
           >
-            <div className="capsule-btn" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}>
-              <FiInfo style={{ marginRight: '10px' }} /> More Info
+            <div className="capsule-btn" style={{ width: '72px', height: '72px', padding: 0, justifyContent: 'center', borderRadius: '50%' }}>
+              <IoInformationCircleOutline size={34} />
             </div>
           </FocusableItem>
 
@@ -296,8 +297,8 @@ export function HeroBanner({ items = [] }) {
             onClick={handleNextSlide}
             onFocus={handleFocus}
           >
-            <div className="capsule-btn" style={{ width: '56px', height: '56px', padding: 0, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '50%' }}>
-              <MdOutlineKeyboardArrowRight size={28} />
+            <div className="capsule-btn" style={{ width: '72px', height: '72px', padding: 0, justifyContent: 'center', borderRadius: '50%' }}>
+              <MdOutlineKeyboardArrowRight size={34} />
             </div>
           </FocusableItem>
         </div>
