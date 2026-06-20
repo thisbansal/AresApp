@@ -1673,7 +1673,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
-    marginBottom: '50px',
+    paddingTop: '60px',
     scrollSnapAlign: 'start',
     scrollMarginTop: '20vh',
   },
@@ -1691,7 +1691,7 @@ const styles = {
     gap: '20px',
     overflowX: 'auto',
     overflowY: 'hidden',
-    padding: '30px 45px 50px 45px', // Maintain padding for focus zoom
+    padding: '10px 45px 50px 45px',
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
     scrollSnapType: 'x mandatory'
