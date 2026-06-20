@@ -123,7 +123,11 @@ export const clearAllStoredInfo = async () => {
   // Clear all profile sessions
   for (const profileId of list) {
     promises.push(deleteData(DB_KINDS.USER, `profile_${profileId}`))
+    promises.push(deleteData(DB_KINDS.PREFERENCES, `selectedLibraries_${profileId}`))
   }
+  
+  // Also clear the default profile's libraries just in case
+  promises.push(deleteData(DB_KINDS.PREFERENCES, 'selectedLibraries_default'))
   
   await Promise.all(promises)
 
