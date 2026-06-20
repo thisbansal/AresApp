@@ -281,7 +281,11 @@ export function HeroBanner({ items = [] }) {
       })}
 
       <div key={item.id} style={styles.fadeContainer}>
-        <h1 style={styles.title}>{title}</h1>
+        {item.logo ? (
+          <img src={item.logo} alt={title} style={{ maxWidth: '400px', maxHeight: '120px', objectFit: 'contain', marginBottom: '20px' }} />
+        ) : (
+          <h1 style={styles.title}>{title}</h1>
+        )}
         <div style={styles.metaRow}>
           {year && <span>{year}</span>}
           {rating && <span style={styles.ratingBadge}>{rating}</span>}

@@ -16,16 +16,22 @@ export const buildImageUrl = (serverUri, path, token, width = 400, height = 600)
   const isShared = activeServer && activeServer.owned === false
   const userProfile = useAppStore.getState().userProfile
 
-  // if (isShared && mainToken) {
-  //   // For shared servers, use the global plex.tv proxy transcoder to avoid 401s
-  //   return `https://images.plex.tv/photo?url=${encodeURIComponent(innerUrl)}&width=${width}&height=${height}&format=jpeg&X-Plex-Token=${mainToken}`
-  // }
-
   // Use the explicitly provided token for image transcode authorization
   const transcodeToken = token
 
   // WebOS TVs often struggle with WebP or complex formats, forcing jpeg ensures compatibility
   return `${serverUri}/photo/:/transcode?url=${path}&width=${width}&height=${height}&minSize=1&upscale=1&format=jpeg&X-Plex-Token=${transcodeToken}`
+}
+
+export const extractClearLogo = (item) => {
+  if (Array.isArray(item.Image)) {
+    const logoImg = item.Image.find(i => i.type === 'clearLogo')
+    if (logoImg && logoImg.url) return logoImg.url
+  }
+  // Fallback for some versions of plex where it might be exposed differently
+  if (item.clearLogo) return item.clearLogo
+  if (item.titleArt) return item.titleArt
+  return null
 }
 
 const buildServerContext = (serverUri, token) => ({ uri: serverUri, token })
@@ -66,6 +72,8 @@ export const getRecentlyAdded = async (serverUri, token, libraryId = null, limit
     rawThumb: item.thumb,
     art: buildImageUrl(serverUri, item.art || item.grandparentArt || item.parentArt, token, 800, 450), // Detail view
     rawArt: item.art || item.grandparentArt || item.parentArt,
+    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300),
+    rawLogo: extractClearLogo(item),
     rating: item.contentRating,
     summary: item.summary,
     duration: item.duration,
@@ -104,6 +112,8 @@ export const getOnDeck = async (serverUri, token, limit = 20) => {
     rawThumb: item.type === 'episode' ? (item.grandparentThumb || item.thumb) : item.thumb,
     art: buildImageUrl(serverUri, item.art || item.grandparentArt || item.parentArt, token, 800, 450),
     rawArt: item.art || item.grandparentArt || item.parentArt,
+    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300),
+    rawLogo: extractClearLogo(item),
     viewOffset: item.viewOffset,
     duration: item.duration,
     grandparentTitle: item.grandparentTitle,
@@ -132,6 +142,8 @@ export const getLibraryItems = async (serverUri, token, libraryId) => {
     year: item.year,
     thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600),
     rawThumb: item.thumb,
+    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300),
+    rawLogo: extractClearLogo(item),
     rating: item.contentRating,
     summary: item.summary,
     // View state
@@ -159,6 +171,8 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
     year: item.year,
     thumb: buildImageUrl(serverUri, item.thumb, token, 400, 600), // Larger for detail view
     art: buildImageUrl(serverUri, item.art, token, 1280, 720), // Full art for background
+    logo: buildImageUrl(serverUri, extractClearLogo(item), token, 600, 300),
+    rawLogo: extractClearLogo(item),
     rating: item.contentRating,
     summary: item.summary,
     duration: item.duration,

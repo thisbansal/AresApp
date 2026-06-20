@@ -285,7 +285,11 @@ function MediaDetailsPage() {
 
         <div style={styles.rightColumn}>
           <div style={styles.metaHeader}>
-            <h1 style={styles.title}>{item.title}</h1>
+            {item.logo ? (
+              <img src={item.logo} alt={item.title} style={{ maxWidth: '400px', maxHeight: '100px', objectFit: 'contain', marginBottom: '15px' }} />
+            ) : (
+              <h1 style={styles.title}>{item.title}</h1>
+            )}
             <div style={styles.badges}>
               {item.year && <span style={styles.badge}>{item.year}</span>}
               {item.rating && <span style={styles.badge}>{item.rating}</span>}
