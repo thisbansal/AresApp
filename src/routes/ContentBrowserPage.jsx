@@ -42,7 +42,7 @@ function ContentBrowserPage() {
 
   useEffect(() => {
     const logScroll = () => {
-      console.log(`[Native Scroll] scrollY: ${window.scrollY}`);
+      // console.log(`[Native Scroll] scrollY: ${window.scrollY}`);
     };
     window.addEventListener('scroll', logScroll, { passive: true });
     return () => window.removeEventListener('scroll', logScroll);
