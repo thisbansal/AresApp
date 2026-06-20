@@ -45,7 +45,34 @@ function ContentBrowserPage() {
       setIsScrolled(window.scrollY > window.innerHeight * 0.1) // true if scrolled past 10vh
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    
+    // Eagerly snap with mouse wheel
+    const handleWheel = (e) => {
+      const state = useBrowserStore.getState();
+      if (state.activeTab?.type !== 'home') return;
+      
+      const currentIsScrolled = window.scrollY > window.innerHeight * 0.1;
+      
+      // If at top and wheeling down
+      if (!currentIsScrolled && e.deltaY > 0) {
+        e.preventDefault();
+        window.scrollTo({ top: window.innerHeight * 0.3, behavior: 'smooth' });
+      }
+      
+      // If snapped down and wheeling up near the top
+      if (currentIsScrolled && e.deltaY < 0 && window.scrollY < window.innerHeight * 0.4) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const heroBtn = document.getElementById('hero-play-btn');
+        if (heroBtn) heroBtn.focus({ preventScroll: true });
+      }
+    };
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('wheel', handleWheel);
+    }
   }, [])
 
   // State
@@ -1039,7 +1066,7 @@ function ContentBrowserPage() {
                   <div style={{ 
                     position: 'relative', 
                     zIndex: 10,
-                    marginTop: isScrolled ? '0' : '-20vh',
+                    marginTop: isScrolled ? '15vh' : '-20vh',
                     transition: 'margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
                   }}>
                     {continueWatching.length > 0 && (

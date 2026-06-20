@@ -155,7 +155,15 @@ export const SpatialNavigationProvider = ({ children }) => {
     });
 
     if (closestNode) {
-      closestNode.focus({ preventScroll: false });
+      closestNode.focus({ preventScroll: true });
+      
+      // Prevent browser native scroll jumping by using smooth scrollIntoView
+      // Ensure we lock scroll on D-pad navigation to stop fighting with React layouts
+      if (closestNode.id.startsWith('hero-')) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        closestNode.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      }
     } else {
       // Fallback: If we hit the boundary (no more items in that direction),
       // scroll the horizontal row-items container to the absolute end/start.
