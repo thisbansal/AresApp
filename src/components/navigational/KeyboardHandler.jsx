@@ -165,7 +165,11 @@ export function KeyboardHandler() {
               setTimeout(() => {
                 window.isNavigationLocked = false;
                 const heroBtn = document.getElementById('hero-play-btn');
-                if (heroBtn) heroBtn.focus({ preventScroll: true });
+                if (heroBtn) {
+                  heroBtn.focus({ preventScroll: true });
+                } else {
+                  setIsNavbarExpanded(true);
+                }
               }, 400);
             }
             return;

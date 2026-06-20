@@ -75,7 +75,8 @@ export function HeroBanner({ items = [] }) {
   const duration = item.duration ? Math.round(item.duration / 60000) + ' min' : null;
   const summary = item.summary;
 
-  const handlePlay = () => {
+  const handlePlay = (e) => {
+    if (e) e.stopPropagation();
     let targetServerInfo = null;
     if (item._serverContext?.clientId) {
       const s = useServerManagerStore.getState().servers[item._serverContext.clientId];
@@ -87,7 +88,20 @@ export function HeroBanner({ items = [] }) {
     navigate(path, { state: { serverInfo: targetServerInfo, item: item } });
   };
 
-  const handleNextSlide = () => {
+  const handleInfo = (e) => {
+    if (e) e.stopPropagation();
+    let targetServerInfo = null;
+    if (item._serverContext?.clientId) {
+      const s = useServerManagerStore.getState().servers[item._serverContext.clientId];
+      if (s) {
+        targetServerInfo = { uri: s.uri, token: s.accessToken, owned: s.owned };
+      }
+    }
+    navigate(`/details/${item.ratingKey}`, { state: { serverInfo: targetServerInfo, item: item } });
+  };
+
+  const handleNextSlide = (e) => {
+    if (e) e.stopPropagation();
     setUserInteracted(true);
     setCurrentIndex(prev => (prev + 1) % items.length);
   };
@@ -226,7 +240,10 @@ export function HeroBanner({ items = [] }) {
   };
 
   return (
-    <div style={styles.container}>
+    <div 
+      style={{...styles.container, cursor: 'pointer'}} 
+      onClick={handleInfo}
+    >
       {/* Background with crossfade key mapping */}
       {items.map((it, idx) => {
         let bgUrl = null;
@@ -279,7 +296,7 @@ export function HeroBanner({ items = [] }) {
 
           <FocusableItem 
             id="hero-info-btn" 
-            onClick={handlePlay}
+            onClick={handleInfo}
             onFocus={handleFocus}
           >
             <div className="capsule-btn" style={{ width: '72px', height: '72px', padding: 0, justifyContent: 'center', borderRadius: '50%' }}>
