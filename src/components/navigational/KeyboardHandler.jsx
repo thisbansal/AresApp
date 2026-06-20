@@ -1,10 +1,10 @@
 // KeyboardHandler.jsx
-import { useEffect } from 'react';
+import { useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
 import { useBrowserStore } from '../../stores/browserStore';
-import { forceSmoothScroll } from '../../utils/scrollUtils';
+import { LayerContext } from '../../contexts/LayerContext';
 
 export function KeyboardHandler() {
   const { 
@@ -161,11 +161,14 @@ export function KeyboardHandler() {
             console.log('[KeyboardHandler] Back key: State 3 -> 2. Snapping to Hero Banner.');
             window.isNavigationLocked = true;
             useBrowserStore.getState().setIsHeroSnapped(false);
-            forceSmoothScroll(0, 400, () => {
-              window.isNavigationLocked = false;
-              const heroBtn = document.getElementById('hero-play-btn');
-              if (heroBtn) heroBtn.focus({ preventScroll: true });
-            });
+            if (document.documentElement.scrollTop > 0 || document.body.scrollTop > 0) {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              setTimeout(() => {
+                window.isNavigationLocked = false;
+                const heroBtn = document.getElementById('hero-play-btn');
+                if (heroBtn) heroBtn.focus({ preventScroll: true });
+              }, 400);
+            }
             return;
           }
           

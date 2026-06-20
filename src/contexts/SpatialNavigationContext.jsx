@@ -47,29 +47,43 @@ export const SpatialNavigationProvider = ({ children }) => {
         document.activeElement?.blur();
         
         state.setIsHeroSnapped(true);
-        const SNAP_DOWN_OFFSET_VH = 1.0;
-        forceSmoothScroll(window.innerHeight * SNAP_DOWN_OFFSET_VH, 400, () => {
+        
+        // Anchor Approach: scroll smoothly to the first row!
+        const firstRow = document.querySelector('.row');
+        if (firstRow) {
+          firstRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+        }
+
+        // Lock navigation briefly to allow smooth scroll to finish without trackpad bouncing
+        setTimeout(() => {
           console.log(`[Navigation Engine] Snap DOWN completed.`);
           window.isNavigationLocked = false;
           window.wheelSnapCooldown = true;
           setTimeout(() => { window.wheelSnapCooldown = false; }, 500);
-        });
+        }, 500);
       }
 
       // Intent: requestSnapUp
-      if (currentIsHeroSnapped && e.deltaY < 0 && window.scrollY < window.innerHeight * 0.4) {
+      // Trigger snap up if we are anywhere near the first row (e.g. scrollY < 1.1 * innerHeight)
+      if (currentIsHeroSnapped && e.deltaY < 0 && window.scrollY < window.innerHeight * 1.1) {
         console.log(`[Navigation Engine] Snap UP triggered! deltaY: ${e.deltaY}, scrollY: ${window.scrollY}`);
         e.preventDefault();
         window.isNavigationLocked = true;
         document.activeElement?.blur();
         
         state.setIsHeroSnapped(false);
-        forceSmoothScroll(0, 400, () => {
+        
+        // Anchor Approach: scroll smoothly back to the top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        setTimeout(() => {
           console.log(`[Navigation Engine] Snap UP completed.`);
           window.isNavigationLocked = false;
           window.wheelSnapCooldown = true;
           setTimeout(() => { window.wheelSnapCooldown = false; }, 500);
-        });
+        }, 500);
       }
     };
 
@@ -227,13 +241,19 @@ export const SpatialNavigationProvider = ({ children }) => {
       if (closestNode.id.startsWith('hero-') || closestNode.id.startsWith('nav-')) {
         window.isNavigationLocked = true;
         useBrowserStore.getState().setIsHeroSnapped(false);
-        forceSmoothScroll(0, 400, () => { window.isNavigationLocked = false; });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => { window.isNavigationLocked = false; }, 400);
       } else if (direction === 'down' && document.activeElement?.id?.startsWith('hero-')) {
         // TUNE THIS VALUE: adjust how far the D-Pad snaps down when leaving Hero Banner
         window.isNavigationLocked = true;
         useBrowserStore.getState().setIsHeroSnapped(true);
-        const SNAP_DOWN_OFFSET_VH = 1.0;
-        forceSmoothScroll(window.innerHeight * SNAP_DOWN_OFFSET_VH, 400, () => { window.isNavigationLocked = false; });
+        const firstRow = document.querySelector('.row');
+        if (firstRow) {
+          firstRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+        }
+        setTimeout(() => { window.isNavigationLocked = false; }, 400);
       } else {
         // For everything else, center the row nicely
         closestNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
