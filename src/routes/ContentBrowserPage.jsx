@@ -6,7 +6,6 @@ import { usePlexQuery } from '../hooks/usePlexQuery'
 import { ServerOfflineMessage } from '../components/ServerOfflineMessage'
 import { FallbackImage } from '../components/media/FallbackImage'
 import { MediaCard } from '../components/media/MediaCard'
-import { DynamicBackdrop } from '../components/media/DynamicBackdrop'
 import { HeroBanner } from '../components/media/HeroBanner'
 import { SkeletonRow } from '../components/media/SkeletonRow'
 import { EmptyState } from '../components/media/EmptyState'
@@ -722,7 +721,6 @@ function ContentBrowserPage() {
 
   return (
     <div style={styles.container} className="page-layout-container">
-      <DynamicBackdrop focusedItem={focusedItem} />
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
@@ -1528,6 +1526,7 @@ const APP_BASE_COLOR = '#ffffff'
 const styles = {
   container: {
     minHeight: '100vh',
+    backgroundColor: '#141414',
     color: '#e8eaed',
     padding: '40px 30px',
     display: 'flex',
