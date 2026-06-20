@@ -106,7 +106,7 @@ export function HeroBanner({ items = [] }) {
       flexDirection: 'column',
       justifyContent: 'flex-end',
       height: '100vh', // Full screen height
-      padding: '0 50px 25vh 140px', // Left padding clears the absolute pinned navbar, bottom padding clears overlapping rows
+      padding: '0 50px 25vh 45px', // Aligned with the Continue Watching row padding (45px)
       color: '#fff',
       zIndex: 1,
       position: 'relative',
