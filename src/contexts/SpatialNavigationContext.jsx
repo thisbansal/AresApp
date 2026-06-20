@@ -13,13 +13,28 @@ export const SpatialNavigationProvider = ({ children }) => {
   const activeLayer = layerStack.length > 0 ? layerStack[layerStack.length - 1] : 'base';
   const lastRemoteActionRef = useRef(0);
   const lastNavDirectionRef = useRef(null);
+  const focusHistoryRef = useRef({});
 
   const pushLayer = useCallback((layerId) => {
+    // Save the currently focused element for this new layer
+    if (document.activeElement && document.activeElement.tagName !== 'BODY') {
+      focusHistoryRef.current[layerId] = document.activeElement;
+    }
     setLayerStack(prev => [...prev.filter(id => id !== layerId), layerId]);
   }, []);
 
   const popLayer = useCallback((layerId) => {
     setLayerStack(prev => {
+      // If we are popping the currently active layer, restore focus
+      if (prev.length > 0 && prev[prev.length - 1] === layerId) {
+        const toFocus = focusHistoryRef.current[layerId];
+        if (toFocus && document.body.contains(toFocus)) {
+          setTimeout(() => toFocus.focus({ preventScroll: true }), 50);
+        }
+      }
+      // Cleanup the reference
+      delete focusHistoryRef.current[layerId];
+
       const newStack = prev.filter(id => id !== layerId);
       return newStack.length > 0 ? newStack : ['base'];
     });
