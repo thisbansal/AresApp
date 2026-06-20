@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FocusableItem } from '../navigational/FocusableItem';
 import { FiPlay } from 'react-icons/fi';
 import { IoInformationCircleOutline } from 'react-icons/io5';
-import { MdOutlineKeyboardArrowRight } from 'react-icons/md';
+import { MdOutlineKeyboardArrowRight, MdKeyboardArrowDown } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
 import { buildImageUrl } from '../../services/plex/plexContentService';
@@ -116,7 +116,7 @@ export function HeroBanner({ items = [] }) {
       flexDirection: 'column',
       justifyContent: 'flex-end',
       height: '100vh', // Full screen height
-      padding: '0 50px 25vh 45px', // Aligned with the Continue Watching row padding (45px)
+      padding: '0 50px 50px 45px', // Pushed to the very bottom
       color: '#fff',
       zIndex: 1,
       position: 'relative',
@@ -180,17 +180,24 @@ export function HeroBanner({ items = [] }) {
       display: 'flex',
       alignItems: 'center',
       gap: '15px',
-      animation: 'fadeInUp 0.8s ease-out forwards'
     },
-    dotsContainer: {
-      position: 'absolute',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      bottom: '25vh',
+    bottomBar: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      maxWidth: '40%'
+      justifyContent: 'space-between',
+      width: '100%',
+      marginTop: '40px',
+      animation: 'fadeInUp 0.8s ease-out forwards'
+    },
+    rightGroup: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '40px'
+    },
+    dotsContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
     },
     dot: (distance, isActive) => {
       let width, height, opacity, margin, scale;
@@ -282,8 +289,8 @@ export function HeroBanner({ items = [] }) {
         </div>
         {summary && <p style={styles.summary}>{summary}</p>}
       </div>
-      
-      <div style={styles.actions}>
+      <div style={styles.bottomBar}>
+        <div style={styles.actions}>
           <FocusableItem 
             id="hero-play-btn" 
             onClick={handlePlay}
@@ -315,13 +322,18 @@ export function HeroBanner({ items = [] }) {
           </FocusableItem>
         </div>
 
-      <div style={styles.dotsContainer}>
-        {items.map((_, idx) => {
-          // Calculate shortest circular distance
-          const d = Math.abs(idx - currentIndex);
-          const distance = Math.min(d, items.length - d);
-          return <div key={idx} style={styles.dot(distance, idx === currentIndex)} />;
-        })}
+        <div style={styles.rightGroup}>
+          <div style={styles.dotsContainer}>
+            {items.map((_, idx) => {
+              // Calculate shortest circular distance
+              const d = Math.abs(idx - currentIndex);
+              const distance = Math.min(d, items.length - d);
+              return <div key={idx} style={styles.dot(distance, idx === currentIndex)} />;
+            })}
+          </div>
+          
+          <MdKeyboardArrowDown className="scroll-down-arrow" size={48} />
+        </div>
       </div>
     </div>
   );
