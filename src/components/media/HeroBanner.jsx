@@ -107,7 +107,6 @@ export function HeroBanner({ items = [] }) {
       zIndex: 1,
       position: 'relative',
       overflow: 'hidden',
-      scrollSnapAlign: 'start',
       flexShrink: 0 // Prevent squishing
     },
     bgImage: {

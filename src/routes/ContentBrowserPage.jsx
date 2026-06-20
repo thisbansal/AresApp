@@ -1669,8 +1669,6 @@ const styles = {
     flexDirection: 'column',
     gap: '20px',
     paddingTop: '60px',
-    scrollSnapAlign: 'start',
-    scrollMarginTop: '20vh',
   },
   sectionTitle: {
     fontSize: '34px',
