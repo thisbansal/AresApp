@@ -5,6 +5,7 @@ import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { useAppStore } from '../stores/AppStore'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { FiLock, FiDelete } from 'react-icons/fi'
+import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
 
 function UserSelectPage() {
   const navigate = useNavigate()
@@ -29,6 +30,7 @@ function UserSelectPage() {
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
   const [loadingMessage, setLoadingMessage] = useState('Loading profiles...')
+  const { setNavigationMode } = useSpatialNavigation()
 
   useEffect(() => {
     checkExistingSession()
@@ -37,6 +39,7 @@ function UserSelectPage() {
   // Auto-focus first button when PIN prompt opens
   useEffect(() => {
     if (showPinPrompt) {
+      setNavigationMode('remote');
       setTimeout(() => {
         const firstBtn = document.getElementById('numpad-1');
         if (firstBtn) {
@@ -49,6 +52,7 @@ function UserSelectPage() {
   // Auto-focus first user on load
   useEffect(() => {
     if (!loading && !showPinPrompt && users.length > 0) {
+      setNavigationMode('remote');
       setTimeout(() => {
         const firstUser = document.getElementById(`user-${users[0].id}`);
         if (firstUser) {
@@ -59,16 +63,22 @@ function UserSelectPage() {
   }, [loading, showPinPrompt, users])
 
   // Direct remote control number entry for PIN code
+  // Register back button override for PIN dialog
   useEffect(() => {
-    if (!showPinPrompt) return
-
     window.handlePinBackspace = () => {
-      if (pin.length > 0) {
-        setPin(prev => prev.slice(0, -1));
-        return true;
+      if (showPinPrompt) {
+        setPin(prev => {
+          if (prev.length > 0) {
+            return prev.slice(0, -1);
+          }
+          return prev;
+        });
+        
+        // If pin was already empty, allow fallback (e.g. close prompt)
+        return pin.length > 0;
       }
       return false;
-    }
+    };
 
     const handlePinKeyDown = (e) => {
       if (/^[0-9]$/.test(e.key)) {
@@ -232,21 +242,24 @@ function UserSelectPage() {
         <style>{`
           .numpad-btn {
             border-radius: 50% !important;
-            will-change: transform;
-            transform: translate3d(0, 0, 0) !important;
-            transition: transform 0.11s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease !important;
+            will-change: transform, background-color, border-color;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            perspective: 1000;
           }
           .numpad-btn.focused {
-            transform: scale(1.15) translate3d(0, 0, 0) !important;
+            transform: scale(1.15) !important;
           }
           .numpad-btn.focused div {
-            border: 4px solid #ffffff !important;
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.55) !important;
-            background-color: rgba(255, 255, 255, 0.15) !important;
+            background-color: transparent !important;
+            border-color: #ffffff !important;
+            border-width: 3px !important;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5) !important;
             color: #ffffff !important;
           }
           .numpad-btn:active {
-            transform: scale(0.95) translate3d(0, 0, 0) !important;
+            transform: scale(0.95) !important;
           }
           .cancel-btn {
             border-radius: 50px !important;
@@ -673,18 +686,18 @@ const styles = {
     margin: '0 auto 30px'
   },
   numButton: {
-    fontSize: '38px',
-    width: '100px',
-    height: '100px',
+    width: '80px',
+    height: '80px',
     borderRadius: '50%',
     background: 'rgba(255, 255, 255, 0.05)',
     color: '#ffffff',
     border: '1.5px solid rgba(255, 255, 255, 0.08)',
-    cursor: 'pointer',
-    fontWeight: '700',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    fontSize: '32px',
+    fontWeight: '600',
+    cursor: 'pointer',
     transition: 'all 0.2s ease',
     fontFamily: "'Outfit', 'Inter', sans-serif"
   },

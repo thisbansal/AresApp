@@ -206,14 +206,15 @@ export default function PlayerPage() {
 
         const sub = metadata.grandparentTitle
           ? `${metadata.grandparentTitle} • ${metadata.parentTitle} • Episode ${metadata.index}`
-          : metadata.year || ''
+          : ''
 
         setMetaDetails({
           title: metadata.title,
           subtitle: sub,
           viewOffset: metadata.viewOffset,
           duration: metadata.duration,
-          partKey: metadata.media?.[0]?.parts?.[0]?.key || ''
+          partKey: metadata.media?.[0]?.parts?.[0]?.key || '',
+          logo: metadata.logo
         })
 
         // Find direct stream key from metadata
@@ -1115,14 +1116,21 @@ export default function PlayerPage() {
         }}
         className="player-hud-card player-hud-container"
       >
-        {/* Metadata Details */}
-        <div className="player-hud-meta">
-          <h1 className="player-hud-title">{metaDetails.title}</h1>
-          {metaDetails.subtitle && <p className="player-hud-subtitle">{metaDetails.subtitle}</p>}
-        </div>
+        {/* Top Row: Meta on the left, Stream controls on the right */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', marginBottom: '8px' }}>
+          
+          {/* Metadata Details */}
+          <div className="player-hud-meta" style={{ marginBottom: 0, paddingBottom: '10px' }}>
+            {metaDetails.logo ? (
+              <img src={metaDetails.logo} alt={metaDetails.title} style={{ maxHeight: '80px', maxWidth: '300px', objectFit: 'contain' }} />
+            ) : (
+              <h1 className="player-hud-title">{metaDetails.title}</h1>
+            )}
+            {metaDetails.subtitle && <p className="player-hud-subtitle">{metaDetails.subtitle}</p>}
+          </div>
 
-        {/* Stream Selection Controls */}
-        <div className="player-hud-stream-row">
+          {/* Stream Selection Controls */}
+          <div className="player-hud-stream-row" style={{ marginBottom: 0 }}>
           { numberOfStreams?.video?.length > 1 && <FocusableItem
             id="player-stream-video"
             rowIndex={0} colIndex={0}
@@ -1230,6 +1238,7 @@ export default function PlayerPage() {
                   getStreamSupport={getStreamSupport}
                   isSubtitleVisible={isSubtitleVisible}
                   setIsSubtitleVisible={setIsSubtitleVisible}
+                  setActiveMenu={setActiveMenu}
                 />
                 
                 <AudioMenu
@@ -1237,6 +1246,7 @@ export default function PlayerPage() {
                   activeMenu={activeMenu}
                   handleStreamSelect={handleStreamSelect}
                   getStreamSupport={getStreamSupport}
+                  setActiveMenu={setActiveMenu}
                 />
                 
                 <VideoMenu
@@ -1244,32 +1254,38 @@ export default function PlayerPage() {
                   activeMenu={activeMenu}
                   handleStreamSelect={handleStreamSelect}
                   getStreamSupport={getStreamSupport}
+                  setActiveMenu={setActiveMenu}
                 />
               </div>
             </FocusLayer>
           )}
+          </div>
         </div>
 
         {/* Timeline Slider Track */}
-        <div className="player-hud-timeline-row">
-          {/* Timeline starts flush from the left edge */}
+        <div className="player-hud-timeline-row" style={styles.timelineRow}>
+          {/* Current Time on the left */}
+          <span className="player-hud-time" style={styles.timeText}>{formatTime(displayTime)}</span>
+          
+          {/* Timeline center */}
           <FocusableItem
             id="player-timeline"
             rowIndex={1}
             colIndex={0}
             className="player-hud-timeline-track"
+            style={styles.timelineTrack}
             onPointerDown={handleTimelinePointerDown}
           >
-            <div className="player-hud-timeline-visual">
+            <div className="player-hud-timeline-visual" style={styles.timelineVisualTrack}>
               <div
                 className="player-hud-timeline-fill"
-                style={{ width: `${progressPercent}%` }}
+                style={{ ...styles.timelineFill, width: `${progressPercent}%` }}
               />
             </div>
             
             <div 
               className="player-hud-timeline-knob"
-              style={{ left: `${progressPercent}%` }}
+              style={{ ...styles.timelineKnob, left: `${progressPercent}%` }}
             />
 
             {/* Floating seek target tooltip bubble directly below knob - only visible during scroll wheel seek */}
@@ -1285,7 +1301,7 @@ export default function PlayerPage() {
             )}
           </FocusableItem>
           {/* Time Remaining exclusively on the right */}
-          <span className="player-hud-time">{formatRemainingTime(displayTime, duration)}</span>
+          <span className="player-hud-time" style={styles.timeText}>{formatRemainingTime(displayTime, duration)}</span>
         </div>
 
         {/* Playback Buttons Row */}
@@ -1394,10 +1410,13 @@ export default function PlayerPage() {
           transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .player-hud-timeline-track.focused .player-hud-timeline-knob {
-          transform: translate(-50%, -50%) !important;
-          background-color: #DDDDDD !important;
-          box-shadow: 0 0 16px 6px rgba(221, 221, 221, 0.6), 0 0 32px rgba(221, 221, 221, 0.3) !important;
-          transition: background-color 0.15s ease, box-shadow 0.15s ease;
+          transform: translate(-50%, -50%) scale(1.5) !important;
+          background-color: #FFFFFF !important;
+          box-shadow: 0 0 20px 8px rgba(255, 255, 255, 0.7), 0 0 40px rgba(255, 255, 255, 0.4) !important;
+          transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .player-hud-timeline-track.focused .player-hud-timeline-visual {
+          height: 16px !important;
         }
         .player-hud-timeline-track, .player-hud-btn-capsule, .hud-stream-btn, .hud-stream-menu-item {
           transform: scale(1) !important;
@@ -1468,11 +1487,25 @@ export default function PlayerPage() {
         }
 
         .hud-stream-menu-item {
-          transition: background-color 0.1s ease !important;
+          transition: background-color 0.15s ease, color 0.15s ease !important;
+          border-radius: 8px;
         }
         .hud-stream-menu-item.focused, .hud-stream-menu-item:hover {
-          background-color: rgba(255, 255, 255, 0.15) !important;
+          background-color: #ffffff !important;
+          color: #1a1a1a !important;
           outline: none !important;
+        }
+        .hud-stream-menu-item.focused span, .hud-stream-menu-item:hover span {
+          color: #1a1a1a !important;
+        }
+        .hud-stream-menu-item.focused .player-hud-stream-radio, .hud-stream-menu-item:hover .player-hud-stream-radio {
+          border-color: #1a1a1a !important;
+        }
+        .hud-stream-menu-item.focused .player-hud-stream-radio[style*="background-color: rgb(255, 255, 255)"],
+        .hud-stream-menu-item.focused .player-hud-stream-radio[style*="background-color: #fff"],
+        .hud-stream-menu-item:hover .player-hud-stream-radio[style*="background-color: rgb(255, 255, 255)"],
+        .hud-stream-menu-item:hover .player-hud-stream-radio[style*="background-color: #fff"] {
+          background-color: #1a1a1a !important;
         }
         video {
           width: 100% !important;
@@ -1640,16 +1673,16 @@ const styles = {
   },
   timelineVisualTrack: {
     width: '100%',
-    height: '8px', // Default sleek thickness
+    height: '10px', // Increased thickness per user request
     backgroundColor: '#2e2e34',
-    borderRadius: '4px',
+    borderRadius: '5px',
     position: 'relative',
     overflow: 'hidden',
   },
   timelineFill: {
     height: '100%',
     backgroundColor: '#a8a8af', // Elegant light grey progress fill
-    borderRadius: '4px',
+    borderRadius: '5px',
     boxShadow: '0 0 8px rgba(255, 255, 255, 0.15)',
   },
   timelineKnob: {

@@ -10,7 +10,12 @@ export const SpatialNavigationProvider = ({ children }) => {
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
   const [isNavbarExpanded, setIsNavbarExpanded] = useState(false);
   const [layerStack, setLayerStack] = useState(['base']);
+  const layerStackRef = useRef(['base']);
   const activeLayer = layerStack.length > 0 ? layerStack[layerStack.length - 1] : 'base';
+
+  useEffect(() => {
+    layerStackRef.current = layerStack;
+  }, [layerStack]);
   const lastRemoteActionRef = useRef(0);
   const lastNavDirectionRef = useRef(null);
   const focusHistoryRef = useRef({});
@@ -138,6 +143,8 @@ export const SpatialNavigationProvider = ({ children }) => {
     const cx2 = rect2.left + rect2.width / 2;
     const cy2 = rect2.top + rect2.height / 2;
 
+    let hOverlap = 0;
+    let vOverlap = 0;
     let d_primary = 0;
     let d_orthogonal = 0;
 
@@ -145,22 +152,26 @@ export const SpatialNavigationProvider = ({ children }) => {
       case 'up':
         if (cy2 >= cy1) return Infinity; // Not above
         d_primary = cy1 - cy2;
-        d_orthogonal = Math.abs(cx1 - cx2);
+        hOverlap = Math.max(0, Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left));
+        d_orthogonal = hOverlap > 0 ? 0 : Math.abs(cx1 - cx2);
         break;
       case 'down':
         if (cy2 <= cy1) return Infinity; // Not below
         d_primary = cy2 - cy1;
-        d_orthogonal = Math.abs(cx1 - cx2);
+        hOverlap = Math.max(0, Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left));
+        d_orthogonal = hOverlap > 0 ? 0 : Math.abs(cx1 - cx2);
         break;
       case 'left':
         if (cx2 >= cx1) return Infinity; // Not left
         d_primary = cx1 - cx2;
-        d_orthogonal = Math.abs(cy1 - cy2);
+        vOverlap = Math.max(0, Math.min(rect1.bottom, rect2.bottom) - Math.max(rect1.top, rect2.top));
+        d_orthogonal = vOverlap > 0 ? 0 : Math.abs(cy1 - cy2);
         break;
       case 'right':
         if (cx2 <= cx1) return Infinity; // Not right
         d_primary = cx2 - cx1;
-        d_orthogonal = Math.abs(cy1 - cy2);
+        vOverlap = Math.max(0, Math.min(rect1.bottom, rect2.bottom) - Math.max(rect1.top, rect2.top));
+        d_orthogonal = vOverlap > 0 ? 0 : Math.abs(cy1 - cy2);
         break;
       default:
         return Infinity;
@@ -177,13 +188,14 @@ export const SpatialNavigationProvider = ({ children }) => {
     lastRemoteActionRef.current = Date.now();
     lastNavDirectionRef.current = direction;
 
+    const currentActiveLayer = layerStackRef.current.length > 0 ? layerStackRef.current[layerStackRef.current.length - 1] : 'base';
     const activeElement = document.activeElement;
 
     // Check if the current active element is actually registered in the active layer
     let isActiveElementInActiveLayer = false;
     if (activeElement && activeElement !== document.body) {
       nodesRef.current.forEach((entry) => {
-        if (entry.node === activeElement && entry.layerId === activeLayer) {
+        if (entry.node === activeElement && entry.layerId === currentActiveLayer) {
           isActiveElementInActiveLayer = true;
         }
       });
@@ -192,7 +204,7 @@ export const SpatialNavigationProvider = ({ children }) => {
     if (!isActiveElementInActiveLayer) {
       // If nothing is focused OR the currently focused element is NOT in the active layer,
       // focus the first fully visible node in the active layer.
-      const nodesInActiveLayer = Array.from(nodesRef.current.values()).filter(entry => entry.layerId === activeLayer);
+      const nodesInActiveLayer = Array.from(nodesRef.current.values()).filter(entry => entry.layerId === currentActiveLayer);
       
       const visibleNode = nodesInActiveLayer.find(entry => {
         const rect = entry.node.getBoundingClientRect();
@@ -215,7 +227,14 @@ export const SpatialNavigationProvider = ({ children }) => {
     // Detect if the active element is inside a specific scroll/layout container
     let activeContainer = null;
     let activeContainerSelector = null;
-    const containers = ['.row-items', '.grid', '.nav-scroll-container', '.numpad'];
+    const containers = [
+      '.row-items', 
+      '.grid', 
+      '.nav-scroll-container', 
+      '.numpad',
+      '.player-hud-stream-row',
+      '.player-hud-controls'
+    ];
     for (const selector of containers) {
       const container = activeElement.closest(selector);
       if (container) {
@@ -227,7 +246,7 @@ export const SpatialNavigationProvider = ({ children }) => {
 
     nodesRef.current.forEach((entry, id) => {
       const { node, layerId: nodeLayerId } = entry;
-      if (nodeLayerId !== activeLayer) return;
+      if (nodeLayerId !== currentActiveLayer) return;
       if (node === activeElement) return;
       if (!document.body.contains(node)) return;
 
@@ -310,7 +329,7 @@ export const SpatialNavigationProvider = ({ children }) => {
         }
       }
     }
-  }, [activeLayer]);
+  }, []); // layerStackRef guarantees we always read the latest layer synchronously without causing closure stales
 
   const focusLayer = useCallback((layerId) => {
     // Find the first registered node in the specified layer and focus it

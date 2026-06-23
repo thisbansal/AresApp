@@ -7,7 +7,8 @@ export function SubtitleMenu({
   handleStreamSelect, 
   getStreamSupport,
   isSubtitleVisible,
-  setIsSubtitleVisible
+  setIsSubtitleVisible,
+  setActiveMenu
 }) {
   if (activeMenu !== 'subtitle') return null;
 
@@ -21,7 +22,10 @@ export function SubtitleMenu({
         rowIndex={-1} colIndex={1}
         style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px', paddingBottom: '12px'}}
         className="hud-stream-menu-item player-hud-stream-menu-item"
-        onClick={() => setIsSubtitleVisible(!isSubtitleVisible)}
+        onClick={() => {
+          setIsSubtitleVisible(!isSubtitleVisible);
+          setActiveMenu('none');
+        }}
       >
         <div style={{ borderRadius: '2px', backgroundColor: isSubtitleVisible ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
         <span style={{ flex: 1 }}>{isSubtitleVisible ? "Hide Subtitles" : "Show Subtitles"}</span>
@@ -40,14 +44,12 @@ export function SubtitleMenu({
             onClick={() => {
               handleStreamSelect(3, stream.id);
               if (!isSubtitleVisible) setIsSubtitleVisible(true);
+              setActiveMenu('none');
             }}
           >
             <div style={{ backgroundColor: stream.selected ? '#fff' : 'transparent'}} className="player-hud-stream-radio" />
             <span style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>{stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`}</span>
-              <span style={{ fontSize: '0.85em', opacity: 0.8, marginLeft: '12px' }}>
-                {isNative ? '[Native]' : '[Burn-in]'}
-              </span>
+              <span>{(stream.displayTitle || stream.language || stream.codec || `Stream ${stream.id}`).replace(/\s*\([^)]+\)$/, '')}</span>
             </span>
           </FocusableItem>
         );

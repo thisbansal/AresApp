@@ -7,6 +7,9 @@ export const useBrowserStore = create((set) => ({
   isHeroSnapped: false,
   setIsHeroSnapped: (val) => set({ isHeroSnapped: val }),
 
+  heroIndex: 0,
+  setHeroIndex: (val) => set(state => ({ heroIndex: typeof val === 'function' ? val(state.heroIndex) : val })),
+
   continueWatching: [],
   setContinueWatching: (data) => set({ continueWatching: data }),
 

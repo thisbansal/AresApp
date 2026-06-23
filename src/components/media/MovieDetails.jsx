@@ -1,9 +1,18 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ActionButtons from './ActionButtons'
+import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext'
 
 export default function MovieDetails({ item, serverInfo, onFocusItem }) {
   const navigate = useNavigate()
+  const { setFocus } = useSpatialNavigation()
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFocus('btn-play')
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [setFocus])
 
   const handlePlay = () => {
     console.log('Play movie:', item.id)

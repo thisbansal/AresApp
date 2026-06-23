@@ -7,12 +7,14 @@ import { useAppStore } from '../stores/AppStore'
 import { useServerManagerStore } from '../stores/serverManagerStore'
 import { FiAlertCircle, FiMonitor, FiCheck } from 'react-icons/fi'
 import { getSharedServerToken, discoverSharedServer, getSharedServersCache, saveSharedServersCache } from '../services/plex/sharedServerService'
+import { useSpatialNavigation } from '../contexts/SpatialNavigationContext'
 
 function ServerSelectPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [servers, setServers] = useState([])
   const [error, setError] = useState('')
+  const { setNavigationMode } = useSpatialNavigation()
 
   const selectedLibraries = useAppStore(state => state.selectedLibraries) || []
   const hasSelections = selectedLibraries.length > 0
@@ -23,6 +25,7 @@ function ServerSelectPage() {
 
   useEffect(() => {
     if (!loading && servers.length > 0) {
+      setNavigationMode('remote')
       setTimeout(() => {
         const el = document.getElementById(`server-${servers[0].clientIdentifier}`)
         if (el) el.focus({ preventScroll: true })

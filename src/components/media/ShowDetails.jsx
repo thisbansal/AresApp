@@ -8,10 +8,12 @@ import { useEpisodes } from '../../hooks/useEpisodes'
 import { FallbackImage } from './FallbackImage'
 import { findTargetSeason } from '../../utils/seasonSelector'
 import { useBrowserStore } from '../../stores/browserStore'
+import { useSpatialNavigation } from '../../contexts/SpatialNavigationContext'
 import { FiChevronDown, FiCheck, FiX } from 'react-icons/fi'
 
 export default function ShowDetails({ item, serverInfo, contextItem, onFocusItem, onRegisterPlay }) {
   const navigate = useNavigate()
+  const { setFocus } = useSpatialNavigation()
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const [seasons, setSeasons] = useState([])
   const [activeSeasonId, setActiveSeasonId] = useState(null)
@@ -116,6 +118,20 @@ export default function ShowDetails({ item, serverInfo, contextItem, onFocusItem
       }
     }
   }, [episodes, onRegisterPlay])
+
+  // Default focus to latest/currently watching episode
+  useEffect(() => {
+    if (episodes && episodes.length > 0 && !loadingEpisodes) {
+      const timer = setTimeout(() => {
+        let targetEpisode = episodes.find(ep => Number(ep.viewCount || 0) === 0)
+        if (!targetEpisode) targetEpisode = episodes[0] // Fallback to first episode if all watched
+        if (targetEpisode) {
+          setFocus(`episode-${targetEpisode.id}`)
+        }
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [episodes, loadingEpisodes, setFocus])
 
   const handleEpisodeClick = (episode) => {
     console.log('Play episode:', episode.title)

@@ -6,10 +6,12 @@ import { MdOutlineKeyboardArrowRight, MdKeyboardArrowDown } from 'react-icons/md
 import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
 import { buildImageUrl } from '../../services/plex/plexContentService';
+import { useBrowserStore } from '../../stores/browserStore';
 
 export function HeroBanner({ items = [] }) {
   const navigate = useNavigate();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const currentIndex = useBrowserStore(state => state.heroIndex);
+  const setCurrentIndex = useBrowserStore(state => state.setHeroIndex);
   const [userInteracted, setUserInteracted] = useState(false);
   
   const timerRef = useRef(null);

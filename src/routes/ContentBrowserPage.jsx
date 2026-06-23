@@ -190,6 +190,39 @@ function ContentBrowserPage() {
 
   // Handle keypresses for D-pad numeric inputs in settings PIN dialog
   useEffect(() => {
+    // Auto-focus first button when PIN prompt opens
+    if (pinDialogUser) {
+      setNavigationMode('remote');
+      setTimeout(() => {
+        const firstBtn = document.getElementById('settings-numpad-1');
+        if (firstBtn) {
+          firstBtn.focus({ preventScroll: true });
+        }
+      }, 150);
+    }
+
+    // Register back button override for PIN dialog
+    window.handlePinBackspace = () => {
+      if (pinDialogUser) {
+        setEnteredPin(prev => {
+          if (prev.length > 0) {
+            return prev.slice(0, -1);
+          }
+          return prev;
+        });
+        
+        // If pin was already empty, allow fallback (e.g. close prompt or go back)
+        if (enteredPin.length === 0) {
+          setPinDialogUser(null);
+          setEnteredPin('');
+          setPinError('');
+          return true; // We handled closing it
+        }
+        return true; // We handled the digit deletion
+      }
+      return false;
+    };
+
     const handleKeyDown = (e) => {
       if (pinDialogUser) {
         if (e.key >= '0' && e.key <= '9') {
@@ -207,8 +240,11 @@ function ContentBrowserPage() {
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [pinDialogUser, enteredPin])
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      delete window.handlePinBackspace;
+    }
+  }, [pinDialogUser, enteredPin, setNavigationMode])
 
   const handleProfileSwitch = async (user) => {
     console.log('[Settings] Request to switch to user:', user.name)
@@ -959,9 +995,11 @@ function ContentBrowserPage() {
           transform: scale(1.15) translate3d(0, 0, 0) !important;
         }
         .numpad-btn.focused div {
-          background-color: #ffffff !important;
+          background-color: transparent !important;
           border-color: #ffffff !important;
-          color: #0d0f11 !important;
+          border-width: 3px !important;
+          color: #ffffff !important;
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.5) !important;
         }
         .cancel-btn {
           border-radius: 50px !important;

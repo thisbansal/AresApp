@@ -58,6 +58,20 @@ export function usePlayerControls({
   const hudExpiredRef = useRef(false)
   const cursorTimeoutRef = useRef(null)
 
+  // Focus Memory
+  const lastFocusedIdRef = useRef(null)
+
+  // Track focus changes within the HUD
+  useEffect(() => {
+    const handleFocusIn = (e) => {
+      if (showHUDRef.current && e.target && e.target.id && e.target.id.startsWith('player-')) {
+        lastFocusedIdRef.current = e.target.id
+      }
+    }
+    document.addEventListener('focusin', handleFocusIn)
+    return () => document.removeEventListener('focusin', handleFocusIn)
+  }, [])
+
   useEffect(() => { showHUDRef.current = showHUD }, [showHUD])
   useEffect(() => { 
     isScrollingRef.current = isScrolling
@@ -154,7 +168,7 @@ export function usePlayerControls({
             return
           }
 
-          // D-Pad buttons wake the HUD but do not trigger any seeks or focus jumps
+          // D-Pad buttons wake the HUD or blind seek
           if (
             e.key === 'ArrowLeft' ||
             e.key === 'ArrowRight' ||
@@ -162,9 +176,44 @@ export function usePlayerControls({
             e.key === 'ArrowDown'
           ) {
             e.preventDefault()
+
+            // Blind seeking when HUD is hidden
+            if (e.key === 'ArrowLeft') {
+              const videoEl = getVideoElement()
+              if (videoEl) {
+                const newTime = Math.max(0, currentTimeRef.current - 30)
+                executeSeek(newTime)
+                setCurrentTime(newTime)
+              }
+              return
+            }
+            if (e.key === 'ArrowRight') {
+              const videoEl = getVideoElement()
+              if (videoEl) {
+                const newTime = Math.min(durationRef.current || 0, currentTimeRef.current + 30)
+                executeSeek(newTime)
+                setCurrentTime(newTime)
+              }
+              return
+            }
+
+            // Up/Down wake the HUD
             triggerHUD()
-            const playBtn = document.getElementById('player-play')
-            if (playBtn) playBtn.focus({ preventScroll: true })
+            
+            // Restore last focused element or default to play button
+            setTimeout(() => {
+              let targetId = lastFocusedIdRef.current || 'player-play'
+              let targetEl = document.getElementById(targetId)
+              
+              // If the element isn't found (e.g. menu closed), fallback to play button
+              if (!targetEl) {
+                targetId = 'player-play'
+                targetEl = document.getElementById(targetId)
+              }
+              
+              if (targetEl) targetEl.focus({ preventScroll: true })
+            }, 50) // Small delay to allow HUD to mount/render
+            
             return
           }
         }
@@ -182,7 +231,7 @@ export function usePlayerControls({
               e.preventDefault()
               if (document.activeElement && document.activeElement.id === 'player-timeline') {
                 if (videoEl) {
-                  const newTime = Math.max(0, currentTimeRef.current - 10)
+                  const newTime = Math.max(0, currentTimeRef.current - 30)
                   executeSeek(newTime)
                   setCurrentTime(newTime)
                 }
@@ -204,25 +253,67 @@ export function usePlayerControls({
               break
             case 'ArrowUp':
               e.preventDefault()
+              if (document.activeElement && activeLayerRef.current === 'base') {
+                if (document.activeElement.closest('.player-hud-controls')) {
+                  const tl = document.getElementById('player-timeline')
+                  if (tl) tl.focus({ preventScroll: true })
+                  break
+                } else if (document.activeElement.id === 'player-timeline') {
+                  const lastId = lastFocusedIdRef.current
+                  let target = null
+                  if (lastId) {
+                    const el = document.getElementById(lastId)
+                    if (el && el.closest('.player-hud-stream-row')) target = el
+                  }
+                  if (!target) target = document.querySelector('.player-hud-stream-row .focusable-item')
+                  if (target) target.focus({ preventScroll: true })
+                  break
+                } else if (document.activeElement.closest('.player-hud-stream-row')) {
+                  break // Top row, do nothing
+                }
+              }
               spatialNavigate('up')
               break
             case 'ArrowDown':
               e.preventDefault()
+              if (document.activeElement && activeLayerRef.current === 'base') {
+                if (document.activeElement.closest('.player-hud-stream-row')) {
+                  const tl = document.getElementById('player-timeline')
+                  if (tl) tl.focus({ preventScroll: true })
+                  break
+                } else if (document.activeElement.id === 'player-timeline') {
+                  const lastId = lastFocusedIdRef.current
+                  let target = null
+                  if (lastId) {
+                    const el = document.getElementById(lastId)
+                    if (el && el.closest('.player-hud-controls')) target = el
+                  }
+                  if (!target) target = document.getElementById('player-play')
+                  if (target) target.focus({ preventScroll: true })
+                  break
+                } else if (document.activeElement.closest('.player-hud-controls')) {
+                  break // Bottom row, do nothing
+                }
+              }
               spatialNavigate('down')
               break
             case 'Enter':
             case ' ': {
-              e.preventDefault()
               const activeEl = document.activeElement
-              if (activeEl && activeEl.tagName !== 'BODY') {
-                activeEl.click()
-              } else {
+              // Allow native/React events to handle the Enter key for focusable items.
+              // Only fallback to toggling play/pause if no HUD element is actively focused.
+              if (!activeEl || activeEl.tagName === 'BODY') {
+                e.preventDefault()
                 // Fallback direct toggle
                 if (videoEl.paused) {
                   videoEl.play().catch(err => console.error('Play failed:', err))
                 } else {
                   videoEl.pause()
                 }
+              } else {
+                // We do NOT call e.preventDefault() or activeEl.click() here.
+                // We let the natural event bubble up to the focused element's React onKeyDown handler
+                // which is already managed by useFocusable.js (which correctly fires onClick).
               }
               break
             }
