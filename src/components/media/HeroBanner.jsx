@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FocusableItem } from '../navigational/FocusableItem';
+import { FocusLayer } from '../../contexts/SpatialNavigationContext';
 import { FiPlay } from 'react-icons/fi';
 import { IoInformationCircleOutline } from 'react-icons/io5';
 import { MdOutlineKeyboardArrowRight, MdKeyboardArrowDown } from 'react-icons/md';
@@ -15,6 +16,13 @@ export function HeroBanner({ items = [] }) {
   const setCurrentIndex = useBrowserStore(state => state.setHeroIndex);
   const [userInteracted, setUserInteracted] = useState(0); // Store timestamp of last interaction
   const [accentColor, setAccentColor] = useState('rgb(255, 255, 255)');
+  const [showDescription, setShowDescription] = useState(false);
+  const [showNoDescDialog, setShowNoDescDialog] = useState(false);
+
+  useEffect(() => {
+    setShowDescription(false);
+    setShowNoDescDialog(false);
+  }, [currentIndex]);
   
   const timerRef = useRef(null);
   const imageRefs = useRef([]);
@@ -172,6 +180,16 @@ export function HeroBanner({ items = [] }) {
     navigate(`/details/${item.id}`, { state: { serverInfo: targetServerInfo, item: item } });
   };
 
+  const handleToggleDescription = (e) => {
+    if (e) e.stopPropagation();
+    setUserInteracted(Date.now());
+    if (summary) {
+      setShowDescription(prev => !prev);
+    } else {
+      setShowNoDescDialog(true);
+    }
+  };
+
   const handleNextSlide = (e) => {
     if (e) e.stopPropagation();
     setUserInteracted(Date.now());
@@ -216,6 +234,8 @@ export function HeroBanner({ items = [] }) {
       letterSpacing: '-1px',
       textShadow: '0 4px 12px rgba(0,0,0,0.5)',
       maxWidth: '80%',
+      transform: showDescription ? 'translateY(-20px)' : 'translateY(0)',
+      transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       animation: 'fadeInUp 0.5s ease-out forwards'
     },
     metaRow: {
@@ -226,6 +246,8 @@ export function HeroBanner({ items = [] }) {
       color: '#ccc',
       marginBottom: '20px',
       fontWeight: '500',
+      transform: showDescription ? 'translateY(-20px)' : 'translateY(0)',
+      transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       animation: 'fadeInUp 0.6s ease-out forwards'
     },
     ratingBadge: {
@@ -237,7 +259,7 @@ export function HeroBanner({ items = [] }) {
     },
     summary: {
       fontSize: '24px',
-      color: '#e0e0e0',
+      color: accentColor,
       maxWidth: '800px',
       lineHeight: '1.4',
       marginBottom: '30px',
@@ -246,6 +268,9 @@ export function HeroBanner({ items = [] }) {
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden',
       textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+      maxHeight: showDescription ? '120px' : '0px',
+      opacity: showDescription ? 1 : 0,
+      transition: 'max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease',
       animation: 'fadeInUp 0.7s ease-out forwards'
     },
     actions: {
@@ -315,6 +340,48 @@ export function HeroBanner({ items = [] }) {
       key: currentIndex, // Forcing React to remount/reanimate on index change
       display: 'flex',
       flexDirection: 'column'
+    },
+    exitOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      zIndex: 999999,
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+    },
+    exitModal: {
+      backgroundColor: 'rgba(20, 20, 26, 0.95)',
+      border: '1.5px solid rgba(255, 255, 255, 0.15)',
+      borderRadius: '9999px',
+      boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65)',
+      padding: '0 45px',
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: '60px',
+      height: '100px',
+      width: 'auto',
+      minWidth: '820px',
+      marginBottom: '25vh',
+    },
+    exitTitle: {
+      fontSize: '32px',
+      fontWeight: '600',
+      color: '#ffffff',
+      margin: 0,
+      fontFamily: "'Outfit', 'Inter', sans-serif",
+      letterSpacing: '-0.3px',
+    },
+    exitButtonRow: {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '20px',
     }
   };
 
@@ -381,7 +448,7 @@ export function HeroBanner({ items = [] }) {
 
           <FocusableItem 
             id="hero-info-btn" 
-            onClick={handleInfo}
+            onClick={handleToggleDescription}
             onFocus={handleFocus}
           >
             <div className="capsule-btn" style={{ width: '72px', height: '72px', padding: 0, justifyContent: 'center', borderRadius: '50%' }}>
@@ -413,6 +480,34 @@ export function HeroBanner({ items = [] }) {
           <MdKeyboardArrowDown className="scroll-down-arrow" size={48} />
         </div>
       </div>
+
+      {showNoDescDialog && (
+        <FocusLayer id="no-desc-dialog" isActive={true}>
+          <div 
+            style={styles.exitOverlay} 
+            className="exit-overlay"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.exitModal} className="exit-modal">
+              <span style={styles.exitTitle}>no description available for this content yet.</span>
+              <div style={styles.exitButtonRow}>
+                <FocusableItem
+                  id="no-desc-close"
+                  rowIndex={999}
+                  colIndex={0}
+                  onClick={(e) => {
+                    if (e) e.stopPropagation();
+                    setShowNoDescDialog(false);
+                  }}
+                  className="exit-btn cancel"
+                >
+                  Close
+                </FocusableItem>
+              </div>
+            </div>
+          </div>
+        </FocusLayer>
+      )}
     </div>
   );
 }
