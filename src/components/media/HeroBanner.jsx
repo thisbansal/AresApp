@@ -210,13 +210,22 @@ export function HeroBanner({ items = [] }) {
       transition: 'opacity 0.8s ease-in-out',
       willChange: 'opacity'
     },
+    bgOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'linear-gradient(to right, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 90%), linear-gradient(to top, rgba(8, 8, 8, 0.98) 0%, rgba(8, 8, 8, 0.5) 30%, rgba(8, 8, 8, 0) 80%)',
+      zIndex: -1
+    },
     title: {
       fontSize: '64px',
       fontWeight: '800',
       marginBottom: '10px',
       fontFamily: "'Outfit', sans-serif",
       letterSpacing: '-1px',
-      textShadow: '0 4px 12px rgba(0,0,0,0.5)',
+      textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5)',
       maxWidth: '100%',
       color: '#ffffff',
       animation: 'fadeInUp 0.5s ease-out forwards'
@@ -250,7 +259,7 @@ export function HeroBanner({ items = [] }) {
       WebkitLineClamp: 3,
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden',
-      textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+      textShadow: '1px 1px 2px #000000, -1px -1px 2px #000000, 1px -1px 2px #000000, -1px 1px 2px #000000, 0px 4px 8px rgba(0, 0, 0, 0.9)',
       opacity: showDescription ? 1 : 0,
       visibility: showDescription ? 'visible' : 'hidden',
       transition: 'opacity 0.25s ease, visibility 0.25s ease',
@@ -423,6 +432,9 @@ export function HeroBanner({ items = [] }) {
           />
         );
       })}
+
+      {/* Dark scrim overlay for high contrast and readability */}
+      <div style={styles.bgOverlay} />
 
       <div key={item.id} style={{ ...styles.fadeContainer, width: '100%' }}>
         <div style={styles.contentRow}>
