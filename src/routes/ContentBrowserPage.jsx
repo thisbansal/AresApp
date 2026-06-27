@@ -11,6 +11,7 @@ import { SkeletonRow } from '../components/media/SkeletonRow'
 import { EmptyState } from '../components/media/EmptyState'
 import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
+import { preferenceService } from '../services/luna/preferenceService'
 import { KINDS, PLEX_CONFIG } from '../config/app'
 import { testConnectionToServer, getServers } from '../services/plex/plexAPIServer'
 import { resolveAccessibleServer } from '../services/plex/plexAccessService'
@@ -374,16 +375,8 @@ function ContentBrowserPage() {
         if (!token) return
         const storedActiveServer = useServerStore.getState().activeServer
 
-        // Load Settings
-        let prefs = await getData(DB_KINDS.PREFERENCES, KINDS.preferences)
-        if (prefs) {
-          if (prefs.showUnwatchedIndicator !== undefined) setShowUnwatchedIndicator(prefs.showUnwatchedIndicator)
-
-          if (prefs.subtitleColor !== undefined) setSubtitleColor(prefs.subtitleColor)
-          if (prefs.subtitleSize !== undefined) setSubtitleSize(prefs.subtitleSize)
-          if (prefs.showSubtitleHUDControls !== undefined) setShowSubtitleHUDControls(prefs.showSubtitleHUDControls)
-          if (prefs.enableAudioPassthrough !== undefined) setEnableAudioPassthrough(prefs.enableAudioPassthrough)
-        }
+        // Load Settings via unified preferenceService
+        await preferenceService.loadPreferences()
 
         // 1. Fast Path: Try to boot instantly using the last known server address
         let currentUri = storedActiveServer?.uri || await getData(DB_KINDS.SERVER, KINDS.server)
@@ -1259,13 +1252,7 @@ function ContentBrowserPage() {
                     colIndex={1}
                     onClick={() => {
                       const newValue = !showUnwatchedIndicator
-                      setShowUnwatchedIndicator(newValue)
-                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                        showUnwatchedIndicator: newValue,
-                        subtitleColor,
-                        subtitleSize,
-                        showSubtitleHUDControls
-                      })
+                      preferenceService.savePreferences({ showUnwatchedIndicator: newValue })
                     }}
                     style={{ flexShrink: 0 }}
                   >
@@ -1295,13 +1282,7 @@ function ContentBrowserPage() {
                       const currentIndex = colors.indexOf(subtitleColor || '#AAAAAA')
                       const nextIndex = (currentIndex + 1) % colors.length
                       const newColor = colors[nextIndex]
-                      setSubtitleColor(newColor)
-                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                        showUnwatchedIndicator,
-                        subtitleColor: newColor,
-                        subtitleSize,
-                        showSubtitleHUDControls
-                      })
+                      preferenceService.savePreferences({ subtitleColor: newColor })
                     }}
                     style={{ flexShrink: 0 }}
                   >
@@ -1321,13 +1302,7 @@ function ContentBrowserPage() {
                       const currentIndex = sizes.indexOf(subtitleSize || '2.5rem')
                       const nextIndex = (currentIndex + 1) % sizes.length
                       const newSize = sizes[nextIndex]
-                      setSubtitleSize(newSize)
-                      setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                        showUnwatchedIndicator,
-                        subtitleColor,
-                        subtitleSize: newSize,
-                        showSubtitleHUDControls
-                      })
+                      preferenceService.savePreferences({ subtitleSize: newSize })
                     }}
                     style={{ flexShrink: 0 }}
                   >
@@ -1344,13 +1319,7 @@ function ContentBrowserPage() {
                     colIndex={2}
                     onClick={() => {
                       const newValue = !showSubtitleHUDControls
-                      setShowSubtitleHUDControls(newValue)
-                      setData(DB_KINDS.PREFERENCES, `${KINDS.preferences}_${currentProfile?.id || useAppStore.getState().userProfile?.userId || 'default'}`, {
-                        showUnwatchedIndicator,
-                        subtitleColor,
-                        subtitleSize,
-                        showSubtitleHUDControls: newValue
-                      })
+                      preferenceService.savePreferences({ showSubtitleHUDControls: newValue })
                     }}
                     style={{ flexShrink: 0 }}
                   >
@@ -1373,14 +1342,7 @@ function ContentBrowserPage() {
                     colIndex={0}
                     onClick={() => {
                       const newValue = !enableAudioPassthrough
-                      setEnableAudioPassthrough(newValue)
-                      setData(DB_KINDS.PREFERENCES, `${KINDS.preferences}_${currentProfile?.id || useAppStore.getState().userProfile?.userId || 'default'}`, {
-                        showUnwatchedIndicator,
-                        subtitleColor,
-                        subtitleSize,
-                        showSubtitleHUDControls,
-                        enableAudioPassthrough: newValue
-                      })
+                      preferenceService.savePreferences({ enableAudioPassthrough: newValue })
                     }}
                     style={{ flexShrink: 0 }}
                   >

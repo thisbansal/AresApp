@@ -27,6 +27,7 @@ import { PgsCanvasEngine } from '../services/video/pgsCanvasEngine'
 import shaka from 'shaka-player'
 import '../style.css'
 import { useBrowserStore } from '../stores/browserStore'
+import { preferenceService } from '../services/luna/preferenceService'
 
 export default function PlayerPage() {
   const { serverId, ratingKey } = useParams()
@@ -191,6 +192,10 @@ export default function PlayerPage() {
     playbackSessionId,
     clientSessionId
   })
+
+  useEffect(() => {
+    preferenceService.loadPreferences()
+  }, [])
 
   useEffect(() => {
     if (serverLoading || !serverInfo) return
@@ -1189,13 +1194,7 @@ export default function PlayerPage() {
                   const currentIndex = sizes.indexOf(subtitleSize)
                   const nextIndex = (currentIndex + 1) % sizes.length
                   const newSize = sizes[nextIndex]
-                  setSubtitleSize(newSize)
-                  // setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                  //   showUnwatchedIndicator,
-                  //   subtitleColor,
-                  //   subtitleSize: newSize,
-                  //   showSubtitleHUDControls
-                  // })
+                  preferenceService.savePreferences({ subtitleSize: newSize })
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1214,13 +1213,7 @@ export default function PlayerPage() {
                   const currentIndex = colors.indexOf(subtitleColor)
                   const nextIndex = (currentIndex + 1) % colors.length
                   const newColor = colors[nextIndex]
-                  setSubtitleColor(newColor)
-                  // setData(DB_KINDS.PREFERENCES, KINDS.preferences, {
-                  //   showUnwatchedIndicator,
-                  //   subtitleColor: newColor,
-                  //   subtitleSize,
-                  //   showSubtitleHUDControls
-                  // })
+                  preferenceService.savePreferences({ subtitleColor: newColor })
                 }}
               >
                 <div style={{ width: '100%', height: '100%', borderRadius: '50%', backgroundColor: subtitleColor || '#AAAAAA' }}>
