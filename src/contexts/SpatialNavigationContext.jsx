@@ -308,11 +308,19 @@ export const SpatialNavigationProvider = ({ children }) => {
       } else {
         // For everything else, center the row nicely, but avoid vertical jumping when moving horizontally
         const isHorizontal = direction === 'left' || direction === 'right';
-        closestNode.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: isHorizontal ? 'nearest' : 'center', 
-          inline: 'nearest' 
-        });
+        const rows = document.querySelectorAll('.row');
+        const firstRow = rows[0];
+        const isInsideFirstRow = firstRow && firstRow.contains(closestNode);
+
+        if (!isHorizontal && isInsideFirstRow) {
+          firstRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          closestNode.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: isHorizontal ? 'nearest' : 'center', 
+            inline: 'nearest' 
+          });
+        }
       }
     } else {
       // Fallback: If we hit the boundary (no more items in that direction),
