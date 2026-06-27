@@ -9,6 +9,23 @@ import { useServerManagerStore } from '../../stores/serverManagerStore';
 import { buildImageUrl } from '../../services/plex/plexContentService';
 import { useBrowserStore } from '../../stores/browserStore';
 
+const getAccentColors = (title = '') => {
+  const palettes = [
+    { accent1: '#ff5c5c', accent2: '#ff8a8a' }, // Deep Crimson
+    { accent1: '#2ecc71', accent2: '#a3e4d7' }, // Deep Emerald
+    { accent1: '#00ccff', accent2: '#a5c7f7' }, // Nordic Midnight
+    { accent1: '#bb86fc', accent2: '#d2b4de' }, // Royal Amethyst
+    { accent1: '#ffb74d', accent2: '#fdebd0' }, // Warm Amber
+    { accent1: '#4db6ac', accent2: '#e0f2f1' }  // Oceanic Teal
+  ];
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % palettes.length;
+  return palettes[index];
+};
+
 export function HeroBanner({ items = [] }) {
   const navigate = useNavigate();
   const currentIndex = useBrowserStore(state => state.heroIndex);
@@ -16,70 +33,11 @@ export function HeroBanner({ items = [] }) {
   const [userInteracted, setUserInteracted] = useState(0); // Store timestamp of last interaction
   const [showDescription, setShowDescription] = useState(false);
   const [showNoDescDialog, setShowNoDescDialog] = useState(false);
-  const [plexColors, setPlexColors] = useState(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
 
   useEffect(() => {
     setShowDescription(false);
     setShowNoDescDialog(false);
   }, [currentIndex]);
-
-  // Fetch UltraBlur colors for the active image from Plex Server
-  useEffect(() => {
-    if (!items || items.length === 0) return;
-    const currentItem = items[currentIndex];
-    if (!currentItem) return;
-
-    const art = currentItem.rawArt || currentItem.rawThumb;
-    if (!art) {
-      setPlexColors(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
-      return;
-    }
-
-    let clientId = currentItem._serverContext?.clientId;
-    if (!clientId) {
-      setPlexColors(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
-      return;
-    }
-
-    const s = useServerManagerStore.getState().servers[clientId];
-    if (!s || !s.uri || !s.accessToken) {
-      setPlexColors(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
-      return;
-    }
-
-    const colorsUrl = `${s.uri}/photo/:/ultrablur/colors?url=${encodeURIComponent(art)}&X-Plex-Token=${s.accessToken}`;
-
-    let active = true;
-    fetch(colorsUrl, { headers: { 'Accept': 'application/json' } })
-      .then(res => res.json())
-      .then(data => {
-        if (!active || !data) return;
-        let colors = [];
-        if (data.colors && Array.isArray(data.colors)) {
-          colors = data.colors;
-        } else if (data.topLeft || data.topRight || data.bottomRight || data.bottomLeft) {
-          colors = [
-            data.topLeft || '#ffffff',
-            data.topRight || '#ffffff',
-            data.bottomRight || '#ffffff',
-            data.bottomLeft || '#ffffff'
-          ];
-        }
-        if (colors.length >= 4) {
-          setPlexColors(colors);
-        }
-      })
-      .catch(err => {
-        console.error('[HeroBanner] Failed to fetch UltraBlur colors:', err);
-        if (active) {
-          setPlexColors(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [currentIndex, items]);
   
   const timerRef = useRef(null);
   const goToNextSlideRef = useRef(null);
@@ -222,8 +180,9 @@ export function HeroBanner({ items = [] }) {
     setUserInteracted(Date.now());
   };
 
-  const accentColor1 = plexColors[3] || '#a5c7f7';
-  const accentColor2 = plexColors[2] || '#a5c7f7';
+  const colors = getAccentColors(title);
+  const accentColor1 = colors.accent1;
+  const accentColor2 = colors.accent2;
 
   const styles = {
     container: {
