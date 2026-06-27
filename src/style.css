@@ -366,7 +366,7 @@ video::-webkit-media-controls-text-track-display {
 .content-browser-grid {
   display: grid;
   justify-content: center;
-  gap: 20px;
+  gap: 30px;
   padding: 20px 0;
   grid-template-columns: repeat(2, minmax(140px, 240px));
 }
@@ -374,30 +374,29 @@ video::-webkit-media-controls-text-track-display {
 @media (min-width: 600px) {
   .content-browser-grid {
     grid-template-columns: repeat(3, 200px);
-    gap: 25px;
+    gap: 35px;
   }
 }
 
 @media (min-width: 900px) {
   .content-browser-grid {
     grid-template-columns: repeat(4, 220px);
-    gap: 30px;
+    gap: 40px;
   }
 }
 
 @media (min-width: 1200px) {
   .content-browser-grid {
     grid-template-columns: repeat(5, 240px);
-    /* gap: 55px; */
     row-gap: 55px;
-    column-gap: 30px;
+    column-gap: 45px;
   }
 }
 
 @media (min-width: 1600px) {
   .content-browser-grid {
     grid-template-columns: repeat(6, 240px);
-    gap: 45px;
+    gap: 55px;
   }
 }
 

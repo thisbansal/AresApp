@@ -1724,7 +1724,7 @@ const styles = {
   },
   row: {
     display: 'flex',
-    gap: '20px',
+    gap: '35px',
     overflowX: 'auto',
     overflowY: 'hidden',
     padding: '30px 45px 50px 45px', // Restored top padding to prevent focus scale clipping
