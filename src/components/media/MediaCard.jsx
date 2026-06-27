@@ -129,31 +129,24 @@ export function MediaCard({
           (prefix === 'cw' || isUnwatched) ? (
             <div
               className="unwatched-episode-ribbon"
-              style={prefix === 'cw' ? { pointerEvents: 'none', zIndex: 3 } : {}}
+              style={{ zIndex: 3 }}
               onClick={(e) => {
-                if (prefix !== 'cw') {
-                  e.stopPropagation()
+                e.stopPropagation()
+                if (prefix === 'cw') {
+                  if (handleRemoveFromOnDeck) handleRemoveFromOnDeck(item)
+                } else {
                   handleToggleWatched(item)
                 }
               }}
             >
               {prefix === 'cw' ? (
-                <div 
-                  style={{ pointerEvents: 'auto', padding: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px', marginTop: '0' }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (handleRemoveFromOnDeck) handleRemoveFromOnDeck(item)
-                  }}
-                  className="cw-remove-btn"
-                >
-                  <FiX 
-                    size={24} 
-                    className="unwatched-tick" 
-                    color="#fff" 
-                    strokeWidth={4.5} 
-                    style={{ transform: 'rotate(-45deg)' }} 
-                  />
-                </div>
+                <FiX 
+                  size={24} 
+                  className="unwatched-tick" 
+                  color="#fff" 
+                  strokeWidth={4.5} 
+                  style={{ transform: 'rotate(-45deg)', marginBottom: '6px', marginTop: '0' }} 
+                />
               ) : (
                 <FiCheck 
                   size={24} 

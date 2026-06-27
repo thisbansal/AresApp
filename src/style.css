@@ -349,18 +349,7 @@ video::-webkit-media-controls-text-track-display {
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
-.cw-remove-btn .unwatched-tick {
-  display: inline-block !important; /* Prevents block-level misalignment on hover */
-}
 
-.cw-remove-btn {
-  transition: background-color 0.2s ease, transform 0.2s ease;
-}
-
-.cw-remove-btn:hover {
-  background-color: rgba(220, 53, 69, 0.8) !important; /* Premium soft red on hover/focus */
-  transform: scale(1.1);
-}
 
 .ribbon-bottom-left {
   top: auto !important;
