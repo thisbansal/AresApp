@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
 import { buildImageUrl } from '../../services/plex/plexContentService';
 import { useBrowserStore } from '../../stores/browserStore';
-import ColorThief from 'colorthief';
+import { getColor } from 'colorthief';
 
 export function HeroBanner({ items = [] }) {
   const navigate = useNavigate();
@@ -98,43 +98,43 @@ export function HeroBanner({ items = [] }) {
     if (!activeImg || !items || items.length === 0) return;
 
     const extractColor = () => {
-      try {
-        const colorThief = new ColorThief();
-        const color = colorThief.getColor(activeImg);
-        if (color) {
-          const [r, g, b] = color;
-          
-          // RGB to HSL conversion to easily adjust readability
-          const rgbToHsl = (rVal, gVal, bVal) => {
-            rVal /= 255; gVal /= 255; bVal /= 255;
-            const max = Math.max(rVal, gVal, bVal), min = Math.min(rVal, gVal, bVal);
-            let h, s, l = (max + min) / 2;
-            if (max === min) {
-              h = s = 0;
-            } else {
-              const d = max - min;
-              s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-              switch (max) {
-                case rVal: h = (gVal - bVal) / d + (gVal < bVal ? 6 : 0); break;
-                case gVal: h = (bVal - rVal) / d + 2; break;
-                case bVal: h = (rVal - gVal) / d + 4; break;
+      getColor(activeImg)
+        .then(color => {
+          if (color) {
+            const [r, g, b] = color;
+            
+            // RGB to HSL conversion to easily adjust readability
+            const rgbToHsl = (rVal, gVal, bVal) => {
+              rVal /= 255; gVal /= 255; bVal /= 255;
+              const max = Math.max(rVal, gVal, bVal), min = Math.min(rVal, gVal, bVal);
+              let h, s, l = (max + min) / 2;
+              if (max === min) {
+                h = s = 0;
+              } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                  case rVal: h = (gVal - bVal) / d + (gVal < bVal ? 6 : 0); break;
+                  case gVal: h = (bVal - rVal) / d + 2; break;
+                  case bVal: h = (rVal - gVal) / d + 4; break;
+                }
+                h /= 6;
               }
-              h /= 6;
-            }
-            return [h * 360, s * 100, l * 100];
-          };
+              return [h * 360, s * 100, l * 100];
+            };
 
-          const [h, s, l] = rgbToHsl(r, g, b);
-          // Scale lightness up to at least 70% to ensure readability on dark background
-          const finalLightness = Math.max(70, l);
-          const finalSaturation = Math.max(40, s);
-          
-          setAccentColor(`hsl(${Math.round(h)}, ${Math.round(finalSaturation)}%, ${Math.round(finalLightness)}%)`);
-        }
-      } catch (e) {
-        console.error('[ColorThief] Failed to extract color:', e);
-        setAccentColor('rgb(255, 255, 255)');
-      }
+            const [h, s, l] = rgbToHsl(r, g, b);
+            // Scale lightness up to at least 70% to ensure readability on dark background
+            const finalLightness = Math.max(70, l);
+            const finalSaturation = Math.max(40, s);
+            
+            setAccentColor(`hsl(${Math.round(h)}, ${Math.round(finalSaturation)}%, ${Math.round(finalLightness)}%)`);
+          }
+        })
+        .catch(e => {
+          console.error('[ColorThief] Failed to extract color:', e);
+          setAccentColor('rgb(255, 255, 255)');
+        });
     };
 
     if (activeImg.complete) {
