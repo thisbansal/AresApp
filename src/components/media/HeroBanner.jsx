@@ -6,7 +6,7 @@ import { IoInformationCircleOutline } from 'react-icons/io5';
 import { MdOutlineKeyboardArrowRight, MdKeyboardArrowDown } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
-import { buildImageUrl } from '../../services/plex/plexContentService';
+import { buildImageUrl, getMetadata } from '../../services/plex/plexContentService';
 import { useBrowserStore } from '../../stores/browserStore';
 
 const getAccentColors = (title = '') => {
@@ -33,6 +33,64 @@ export function HeroBanner({ items = [] }) {
   const [userInteracted, setUserInteracted] = useState(0); // Store timestamp of last interaction
   const [showDescription, setShowDescription] = useState(false);
   const [showNoDescDialog, setShowNoDescDialog] = useState(false);
+  const [fetchedSummary, setFetchedSummary] = useState('');
+
+  const item = items[currentIndex];
+
+  useEffect(() => {
+    let active = true;
+    const loadShowSummary = async () => {
+      setFetchedSummary('');
+      if (!item) return;
+
+      // If it's a movie and has summary, use it immediately
+      if (item.type === 'movie' && item.summary) {
+        setFetchedSummary(item.summary);
+        return;
+      }
+
+      // Resolve server info
+      let serverUri = null;
+      let token = null;
+      if (item._serverContext?.clientId) {
+        const s = useServerManagerStore.getState().servers[item._serverContext.clientId];
+        if (s) {
+          serverUri = s.uri;
+          token = s.accessToken;
+        }
+      }
+
+      if (!serverUri || !token) {
+        setFetchedSummary(item.summary || '');
+        return;
+      }
+
+      try {
+        const showKey = item.type === 'episode'
+          ? item.grandparentRatingKey
+          : (item.type === 'season' ? item.parentRatingKey : item.id);
+
+        if (showKey && item.type !== 'movie') {
+          const meta = await getMetadata(serverUri, token, showKey);
+          if (active) {
+            setFetchedSummary(meta?.summary || item.summary || '');
+          }
+        } else {
+          setFetchedSummary(item.summary || '');
+        }
+      } catch (err) {
+        console.warn('[HeroBanner] Failed to fetch parent metadata:', err);
+        if (active) {
+          setFetchedSummary(item.summary || '');
+        }
+      }
+    };
+
+    loadShowSummary();
+    return () => {
+      active = false;
+    };
+  }, [item]);
 
   useEffect(() => {
     setShowDescription(false);
@@ -124,14 +182,15 @@ export function HeroBanner({ items = [] }) {
 
   if (!items || items.length === 0) return null;
 
-  const item = items[currentIndex];
   if (!item) return null;
 
-  const title = item.title || 'Unknown Title';
+  const title = item.type === 'episode' && item.grandparentTitle
+    ? item.grandparentTitle
+    : (item.type === 'season' && item.parentTitle ? item.parentTitle : (item.title || 'Unknown Title'));
   const year = item.year;
   const rating = item.contentRating;
   const duration = item.duration ? Math.round(item.duration / 60000) + ' min' : null;
-  const summary = item.summary;
+  const summary = fetchedSummary || item.summary;
 
   const handlePlay = (e) => {
     if (e) e.stopPropagation();
