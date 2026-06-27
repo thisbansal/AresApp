@@ -41,22 +41,26 @@ export function MediaCard({
   let width = 240;
   let height = 360; // default poster (2:3)
   if (variant === 'landscape') {
-    width = 320;
-    height = 180; // 16:9
+    width = 380;
+    height = 214; // 16:9
   } else if (variant === 'square') {
     width = 240;
     height = 240; // 1:1
   }
 
   // Update thumbUrl to use art if landscape, as thumbnails are often posters
-  if (variant === 'landscape' && (item.rawArt || item.art)) {
-    if (item._serverContext?.clientId) {
-      const s = useServerManagerStore.getState().servers[item._serverContext.clientId];
-      if (s && s.uri && s.accessToken) {
-        thumbUrl = buildImageUrl(s.uri, item.rawArt || item.art, s.accessToken, 640, 360);
+  if (variant === 'landscape') {
+    const isEpisode = item.type === 'episode';
+    const targetArt = isEpisode ? (item.rawThumb || item.thumb) : (item.rawArt || item.art);
+    if (targetArt) {
+      if (item._serverContext?.clientId) {
+        const s = useServerManagerStore.getState().servers[item._serverContext.clientId];
+        if (s && s.uri && s.accessToken) {
+          thumbUrl = buildImageUrl(s.uri, targetArt, s.accessToken, 640, 360);
+        }
+      } else {
+        thumbUrl = targetArt;
       }
-    } else {
-      thumbUrl = item.rawArt || item.art;
     }
   }
 
@@ -71,94 +75,116 @@ export function MediaCard({
       style={{ flexShrink: 0 }}
       className="media-card-focusable"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div 
-          className="media-card"
-          style={{ 
-            viewTransitionName: clickedItemId === uid ? 'active-poster' : 'none',
-            width: `${width}px`,
-            height: `${height}px`
-          }}
-        >
-          <FallbackImage
-            src={thumbUrl}
-            itemId={item.id}
-            alt={item.grandparentTitle || item.title}
-            className="media-card-poster"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            loading="lazy"
-            decoding="async"
-          />
-          {showUnwatchedIndicator && (
-            (prefix === 'cw' || isUnwatched) ? (
-              <div
-                className={`unwatched-episode-ribbon ${prefix === 'cw' ? 'ribbon-bottom-left' : ''}`}
-                style={prefix === 'cw' ? { pointerEvents: 'none' } : {}}
-                onClick={(e) => {
-                  if (prefix !== 'cw') {
+      <div 
+        className="media-card"
+        style={{ 
+          viewTransitionName: clickedItemId === uid ? 'active-poster' : 'none',
+          width: `${width}px`,
+          height: `${height}px`,
+          position: 'relative'
+        }}
+      >
+        <FallbackImage
+          src={thumbUrl}
+          itemId={item.id}
+          alt={item.grandparentTitle || item.title}
+          className="media-card-poster"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          loading="lazy"
+          decoding="async"
+        />
+        {prefix === 'cw' && (
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0) 100%)',
+            padding: '24px 16px 12px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            boxSizing: 'border-box',
+            borderBottomLeftRadius: '12px',
+            borderBottomRightRadius: '12px',
+            zIndex: 2
+          }}>
+            <div style={{ 
+              fontSize: '22px', 
+              fontWeight: '600', 
+              color: '#ffffff', 
+              whiteSpace: 'nowrap', 
+              textOverflow: 'ellipsis', 
+              overflow: 'hidden',
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+            }} title={item.title}>
+              {item.title}
+            </div>
+          </div>
+        )}
+        {showUnwatchedIndicator && (
+          (prefix === 'cw' || isUnwatched) ? (
+            <div
+              className={`unwatched-episode-ribbon ${prefix === 'cw' ? 'ribbon-bottom-left' : ''}`}
+              style={prefix === 'cw' ? { pointerEvents: 'none', zIndex: 3 } : {}}
+              onClick={(e) => {
+                if (prefix !== 'cw') {
+                  e.stopPropagation()
+                  handleToggleWatched(item)
+                }
+              }}
+            >
+              {prefix === 'cw' ? (
+                <div 
+                  style={{ pointerEvents: 'auto', padding: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '-10px' }}
+                  onClick={(e) => {
                     e.stopPropagation()
-                    handleToggleWatched(item)
-                  }
-                }}
-              >
-                {prefix === 'cw' ? (
-                  <div 
-                    style={{ pointerEvents: 'auto', padding: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '-10px' }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (handleRemoveFromOnDeck) handleRemoveFromOnDeck(item)
-                    }}
-                    className="cw-remove-btn"
-                  >
-                    <FiX 
-                      size={24} 
-                      className="unwatched-tick" 
-                      color="#fff" 
-                      strokeWidth={4.5} 
-                      style={{ transform: 'rotate(-45deg)' }} 
-                    />
-                  </div>
-                ) : (
-                  <FiCheck 
+                    if (handleRemoveFromOnDeck) handleRemoveFromOnDeck(item)
+                  }}
+                  className="cw-remove-btn"
+                >
+                  <FiX 
                     size={24} 
                     className="unwatched-tick" 
                     color="#fff" 
                     strokeWidth={4.5} 
-                    style={{ transform: 'rotate(-45deg)', marginBottom: '6px', marginTop: '0' }} 
+                    style={{ transform: 'rotate(-45deg)' }} 
                   />
-                )}
-              </div>
-            ) : (
-              <div
-                className="watched-ribbon"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleToggleWatched(item)
-                }}
-              >
-                {/* Tick checkmark (Shown by default) */}
-                <FiCheck size={24} className="watched-tick" color="#fff" strokeWidth={4.5} style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }} />
-                {/* Cross X (Shown on hover) */}
-                <FiX size={24} className="watched-cross" color="#fff" strokeWidth={4.5} style={{ display: 'none', transform: 'rotate(-45deg)', marginBottom: '6px' }} />
-              </div>
-            )
-          )}
-          {!!item.viewOffset && item.duration && (
-            <div className="media-card-progress-container">
-              <div
-                className="media-card-progress-fill"
-                style={{
-                  width: `${(item.viewOffset / item.duration) * 100}%`
-                }}
-              />
+                </div>
+              ) : (
+                <FiCheck 
+                  size={24} 
+                  className="unwatched-tick" 
+                  color="#fff" 
+                  strokeWidth={4.5} 
+                  style={{ transform: 'rotate(-45deg)', marginBottom: '6px', marginTop: '0' }} 
+                />
+              )}
             </div>
-          )}
-        </div>
-        {prefix === 'cw' && (
-          <div style={{ padding: '6px 4px 0 4px', width: `${width}px`, boxSizing: 'border-box' }}>
-            <div style={{ fontSize: '22px', fontWeight: '500', color: '#e8eaed', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }} title={item.title}>
-              {item.title}
+          ) : (
+            <div
+              className="watched-ribbon"
+              style={{ zIndex: 3 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleToggleWatched(item)
+              }}
+            >
+              {/* Tick checkmark (Shown by default) */}
+              <FiCheck size={24} className="watched-tick" color="#fff" strokeWidth={4.5} style={{ transform: 'rotate(-45deg)', marginBottom: '6px' }} />
+              {/* Cross X (Shown on hover) */}
+              <FiX size={24} className="watched-cross" color="#fff" strokeWidth={4.5} style={{ display: 'none', transform: 'rotate(-45deg)', marginBottom: '6px' }} />
             </div>
+          )
+        )}
+        {!!item.viewOffset && item.duration && (
+          <div className="media-card-progress-container" style={{ zIndex: 4 }}>
+            <div
+              className="media-card-progress-fill"
+              style={{
+                width: `${(item.viewOffset / item.duration) * 100}%`
+              }}
+            />
           </div>
         )}
       </div>
