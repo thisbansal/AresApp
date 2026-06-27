@@ -72,6 +72,7 @@ export default function PlayerPage() {
   const lastStreamUrlRef = useRef(null)
   const lastDragEndTimeRef = useRef(0)
   const [streamCapabilities, setStreamCapabilities] = useState({ video: [], audio: [], subtitles: [] })
+  const [subtitleSeekTrigger, setSubtitleSeekTrigger] = useState(Date.now())
 
   // Generate persistent UI session IDs for timeline tracking and transcode termination
   const { playbackSessionId, clientSessionId } = useMemo(() => {
@@ -615,6 +616,7 @@ export default function PlayerPage() {
         newEngine.loadStream(sidecarUrl);
       }
 
+      setSubtitleSeekTrigger(Date.now())
       videoEl.currentTime = normalizedTarget
       return false
     } else {
@@ -638,6 +640,7 @@ export default function PlayerPage() {
       }
 
       setMetaDetails(prev => ({ ...prev, viewOffset: newGlobalTime * 1000 }))
+      setSubtitleSeekTrigger(Date.now())
       videoEl.currentTime = newGlobalTime
       return false
     }
@@ -714,7 +717,7 @@ export default function PlayerPage() {
         plexStreamBuilder.stopSidecarSession(serverInfo, activeSidecarSessionId);
       }
     }
-  }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state, isShakaReady])
+  }, [availableStreams, serverInfo, ratingKey, playbackSessionId, streamUrl, metaDetails, location.state, isShakaReady, subtitleSeekTrigger])
 
   // Drag Seek Pointer Move and Pointer Up Observers
   useEffect(() => {

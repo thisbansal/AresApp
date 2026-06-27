@@ -347,8 +347,8 @@ export function usePlayerControls({
       // Reset HUD inactivity hide timer
       if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current)
 
-      // Calculate seek time based on wheel delta: precisely 1 second per tick!
-      const seekAmount = e.deltaY < 0 ? 1 : -1
+      // Calculate seek time based on wheel delta: precisely 10 seconds per tick!
+      const seekAmount = e.deltaY < 0 ? 10 : -10
 
       // Pause video instantly as scrolling starts
       if (!videoEl.paused && !isScrollingRef.current) {
