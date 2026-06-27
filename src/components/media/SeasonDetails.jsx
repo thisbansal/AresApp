@@ -263,7 +263,7 @@ const styles = {
   },
   scroller: {
     display: 'flex',
-    gap: '24px',
+    gap: '42px',
     overflowX: 'auto',
     paddingTop: '30px', // Room for focus scale
     paddingBottom: '30px',
