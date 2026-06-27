@@ -53,8 +53,20 @@ export function HeroBanner({ items = [] }) {
     fetch(colorsUrl, { headers: { 'Accept': 'application/json' } })
       .then(res => res.json())
       .then(data => {
-        if (active && data && data.colors && Array.isArray(data.colors) && data.colors.length >= 4) {
-          setPlexColors(data.colors);
+        if (!active || !data) return;
+        let colors = [];
+        if (data.colors && Array.isArray(data.colors)) {
+          colors = data.colors;
+        } else if (data.topLeft || data.topRight || data.bottomRight || data.bottomLeft) {
+          colors = [
+            data.topLeft || '#ffffff',
+            data.topRight || '#ffffff',
+            data.bottomRight || '#ffffff',
+            data.bottomLeft || '#ffffff'
+          ];
+        }
+        if (colors.length >= 4) {
+          setPlexColors(colors);
         }
       })
       .catch(err => {
@@ -228,10 +240,8 @@ export function HeroBanner({ items = [] }) {
       fontFamily: "'Outfit', sans-serif",
       letterSpacing: '-1px',
       textShadow: '0 4px 12px rgba(0,0,0,0.5)',
-      maxWidth: '80%',
+      maxWidth: '100%',
       color: '#ffffff',
-      transform: showDescription ? 'translateY(-20px)' : 'translateY(0)',
-      transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       animation: 'fadeInUp 0.5s ease-out forwards'
     },
     metaRow: {
@@ -242,8 +252,6 @@ export function HeroBanner({ items = [] }) {
       color: '#ccc',
       marginBottom: '20px',
       fontWeight: '500',
-      transform: showDescription ? 'translateY(-20px)' : 'translateY(0)',
-      transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       animation: 'fadeInUp 0.6s ease-out forwards'
     },
     ratingBadge: {
@@ -259,18 +267,39 @@ export function HeroBanner({ items = [] }) {
       background: `linear-gradient(135deg, #e0e0e0 40%, ${accentColor2} 100%)`,
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
-      maxWidth: '800px',
+      maxWidth: '650px',
       lineHeight: '1.4',
-      marginBottom: '30px',
       display: '-webkit-box',
       WebkitLineClamp: 3,
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden',
       textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-      maxHeight: showDescription ? '120px' : '0px',
       opacity: showDescription ? 1 : 0,
-      transition: 'max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease',
+      visibility: showDescription ? 'visible' : 'hidden',
+      transition: 'opacity 0.25s ease, visibility 0.25s ease',
       animation: 'fadeInUp 0.7s ease-out forwards'
+    },
+    contentRow: {
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      width: '100%',
+      marginBottom: '10px'
+    },
+    leftColumn: {
+      display: 'flex',
+      flexDirection: 'column',
+      maxWidth: '55%',
+      flexShrink: 0
+    },
+    rightColumn: {
+      display: 'flex',
+      flexDirection: 'column',
+      maxWidth: '40%',
+      justifyContent: 'flex-end',
+      alignItems: 'flex-end',
+      textAlign: 'right'
     },
     actions: {
       display: 'flex',
@@ -282,7 +311,7 @@ export function HeroBanner({ items = [] }) {
       alignItems: 'center',
       justifyContent: 'space-between',
       width: '100%',
-      marginTop: '40px',
+      marginTop: '10px',
       animation: 'fadeInUp 0.8s ease-out forwards'
     },
     rightGroup: {
@@ -418,18 +447,27 @@ export function HeroBanner({ items = [] }) {
         );
       })}
 
-      <div key={item.id} style={styles.fadeContainer}>
-        {item.logo ? (
-          <img src={item.logo} alt={title} style={{ maxWidth: '400px', maxHeight: '120px', objectFit: 'contain', marginBottom: '20px' }} />
-        ) : (
-          <h1 style={styles.title}>{title}</h1>
-        )}
-         {rating && (
-           <div style={styles.metaRow}>
-             <span style={styles.ratingBadge}>{rating}</span>
-           </div>
-         )}
-        {summary && <p style={styles.summary}>{summary}</p>}
+      <div key={item.id} style={{ ...styles.fadeContainer, width: '100%' }}>
+        <div style={styles.contentRow}>
+          {/* Left Column: Logo/Title and Rating */}
+          <div style={styles.leftColumn}>
+            {item.logo ? (
+              <img src={item.logo} alt={title} style={{ maxWidth: '400px', maxHeight: '120px', objectFit: 'contain', marginBottom: '20px' }} />
+            ) : (
+              <h1 style={styles.title}>{title}</h1>
+            )}
+            {rating && (
+              <div style={styles.metaRow}>
+                <span style={styles.ratingBadge}>{rating}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Description Summary */}
+          <div style={styles.rightColumn}>
+            {summary && <p style={styles.summary}>{summary}</p>}
+          </div>
+        </div>
       </div>
       <div style={styles.bottomBar}>
         <div style={styles.actions}>
