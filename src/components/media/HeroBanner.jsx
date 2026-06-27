@@ -99,9 +99,11 @@ export function HeroBanner({ items = [] }) {
 
     const extractColor = () => {
       getColor(activeImg)
-        .then(color => {
-          if (color) {
-            const [r, g, b] = color;
+        .then(colorResult => {
+          if (colorResult) {
+            const rgb = Array.isArray(colorResult) ? colorResult : colorResult.color;
+            if (rgb && Array.isArray(rgb)) {
+              const [r, g, b] = rgb;
             
             // RGB to HSL conversion to easily adjust readability
             const rgbToHsl = (rVal, gVal, bVal) => {
@@ -130,7 +132,8 @@ export function HeroBanner({ items = [] }) {
             
             setAccentColor(`hsl(${Math.round(h)}, ${Math.round(finalSaturation)}%, ${Math.round(finalLightness)}%)`);
           }
-        })
+        }
+      })
         .catch(e => {
           console.error('[ColorThief] Failed to extract color:', e);
           setAccentColor('rgb(255, 255, 255)');
