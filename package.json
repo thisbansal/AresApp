@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@enact/webos": "^5.4.2",
+    "colorthief": "^3.3.1",
     "libpgs": "^0.8.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

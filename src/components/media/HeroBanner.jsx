@@ -7,14 +7,17 @@ import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
 import { buildImageUrl } from '../../services/plex/plexContentService';
 import { useBrowserStore } from '../../stores/browserStore';
+import ColorThief from 'colorthief';
 
 export function HeroBanner({ items = [] }) {
   const navigate = useNavigate();
   const currentIndex = useBrowserStore(state => state.heroIndex);
   const setCurrentIndex = useBrowserStore(state => state.setHeroIndex);
   const [userInteracted, setUserInteracted] = useState(0); // Store timestamp of last interaction
+  const [accentColor, setAccentColor] = useState('rgb(255, 255, 255)');
   
   const timerRef = useRef(null);
+  const imageRefs = useRef([]);
 
   useEffect(() => {
     if (items && items.length > 0) {
@@ -80,6 +83,58 @@ export function HeroBanner({ items = [] }) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Dynamically extract accent color from current image using ColorThief
+  useEffect(() => {
+    const activeImg = imageRefs.current[currentIndex];
+    if (!activeImg || !items || items.length === 0) return;
+
+    const extractColor = () => {
+      try {
+        const colorThief = new ColorThief();
+        const color = colorThief.getColor(activeImg);
+        if (color) {
+          const [r, g, b] = color;
+          
+          // RGB to HSL conversion to easily adjust readability
+          const rgbToHsl = (rVal, gVal, bVal) => {
+            rVal /= 255; gVal /= 255; bVal /= 255;
+            const max = Math.max(rVal, gVal, bVal), min = Math.min(rVal, gVal, bVal);
+            let h, s, l = (max + min) / 2;
+            if (max === min) {
+              h = s = 0;
+            } else {
+              const d = max - min;
+              s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+              switch (max) {
+                case rVal: h = (gVal - bVal) / d + (gVal < bVal ? 6 : 0); break;
+                case gVal: h = (bVal - rVal) / d + 2; break;
+                case bVal: h = (rVal - gVal) / d + 4; break;
+              }
+              h /= 6;
+            }
+            return [h * 360, s * 100, l * 100];
+          };
+
+          const [h, s, l] = rgbToHsl(r, g, b);
+          // Scale lightness up to at least 70% to ensure readability on dark background
+          const finalLightness = Math.max(70, l);
+          const finalSaturation = Math.max(40, s);
+          
+          setAccentColor(`hsl(${Math.round(h)}, ${Math.round(finalSaturation)}%, ${Math.round(finalLightness)}%)`);
+        }
+      } catch (e) {
+        console.error('[ColorThief] Failed to extract color:', e);
+        setAccentColor('rgb(255, 255, 255)');
+      }
+    };
+
+    if (activeImg.complete) {
+      extractColor();
+    } else {
+      activeImg.onload = extractColor;
+    }
+  }, [currentIndex, items]);
 
   if (!items || items.length === 0) return null;
 
@@ -286,7 +341,9 @@ export function HeroBanner({ items = [] }) {
         return (
           <img 
             key={it.id}
+            ref={el => imageRefs.current[idx] = el}
             src={bgUrl} 
+            crossOrigin="anonymous"
             style={{
               ...styles.bgImage,
               opacity: currentIndex === idx ? 1 : 0,
@@ -301,11 +358,11 @@ export function HeroBanner({ items = [] }) {
         {item.logo ? (
           <img src={item.logo} alt={title} style={{ maxWidth: '400px', maxHeight: '120px', objectFit: 'contain', marginBottom: '20px' }} />
         ) : (
-          <h1 style={styles.title}>{title}</h1>
+          <h1 style={{ ...styles.title, color: accentColor }}>{title}</h1>
         )}
         <div style={styles.metaRow}>
           {year && <span>{year}</span>}
-          {rating && <span style={styles.ratingBadge}>{rating}</span>}
+          {rating && <span style={{ ...styles.ratingBadge, borderColor: accentColor, color: accentColor }}>{rating}</span>}
           {duration && <span>{duration}</span>}
         </div>
         {summary && <p style={styles.summary}>{summary}</p>}
