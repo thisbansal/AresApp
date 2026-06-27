@@ -16,11 +16,58 @@ export function HeroBanner({ items = [] }) {
   const [userInteracted, setUserInteracted] = useState(0); // Store timestamp of last interaction
   const [showDescription, setShowDescription] = useState(false);
   const [showNoDescDialog, setShowNoDescDialog] = useState(false);
+  const [plexColors, setPlexColors] = useState(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
 
   useEffect(() => {
     setShowDescription(false);
     setShowNoDescDialog(false);
   }, [currentIndex]);
+
+  // Fetch UltraBlur colors for the active image from Plex Server
+  useEffect(() => {
+    if (!items || items.length === 0) return;
+    const currentItem = items[currentIndex];
+    if (!currentItem) return;
+
+    const art = currentItem.rawArt || currentItem.rawThumb;
+    if (!art) {
+      setPlexColors(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
+      return;
+    }
+
+    let clientId = currentItem._serverContext?.clientId;
+    if (!clientId) {
+      setPlexColors(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
+      return;
+    }
+
+    const s = useServerManagerStore.getState().servers[clientId];
+    if (!s || !s.uri || !s.accessToken) {
+      setPlexColors(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
+      return;
+    }
+
+    const colorsUrl = `${s.uri}/photo/:/ultrablur/colors?url=${encodeURIComponent(art)}&X-Plex-Token=${s.accessToken}`;
+
+    let active = true;
+    fetch(colorsUrl, { headers: { 'Accept': 'application/json' } })
+      .then(res => res.json())
+      .then(data => {
+        if (active && data && data.colors && Array.isArray(data.colors) && data.colors.length >= 4) {
+          setPlexColors(data.colors);
+        }
+      })
+      .catch(err => {
+        console.error('[HeroBanner] Failed to fetch UltraBlur colors:', err);
+        if (active) {
+          setPlexColors(['#ffffff', '#ffffff', '#ffffff', '#ffffff']);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [currentIndex, items]);
   
   const timerRef = useRef(null);
 
@@ -145,6 +192,9 @@ export function HeroBanner({ items = [] }) {
     setUserInteracted(Date.now());
   };
 
+  const accentColor1 = plexColors[3] || '#a5c7f7';
+  const accentColor2 = plexColors[2] || '#a5c7f7';
+
   const styles = {
     container: {
       display: 'flex',
@@ -179,7 +229,7 @@ export function HeroBanner({ items = [] }) {
       letterSpacing: '-1px',
       textShadow: '0 4px 12px rgba(0,0,0,0.5)',
       maxWidth: '80%',
-      background: 'linear-gradient(135deg, #ffffff 30%, #a5c7f7 100%)',
+      background: `linear-gradient(135deg, #ffffff 30%, ${accentColor1} 100%)`,
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
       transform: showDescription ? 'translateY(-20px)' : 'translateY(0)',
@@ -199,8 +249,8 @@ export function HeroBanner({ items = [] }) {
       animation: 'fadeInUp 0.6s ease-out forwards'
     },
     ratingBadge: {
-      border: '1.5px solid #a5c7f7',
-      color: '#a5c7f7',
+      border: `1.5px solid ${accentColor1}`,
+      color: accentColor1,
       padding: '2px 8px',
       borderRadius: '4px',
       fontSize: '14px',
@@ -208,7 +258,7 @@ export function HeroBanner({ items = [] }) {
     },
     summary: {
       fontSize: '24px',
-      background: 'linear-gradient(135deg, #e0e0e0 40%, #a5c7f7 100%)',
+      background: `linear-gradient(135deg, #e0e0e0 40%, ${accentColor2} 100%)`,
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
       maxWidth: '800px',
