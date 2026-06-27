@@ -900,6 +900,7 @@ function ContentBrowserPage() {
           padding: 30px 12vh !important;
           scroll-padding-left: 12vh !important;
           scroll-padding-right: 12vh !important;
+          gap: 48px !important;
         }
         .setting-card {
           width: 260px;
