@@ -1078,7 +1078,8 @@ function ContentBrowserPage() {
                   <div style={{ 
                     position: 'relative', 
                     zIndex: 10,
-                    marginTop: 0
+                    marginTop: 0,
+                    paddingBottom: '80vh'
                   }}>
                     {continueWatching.length > 0 && (
                       <div style={styles.section} className="row">

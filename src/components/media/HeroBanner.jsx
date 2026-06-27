@@ -12,12 +12,17 @@ export function HeroBanner({ items = [] }) {
   const navigate = useNavigate();
   const currentIndex = useBrowserStore(state => state.heroIndex);
   const setCurrentIndex = useBrowserStore(state => state.setHeroIndex);
-  const [userInteracted, setUserInteracted] = useState(false);
+  const [userInteracted, setUserInteracted] = useState(0); // Store timestamp of last interaction
   
   const timerRef = useRef(null);
 
   useEffect(() => {
     if (items && items.length > 0) {
+      // Bounds check: if the preserved index is out of bounds for the new items array, reset to 0
+      if (currentIndex >= items.length) {
+        setCurrentIndex(0);
+      }
+
       console.log('--- Hero Banner Art Sources ---');
       items.forEach((it, idx) => {
         let artSource = 'None';
@@ -36,18 +41,28 @@ export function HeroBanner({ items = [] }) {
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [items]);
+  }, [items, currentIndex, setCurrentIndex]);
 
-  // Auto-advance logic
+  // Auto-advance logic (resumes after 5 seconds of user inactivity)
   useEffect(() => {
-    if (!items || items.length === 0 || userInteracted) {
+    if (!items || items.length === 0) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
 
+    const timeSinceInteraction = Date.now() - userInteracted;
+    if (timeSinceInteraction < 5000) {
+      // User interacted recently, wait for the remainder of the 5 seconds of inactivity
+      const remainingTime = 5000 - timeSinceInteraction;
+      const delayTimer = setTimeout(() => {
+        setUserInteracted(0); // Trigger re-evaluation of auto-advance
+      }, remainingTime);
+      return () => clearTimeout(delayTimer);
+    }
+
     timerRef.current = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % items.length);
-    }, 8000);
+    }, 5000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -59,7 +74,7 @@ export function HeroBanner({ items = [] }) {
     const handleKeyDown = (e) => {
       // Any navigation keys
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
-        setUserInteracted(true);
+        setUserInteracted(Date.now());
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -104,12 +119,12 @@ export function HeroBanner({ items = [] }) {
 
   const handleNextSlide = (e) => {
     if (e) e.stopPropagation();
-    setUserInteracted(true);
+    setUserInteracted(Date.now());
     setCurrentIndex(prev => (prev + 1) % items.length);
   };
 
   const handleFocus = () => {
-    setUserInteracted(true);
+    setUserInteracted(Date.now());
   };
 
   const styles = {

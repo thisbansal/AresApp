@@ -306,8 +306,13 @@ export const SpatialNavigationProvider = ({ children }) => {
         }
         setTimeout(() => { window.isNavigationLocked = false; }, 400);
       } else {
-        // For everything else, center the row nicely
-        closestNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        // For everything else, center the row nicely, but avoid vertical jumping when moving horizontally
+        const isHorizontal = direction === 'left' || direction === 'right';
+        closestNode.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: isHorizontal ? 'nearest' : 'center', 
+          inline: 'nearest' 
+        });
       }
     } else {
       // Fallback: If we hit the boundary (no more items in that direction),
