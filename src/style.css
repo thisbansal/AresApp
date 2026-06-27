@@ -317,10 +317,10 @@ video::-webkit-media-controls-text-track-display {
 
 .watched-ribbon {
   position: absolute;
-  top: -70px;
-  right: -70px;
-  width: 140px;
-  height: 140px;
+  top: -58px;
+  right: -58px;
+  width: 116px;
+  height: 116px;
   background-color: rgba(255, 255, 255, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.15);
   transform: rotate(45deg);
@@ -328,16 +328,16 @@ video::-webkit-media-controls-text-track-display {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 16px;
+  padding-bottom: 10px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .unwatched-episode-ribbon {
   position: absolute;
-  top: -70px;
-  right: -70px;
-  width: 140px;
-  height: 140px;
+  top: -58px;
+  right: -58px;
+  width: 116px;
+  height: 116px;
   background-color: rgba(90, 90, 90, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.2);
   transform: rotate(45deg);
@@ -345,18 +345,18 @@ video::-webkit-media-controls-text-track-display {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 16px;
+  padding-bottom: 10px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .ribbon-bottom-left {
   top: auto !important;
   right: auto !important;
-  bottom: -70px;
-  left: -70px;
+  bottom: -58px;
+  left: -58px;
   align-items: flex-start;
   padding-bottom: 0;
-  padding-top: 16px;
+  padding-top: 10px;
   box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
 }
 

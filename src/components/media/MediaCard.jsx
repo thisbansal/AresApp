@@ -125,7 +125,7 @@ export function MediaCard({
         {showUnwatchedIndicator && (
           (prefix === 'cw' || isUnwatched) ? (
             <div
-              className={`unwatched-episode-ribbon ${prefix === 'cw' ? 'ribbon-bottom-left' : ''}`}
+              className="unwatched-episode-ribbon"
               style={prefix === 'cw' ? { pointerEvents: 'none', zIndex: 3 } : {}}
               onClick={(e) => {
                 if (prefix !== 'cw') {
@@ -136,7 +136,7 @@ export function MediaCard({
             >
               {prefix === 'cw' ? (
                 <div 
-                  style={{ pointerEvents: 'auto', padding: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '-10px' }}
+                  style={{ pointerEvents: 'auto', padding: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px', marginTop: '0' }}
                   onClick={(e) => {
                     e.stopPropagation()
                     if (handleRemoveFromOnDeck) handleRemoveFromOnDeck(item)
