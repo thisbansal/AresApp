@@ -229,9 +229,7 @@ export function HeroBanner({ items = [] }) {
       letterSpacing: '-1px',
       textShadow: '0 4px 12px rgba(0,0,0,0.5)',
       maxWidth: '80%',
-      background: `linear-gradient(135deg, #ffffff 30%, ${accentColor1} 100%)`,
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
+      color: '#ffffff',
       transform: showDescription ? 'translateY(-20px)' : 'translateY(0)',
       transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       animation: 'fadeInUp 0.5s ease-out forwards'

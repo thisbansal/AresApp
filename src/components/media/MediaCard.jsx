@@ -104,6 +104,7 @@ export function MediaCard({
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-end',
+            alignItems: 'flex-end',
             boxSizing: 'border-box',
             borderBottomLeftRadius: '12px',
             borderBottomRightRadius: '12px',
@@ -116,7 +117,9 @@ export function MediaCard({
               whiteSpace: 'nowrap', 
               textOverflow: 'ellipsis', 
               overflow: 'hidden',
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+              textAlign: 'right',
+              width: '100%'
             }} title={item.title}>
               {item.title}
             </div>
