@@ -376,11 +376,11 @@ export function HeroBanner({ items = [] }) {
         ) : (
           <h1 style={styles.title}>{title}</h1>
         )}
-        <div style={styles.metaRow}>
-          {year && <span>{year}</span>}
-          {rating && <span style={styles.ratingBadge}>{rating}</span>}
-          {duration && <span>{duration}</span>}
-        </div>
+         {rating && (
+           <div style={styles.metaRow}>
+             <span style={styles.ratingBadge}>{rating}</span>
+           </div>
+         )}
         {summary && <p style={styles.summary}>{summary}</p>}
       </div>
       <div style={styles.bottomBar}>
