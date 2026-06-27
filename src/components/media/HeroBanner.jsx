@@ -11,12 +11,12 @@ import { useBrowserStore } from '../../stores/browserStore';
 
 const getAccentColors = (title = '') => {
   const palettes = [
-    { accent1: '#ff5c5c', accent2: '#ff8a8a' }, // Deep Crimson
-    { accent1: '#2ecc71', accent2: '#a3e4d7' }, // Deep Emerald
-    { accent1: '#00ccff', accent2: '#a5c7f7' }, // Nordic Midnight
-    { accent1: '#bb86fc', accent2: '#d2b4de' }, // Royal Amethyst
-    { accent1: '#ffb74d', accent2: '#fdebd0' }, // Warm Amber
-    { accent1: '#4db6ac', accent2: '#e0f2f1' }  // Oceanic Teal
+    { accent1: '#ff3b30', accent2: '#ff6b6b' }, // Deep Crimson
+    { accent1: '#2ecc71', accent2: '#26e680' }, // Deep Emerald
+    { accent1: '#00c2ff', accent2: '#007eff' }, // Nordic Midnight
+    { accent1: '#bf5af2', accent2: '#e394fe' }, // Royal Amethyst
+    { accent1: '#ffb300', accent2: '#ff8008' }, // Warm Amber
+    { accent1: '#00d2c4', accent2: '#00a396' }  // Oceanic Teal
   ];
   let hash = 0;
   for (let i = 0; i < title.length; i++) {
@@ -240,12 +240,12 @@ export function HeroBanner({ items = [] }) {
       fontWeight: 'bold'
     },
     summary: {
-      fontSize: '24px',
-      background: `linear-gradient(135deg, #e0e0e0 40%, ${accentColor2} 100%)`,
+      fontSize: '28px',
+      background: `linear-gradient(135deg, #ffffff 10%, ${accentColor1} 55%, ${accentColor2} 100%)`,
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
-      maxWidth: '650px',
-      lineHeight: '1.4',
+      maxWidth: '850px',
+      lineHeight: '1.5',
       display: '-webkit-box',
       WebkitLineClamp: 3,
       WebkitBoxOrient: 'vertical',
