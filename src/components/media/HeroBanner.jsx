@@ -82,6 +82,7 @@ export function HeroBanner({ items = [] }) {
   }, [currentIndex, items]);
   
   const timerRef = useRef(null);
+  const goToNextSlideRef = useRef(null);
 
   useEffect(() => {
     if (items && items.length > 0) {
@@ -110,6 +111,19 @@ export function HeroBanner({ items = [] }) {
     }
   }, [items, currentIndex, setCurrentIndex]);
 
+  // Update the ref function on each render to close stale closures
+  goToNextSlideRef.current = () => {
+    if (showDescription) {
+      setShowDescription(false);
+      // Wait for the CSS fade-out opacity transition (250ms) before changing slides
+      setTimeout(() => {
+        setCurrentIndex(prev => (prev + 1) % items.length);
+      }, 250);
+    } else {
+      setCurrentIndex(prev => (prev + 1) % items.length);
+    }
+  };
+
   // Auto-advance logic (resumes after 5 seconds of user inactivity)
   useEffect(() => {
     if (!items || items.length === 0) {
@@ -128,7 +142,9 @@ export function HeroBanner({ items = [] }) {
     }
 
     timerRef.current = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % items.length);
+      if (goToNextSlideRef.current) {
+        goToNextSlideRef.current();
+      }
     }, 5000);
 
     return () => {
@@ -197,7 +213,9 @@ export function HeroBanner({ items = [] }) {
   const handleNextSlide = (e) => {
     if (e) e.stopPropagation();
     setUserInteracted(Date.now());
-    setCurrentIndex(prev => (prev + 1) % items.length);
+    if (goToNextSlideRef.current) {
+      goToNextSlideRef.current();
+    }
   };
 
   const handleFocus = () => {
