@@ -275,7 +275,7 @@ export function HeroBanner({ items = [] }) {
       marginBottom: '10px',
       fontFamily: "'Outfit', sans-serif",
       letterSpacing: '-1px',
-      textShadow: '0 3px 6px rgba(0, 0, 0, 0.9)',
+      textShadow: '0px 3px 0px rgba(0, 0, 0, 0.95)',
       maxWidth: '100%',
       color: '#ffffff',
       animation: 'fadeInUp 0.5s ease-out forwards'
@@ -309,7 +309,7 @@ export function HeroBanner({ items = [] }) {
       WebkitLineClamp: 3,
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden',
-      filter: 'drop-shadow(0 3px 6px rgba(0, 0, 0, 0.95))',
+      filter: 'drop-shadow(0px 3px 0px rgba(0, 0, 0, 0.95))',
       opacity: showDescription ? 1 : 0,
       visibility: showDescription ? 'visible' : 'hidden',
       transition: 'opacity 0.25s ease, visibility 0.25s ease',
