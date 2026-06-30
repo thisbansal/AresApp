@@ -33,12 +33,16 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     }
     const handleSeeking = () => setIsBuffering(true)
     const handleSeeked  = () => setIsBuffering(false)
+    const handleLoadStart = () => setIsBuffering(true)
+    const handlePause = () => setIsBuffering(false)
 
     videoEl.addEventListener('waiting', handleWaiting)
     videoEl.addEventListener('playing', handlePlaying)
     videoEl.addEventListener('canplay', handleCanPlay)
     videoEl.addEventListener('seeking', handleSeeking)
     videoEl.addEventListener('seeked', handleSeeked)
+    videoEl.addEventListener('loadstart', handleLoadStart)
+    videoEl.addEventListener('pause', handlePause)
 
     return () => {
       videoEl.removeEventListener('waiting', handleWaiting)
@@ -46,6 +50,8 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
       videoEl.removeEventListener('canplay', handleCanPlay)
       videoEl.removeEventListener('seeking', handleSeeking)
       videoEl.removeEventListener('seeked', handleSeeked)
+      videoEl.removeEventListener('loadstart', handleLoadStart)
+      videoEl.removeEventListener('pause', handlePause)
     }
   }, [videoRef, isLoading])
 
@@ -106,6 +112,7 @@ export function useVideoMediaEvents(videoRef, isLoading, isDragging, isScrolling
     }
     setDuration(videoEl.duration || 0)
     setIsPlaying(!videoEl.paused)
+    setIsBuffering(videoEl.readyState < 3 && !videoEl.paused)
 
     return () => {
       videoEl.removeEventListener('timeupdate', handleTimeUpdate)

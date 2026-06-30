@@ -72,6 +72,7 @@ export default function PlayerPage() {
   const seekTimeoutRef = useRef(null)
   const lastStreamUrlRef = useRef(null)
   const lastDragEndTimeRef = useRef(0)
+  const mountTimeRef = useRef(Date.now())
   const [streamCapabilities, setStreamCapabilities] = useState({ video: [], audio: [], subtitles: [] })
   const [subtitleSeekTrigger, setSubtitleSeekTrigger] = useState(Date.now())
 
@@ -1060,6 +1061,9 @@ export default function PlayerPage() {
   const progressPercent = duration ? (displayTime / duration) * 100 : 0
 
   const handleContainerClick = (e) => {
+    // Ignore clicks that happen immediately after the page mounts to prevent click/enter bleed-through from parent page
+    if (Date.now() - mountTimeRef.current < 1000) return
+
     // Prevent rogue click events from firing immediately after a scrubber drag release
     if (Date.now() - lastDragEndTimeRef.current < 500) return
 

@@ -74,8 +74,8 @@ describe('usePlayerControls', () => {
       window.dispatchEvent(wheelEvent2) 
     })
 
-    // currentTime starts at 30, seek is +1, so it should be 31
-    expect(setCurrentTimeMock).toHaveBeenCalledWith(31)
+    // currentTime starts at 30, seek is +10, so it should be 40
+    expect(setCurrentTimeMock).toHaveBeenCalledWith(40)
     
     // executeSeek should NOT be called immediately
     expect(executeSeekMock).not.toHaveBeenCalled()
@@ -86,7 +86,7 @@ describe('usePlayerControls', () => {
     })
 
     // Now executeSeek should be called with final target
-    expect(executeSeekMock).toHaveBeenCalledWith(31)
+    expect(executeSeekMock).toHaveBeenCalledWith(40)
   })
 
   it('triggers spatial navigation when ArrowLeft or ArrowRight are pressed and timeline is not focused', () => {
