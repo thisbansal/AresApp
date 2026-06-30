@@ -300,9 +300,7 @@ export function HeroBanner({ items = [] }) {
     },
     summary: {
       fontSize: '28px',
-      background: `linear-gradient(135deg, #ffffff 10%, ${accentColor1} 55%, ${accentColor2} 100%)`,
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
+      color: '#e0e0e0',
       maxWidth: '850px',
       lineHeight: '1.5',
       display: '-webkit-box',
