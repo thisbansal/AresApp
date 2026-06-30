@@ -3,7 +3,7 @@ import { FocusableItem } from '../navigational/FocusableItem';
 import { FocusLayer } from '../../contexts/SpatialNavigationContext';
 import { FiPlay } from 'react-icons/fi';
 import { IoInformationCircleOutline } from 'react-icons/io5';
-import { MdOutlineKeyboardArrowRight, MdKeyboardArrowDown } from 'react-icons/md';
+import { MdOutlineKeyboardArrowRight, MdOutlineKeyboardArrowLeft, MdKeyboardArrowDown } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
 import { buildImageUrl, getMetadata } from '../../services/plex/plexContentService';
@@ -235,6 +235,19 @@ export function HeroBanner({ items = [] }) {
     }
   };
 
+  const handlePrevSlide = (e) => {
+    if (e) e.stopPropagation();
+    setUserInteracted(Date.now());
+    if (showDescription) {
+      setShowDescription(false);
+      setTimeout(() => {
+        setCurrentIndex(prev => (prev - 1 + items.length) % items.length);
+      }, 250);
+    } else {
+      setCurrentIndex(prev => (prev - 1 + items.length) % items.length);
+    }
+  };
+
   const handleFocus = () => {
     setUserInteracted(Date.now());
   };
@@ -275,7 +288,7 @@ export function HeroBanner({ items = [] }) {
       marginBottom: '10px',
       fontFamily: "'Outfit', sans-serif",
       letterSpacing: '-1px',
-      textShadow: '0px 3px 0px rgba(0, 0, 0, 0.95)',
+      WebkitTextStroke: '1.5px rgba(0, 0, 0, 0.95)',
       maxWidth: '100%',
       color: '#ffffff',
       animation: 'fadeInUp 0.5s ease-out forwards'
@@ -309,7 +322,7 @@ export function HeroBanner({ items = [] }) {
       WebkitLineClamp: 3,
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden',
-      filter: 'drop-shadow(0px 3px 0px rgba(0, 0, 0, 0.95))',
+      filter: 'drop-shadow(-1.2px -1.2px 0px rgba(0, 0, 0, 0.95)) drop-shadow(1.2px -1.2px 0px rgba(0, 0, 0, 0.95)) drop-shadow(-1.2px 1.2px 0px rgba(0, 0, 0, 0.95)) drop-shadow(1.2px 1.2px 0px rgba(0, 0, 0, 0.95))',
       opacity: showDescription ? 1 : 0,
       visibility: showDescription ? 'visible' : 'hidden',
       transition: 'opacity 0.25s ease, visibility 0.25s ease',
@@ -524,6 +537,16 @@ export function HeroBanner({ items = [] }) {
           >
             <div className="capsule-btn" style={{ width: '72px', height: '72px', padding: 0, justifyContent: 'center', borderRadius: '50%' }}>
               <IoInformationCircleOutline size={34} />
+            </div>
+          </FocusableItem>
+
+          <FocusableItem 
+            id="hero-prev-btn" 
+            onClick={handlePrevSlide}
+            onFocus={handleFocus}
+          >
+            <div className="capsule-btn" style={{ width: '72px', height: '72px', padding: 0, justifyContent: 'center', borderRadius: '50%' }}>
+              <MdOutlineKeyboardArrowLeft size={34} />
             </div>
           </FocusableItem>
 
