@@ -289,6 +289,7 @@ export function HeroBanner({ items = [] }) {
       fontFamily: "'Outfit', sans-serif",
       letterSpacing: '-1px',
       WebkitTextStroke: '1.5px rgba(0, 0, 0, 0.95)',
+      paintOrder: 'stroke fill',
       maxWidth: '100%',
       color: '#ffffff',
       animation: 'fadeInUp 0.5s ease-out forwards'
