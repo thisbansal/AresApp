@@ -1,5 +1,5 @@
 import { imageCacheService } from "../services/caching/ImageCacheService";
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { NavigationBar } from '../components/navigational/NavigationBar'
@@ -568,20 +568,26 @@ function ContentBrowserPage() {
 
   // Listen to WebSocket events to automatically refresh content
   useEffect(() => {
+    let debounceTimer;
+    
     const handleRemoteUpdate = () => {
-      console.log('[ContentBrowserPage] Received WebSocket update. Revalidating content...');
-      if (activeTab.type === 'home') {
-        revalidateContinueWatching();
-        revalidateRecentAdded();
-      } else if (activeTab.type === 'library') {
-        revalidateLibraryItems();
-      }
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        console.log('[ContentBrowserPage] Received WebSocket update. Revalidating content...');
+        if (activeTab.type === 'home') {
+          revalidateContinueWatching();
+          revalidateRecentAdded();
+        } else if (activeTab.type === 'library') {
+          revalidateLibraryItems();
+        }
+      }, 1000);
     };
     
     window.addEventListener('plex-ws-playback-update', handleRemoteUpdate);
     window.addEventListener('plex-ws-library-updated', handleRemoteUpdate);
     
     return () => {
+      clearTimeout(debounceTimer);
       window.removeEventListener('plex-ws-playback-update', handleRemoteUpdate);
       window.removeEventListener('plex-ws-library-updated', handleRemoteUpdate);
     };

@@ -40,8 +40,12 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
   const safeKey = keyStr.replace(/[^a-zA-Z0-9]/g, '_');
   const cacheKey = `swr_cache_${safeKey}_${profileId}`;
 
+  const revalidateCounterRef = useRef(0);
+
   const revalidate = useCallback(async (forceLoading = false) => {
     if (!enabled) return;
+
+    const currentRevalidateId = ++revalidateCounterRef.current;
 
     if (forceLoading) {
       setLoading(true);
@@ -53,8 +57,9 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
       // Execute the fetch function
       const freshData = await fetchFnRef.current();
       
-      // Prevent race conditions: check if key is still the active one
-      if (lastKeyRef.current !== cacheKey) {
+      // Prevent race conditions: check if key is still the active one,
+      // and if this fetch was the most recently initiated one
+      if (lastKeyRef.current !== cacheKey || revalidateCounterRef.current !== currentRevalidateId) {
         return;
       }
       
@@ -64,7 +69,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
       setLocalData(freshData);
       setError(null);
     } catch (err) {
-      if (lastKeyRef.current !== cacheKey) {
+      if (lastKeyRef.current !== cacheKey || revalidateCounterRef.current !== currentRevalidateId) {
         return;
       }
       console.warn(`[usePlexQuery] Revalidation failed for key ${cacheKey}:`, err.message);
@@ -76,7 +81,7 @@ export function usePlexQuery(queryKey, fetchFn, options = {}) {
         useServerStore.getState().setServerState(false, err.message);
       }
     } finally {
-      if (lastKeyRef.current === cacheKey) {
+      if (lastKeyRef.current === cacheKey && revalidateCounterRef.current === currentRevalidateId) {
         setLoading(false);
         setIsRevalidating(false);
       }
