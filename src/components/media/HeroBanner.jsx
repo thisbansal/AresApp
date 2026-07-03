@@ -7,6 +7,7 @@ import { MdOutlineKeyboardArrowRight, MdOutlineKeyboardArrowLeft, MdKeyboardArro
 import { useNavigate } from 'react-router-dom';
 import { useServerManagerStore } from '../../stores/serverManagerStore';
 import { buildImageUrl, getMetadata } from '../../services/plex/plexContentService';
+import { createPlayQueue } from '../../services/plex/plexPlaybackService';
 import { useBrowserStore } from '../../stores/browserStore';
 
 const getAccentColors = (title = '') => {
@@ -192,7 +193,7 @@ export function HeroBanner({ items = [] }) {
   const duration = item.duration ? Math.round(item.duration / 60000) + ' min' : null;
   const summary = fetchedSummary || item.summary;
 
-  const handlePlay = (e) => {
+  const handlePlay = async (e) => {
     if (e) e.stopPropagation();
     let targetServerInfo = null;
     if (item._serverContext?.clientId) {
@@ -201,6 +202,17 @@ export function HeroBanner({ items = [] }) {
         targetServerInfo = { uri: s.uri, token: s.accessToken, owned: s.owned };
       }
     }
+    
+    if (item.type === 'show' || item.type === 'season') {
+      if (targetServerInfo) {
+        const queueData = await createPlayQueue(targetServerInfo.uri, targetServerInfo.token, item.id);
+        if (queueData && queueData.selectedItemRatingKey) {
+          navigate(`/play/${queueData.selectedItemRatingKey}`, { state: { serverInfo: targetServerInfo, item: item } });
+          return;
+        }
+      }
+    }
+    
     const path = item.type === 'episode' || item.type === 'movie' ? `/play/${item.id}` : `/details/${item.id}`;
     navigate(path, { state: { serverInfo: targetServerInfo, item: item } });
   };
@@ -255,6 +267,19 @@ export function HeroBanner({ items = [] }) {
   const colors = getAccentColors(title);
   const accentColor1 = colors.accent1;
   const accentColor2 = colors.accent2;
+
+  let playText = 'Play';
+  if (item.type === 'movie' || item.type === 'episode') {
+    if (item.viewOffset > 0) {
+      playText = 'Resume';
+    }
+  } else if (item.type === 'show' || item.type === 'season') {
+    const viewed = Number(item.viewedLeafCount || 0);
+    const total = Number(item.leafCount || 0);
+    if (viewed > 0 && viewed < total) {
+      playText = 'Resume';
+    }
+  }
 
   const styles = {
     container: {
@@ -526,8 +551,8 @@ export function HeroBanner({ items = [] }) {
             onClick={handlePlay}
             onFocus={handleFocus}
           >
-            <div className="capsule-btn" style={{ padding: '20px 48px', fontSize: '26px' }}>
-              <FiPlay style={{ marginRight: '10px' }} /> Play
+            <div className="capsule-btn" style={{ padding: '20px 30px', minWidth: '220px', justifyContent: 'center', fontSize: '26px' }}>
+              <FiPlay style={{ marginRight: '10px' }} /> {playText}
             </div>
           </FocusableItem>
 

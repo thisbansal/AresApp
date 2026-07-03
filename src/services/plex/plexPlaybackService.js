@@ -28,9 +28,13 @@ export const createPlayQueue = async (serverUrl, token, ratingKey) => {
     )
 
     const data = await response.json()
+    const playQueueSelectedItemID = data?.MediaContainer?.playQueueSelectedItemID;
+    const selectedItem = (data?.MediaContainer?.Metadata || []).find(m => m.playQueueItemID === playQueueSelectedItemID);
+    
     return {
       playQueueID: data?.MediaContainer?.playQueueID,
-      playQueueSelectedItemID: data?.MediaContainer?.playQueueSelectedItemID
+      playQueueSelectedItemID,
+      selectedItemRatingKey: selectedItem ? selectedItem.ratingKey : null
     }
   } catch (err) {
     console.error('[plexPlaybackService] Failed to create play queue:', err)
