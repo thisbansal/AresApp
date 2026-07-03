@@ -1413,7 +1413,7 @@ export default function PlayerPage() {
         </div>
 
         <div className="player-hud-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center', opacity: showHUD ? 1 : 0, transition: 'opacity 0.3s', pointerEvents: showHUD ? 'auto' : 'none' }}>
             {/* Capsule-style Restart Button */}
             <FocusableItem
               id="player-restart"

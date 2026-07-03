@@ -1228,3 +1228,13 @@ video::-webkit-media-controls-text-track-display {
   animation: bounceFade 2s infinite ease-in-out;
   color: white;
 }
+
+.focusable-item.focused .player-hud-btn-capsule, .player-hud-btn-capsule.focused {
+  background-color: white !important;
+  color: black !important;
+}
+
+.focusable-item.focused .player-hud-btn-capsule svg, .player-hud-btn-capsule.focused svg {
+  color: black !important;
+  fill: black !important;
+}
