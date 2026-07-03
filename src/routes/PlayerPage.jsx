@@ -1107,8 +1107,9 @@ export default function PlayerPage() {
   useEffect(() => {
     if (autoSkipCountdown === null) return;
     if (autoSkipCountdown <= 0) {
-      setAutoSkipCountdown(null);
-      if (activeMarker) {
+      // Prevent UI flicker by keeping it at -1 until seek clears the marker
+      if (activeMarker && autoSkipCountdown === 0) {
+        setAutoSkipCountdown(-1);
         setHasStartedFromBeginning(false);
         executeSeek(activeMarker.endTimeOffset / 1000).catch(console.error);
       }
@@ -1477,19 +1478,12 @@ export default function PlayerPage() {
                   id="btn-cancel-skip-intro"
                   rowIndex={2}
                   colIndex={3}
+                  className="player-hud-btn-capsule"
                   onClick={handleCancelAutoSkip}
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: '#fff',
-                    padding: '8px 16px',
-                    fontSize: '22px',
-                    fontWeight: '500',
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer'
-                  }}
                 >
-                  Skipping {activeMarker.type === 'credits' ? 'credits' : 'intro'} in {Math.max(0, autoSkipCountdown)}
+                  <div className="hud-btn-content">
+                    <span className="capsuleLabel">Skipping {activeMarker.type === 'credits' ? 'credits' : 'intro'} in {Math.max(0, autoSkipCountdown)}</span>
+                  </div>
                 </FocusableItem>
               ) : (
                 <FocusableItem
