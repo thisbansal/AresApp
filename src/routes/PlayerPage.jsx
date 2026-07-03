@@ -215,13 +215,21 @@ export default function PlayerPage() {
           ? `${metadata.grandparentTitle} • ${metadata.parentTitle} • Episode ${metadata.index}`
           : ''
 
+        let deepInfo = metadata.title;
+        if (metadata.type === 'episode') {
+          const s = parseInt(metadata.parentIndex, 10) || metadata.parentIndex;
+          const e = parseInt(metadata.index, 10) || metadata.index;
+          deepInfo = `S${s} E${e} - ${metadata.title}`;
+        }
+
         setMetaDetails({
           title: metadata.title,
           subtitle: sub,
           viewOffset: metadata.viewOffset,
           duration: metadata.duration,
           partKey: metadata.media?.[0]?.parts?.[0]?.key || '',
-          logo: metadata.logo
+          logo: metadata.logo,
+          deepInfo: deepInfo
         })
 
         // Find direct stream key from metadata
@@ -1305,55 +1313,70 @@ export default function PlayerPage() {
         </div>
 
         {/* Playback Buttons Row */}
-        <div className="player-hud-controls">
-          {/* Capsule-style Restart Button */}
-          <FocusableItem
-            id="player-restart"
-            rowIndex={2}
-            colIndex={0}
-            className="player-hud-btn-capsule restart"
-            onClick={handleRestartClick}
-          >
-            {/* Double rewind arrow SVG */}
-            <FiRewind size={32} fill="#fff" color="#fff" />
-            <span className="capsuleLabel">Restart</span>
-          </FocusableItem>
+        <div className="player-hud-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+            {/* Capsule-style Restart Button */}
+            <FocusableItem
+              id="player-restart"
+              rowIndex={2}
+              colIndex={0}
+              className="player-hud-btn-capsule restart"
+              onClick={handleRestartClick}
+            >
+              {/* Double rewind arrow SVG */}
+              <FiRewind size={32} fill="#fff" color="#fff" />
+              <span className="capsuleLabel">Restart</span>
+            </FocusableItem>
 
-          {/* Capsule-style Continue/Pause Button */}
-          <FocusableItem
-            id="player-play"
-            rowIndex={2}
-            colIndex={1}
-            className="player-hud-btn-capsule"
-            onClick={handlePlayPauseClick}
-          >
-            {isBuffering ? (
-              <div className="apple-spinner">
-                <div className="bar1"></div>
-                <div className="bar2"></div>
-                <div className="bar3"></div>
-                <div className="bar4"></div>
-                <div className="bar5"></div>
-                <div className="bar6"></div>
-                <div className="bar7"></div>
-                <div className="bar8"></div>
-                <div className="bar9"></div>
-                <div className="bar10"></div>
-                <div className="bar11"></div>
-                <div className="bar12"></div>
-              </div>
-            ) : isPlaying ? (
-              <div className="hud-btn-content">
-                <FiPause size={32} fill="#fff" color="#fff" />
-                <span className="capsuleLabel">Pause</span>
-              </div>
-            ) : (
-              <div className="hud-btn-content">
-                <FiPlay size={32} fill="#fff" color="#fff" />
-                <span className="capsuleLabel">Continue</span>
-              </div>
-            )}
-          </FocusableItem>
+            {/* Capsule-style Continue/Pause Button */}
+            <FocusableItem
+              id="player-play"
+              rowIndex={2}
+              colIndex={1}
+              className="player-hud-btn-capsule"
+              onClick={handlePlayPauseClick}
+            >
+              {isBuffering ? (
+                <div className="apple-spinner">
+                  <div className="bar1"></div>
+                  <div className="bar2"></div>
+                  <div className="bar3"></div>
+                  <div className="bar4"></div>
+                  <div className="bar5"></div>
+                  <div className="bar6"></div>
+                  <div className="bar7"></div>
+                  <div className="bar8"></div>
+                  <div className="bar9"></div>
+                  <div className="bar10"></div>
+                  <div className="bar11"></div>
+                  <div className="bar12"></div>
+                </div>
+              ) : isPlaying ? (
+                <div className="hud-btn-content">
+                  <FiPause size={32} fill="#fff" color="#fff" />
+                  <span className="capsuleLabel">Pause</span>
+                </div>
+              ) : (
+                <div className="hud-btn-content">
+                  <FiPlay size={32} fill="#fff" color="#fff" />
+                  <span className="capsuleLabel">Continue</span>
+                </div>
+              )}
+            </FocusableItem>
+          </div>
+          
+          {/* Deep Info Text on the right */}
+          <div style={{ 
+            color: '#ffffff', 
+            fontSize: '24px', 
+            fontWeight: '500', 
+            fontFamily: "'Outfit', 'Inter', sans-serif",
+            textShadow: 'none',
+            opacity: 0.9,
+            letterSpacing: '0.5px'
+          }}>
+            {metaDetails.deepInfo}
+          </div>
         </div>
       </div>
 
