@@ -13,7 +13,7 @@ import { FiChevronDown, FiCheck, FiX } from 'react-icons/fi'
 
 export default function ShowDetails({ item, serverInfo, contextItem, onFocusItem, onRegisterPlay }) {
   const navigate = useNavigate()
-  const { setFocus } = useSpatialNavigation()
+  const { pushLayer } = useSpatialNavigation()
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const [seasons, setSeasons] = useState([])
   const [activeSeasonId, setActiveSeasonId] = useState(null)
@@ -126,12 +126,12 @@ export default function ShowDetails({ item, serverInfo, contextItem, onFocusItem
         let targetEpisode = episodes.find(ep => Number(ep.viewCount || 0) === 0)
         if (!targetEpisode) targetEpisode = episodes[0] // Fallback to first episode if all watched
         if (targetEpisode) {
-          setFocus(`episode-${targetEpisode.id}`)
+          document.getElementById(`episode-${targetEpisode.id}`)?.focus()
         }
       }, 150)
       return () => clearTimeout(timer)
     }
-  }, [episodes, loadingEpisodes, setFocus])
+  }, [episodes, loadingEpisodes])
 
   const handleEpisodeClick = (episode) => {
     console.log('Play episode:', episode.title)
