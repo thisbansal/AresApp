@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { SimpleCachedImage } from '../../pages/CachedImage'
 
-export function FallbackImage({ src, itemId, alt, style, className, loading, decoding, ...props }) {
+export function FallbackImage({ src, itemId, alt, style, className, loading, decoding, showFacade = false, ...props }) {
   const [error, setError] = useState(false)
 
   const getInitials = (name) => {
@@ -59,6 +59,7 @@ export function FallbackImage({ src, itemId, alt, style, className, loading, dec
       className={className}
       loading={loading}
       decoding={decoding}
+      showFacade={showFacade}
       onError={(e) => {
         console.error('[FallbackImage] Failed to load image:', src)
         setError(true)

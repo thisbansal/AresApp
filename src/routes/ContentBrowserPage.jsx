@@ -1,3 +1,4 @@
+import { imageCacheService } from "../services/caching/ImageCacheService";
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
@@ -173,6 +174,14 @@ function ContentBrowserPage() {
           const mainToken = useAppStore.getState().mainToken || await getMainToken()
           if (mainToken) {
             const list = await getUsers(mainToken)
+            
+            // Preload avatars into memory cache before rendering
+            await Promise.allSettled(
+              list.map(user => 
+                imageCacheService.getCachedImage(user.avatar, `user_${user.id}`)
+              )
+            )
+
             setUsersList(list)
             localStorage.setItem('cached_users_list', JSON.stringify(list))
 
@@ -415,7 +424,12 @@ function ContentBrowserPage() {
 
         // 2. Background Check/Discovery: Only if current is unhealthy or a relay
         console.log('[init] Running token-aware server discovery...')
-        const resolvedServer = await resolveAccessibleServer(token, currentUri)
+        let resolvedServer = null
+        try {
+          resolvedServer = await resolveAccessibleServer(token, currentUri)
+        } catch (error) {
+          console.warn('[init] resolveAccessibleServer failed:', error)
+        }
 
         if (resolvedServer?.uri && (resolvedServer.uri !== currentUri || resolvedServer.token !== currentToken)) {
           console.log('[init] Found reachable server or updated token for active profile:', resolvedServer.uri)
@@ -782,6 +796,20 @@ function ContentBrowserPage() {
     }
   }
 
+  const knownItemIds = useRef(new Set())
+  const prevTabId = useRef(activeTab.id || activeTab.type)
+  const isFirstRenderForTab = useRef(true)
+
+  if (prevTabId.current !== (activeTab.id || activeTab.type)) {
+    knownItemIds.current.clear()
+    prevTabId.current = activeTab.id || activeTab.type
+    isFirstRenderForTab.current = true
+  }
+
+  useEffect(() => {
+    isFirstRenderForTab.current = false
+  })
+
   const handleNavClick = (navItem) => {
     console.log('[NAV] Clicked:', navItem, 'Current active:', activeTab)
     if (activeTab.type === navItem.type) {
@@ -799,6 +827,12 @@ function ContentBrowserPage() {
   }
 
   const renderCard = (item, rowIndex, colIndex, prefix, variant = 'poster') => {
+    let isNew = false
+    if (!isFirstRenderForTab.current && !knownItemIds.current.has(item.id)) {
+      isNew = true
+    }
+    knownItemIds.current.add(item.id)
+
     return (
       <MediaCard
         key={`${prefix}-${item.id}`}
@@ -813,6 +847,7 @@ function ContentBrowserPage() {
         clickedItemId={clickedItemId}
         variant={variant}
         onFocus={setFocusedItem}
+        showFacade={isNew}
       />
     )
   }

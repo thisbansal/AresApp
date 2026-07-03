@@ -91,8 +91,21 @@ export const testConnectionToServer = async (uri, authToken, timeoutMs = 15000) 
 export const getBestServerConnection = async (server, authToken) => {
   if (!server || !server.connections || server.connections.length === 0) return null
 
+  // Expand connections to include raw HTTP IPs immediately to bypass DNS Rebinding timeouts
+  const expandedConns = []
+  server.connections.forEach(conn => {
+    expandedConns.push(conn)
+    if (conn.local && conn.address && conn.port) {
+      expandedConns.push({
+        ...conn,
+        uri: `http://${conn.address}:${conn.port}`,
+        isRawFallback: true
+      })
+    }
+  })
+
   // Sort connections based on historical speed ranking
-  const sortedConns = await sortConnectionsByRank(server.connections)
+  const sortedConns = await sortConnectionsByRank(expandedConns)
 
   const bestUri = await new Promise((resolve) => {
     let completedProbes = 0
@@ -111,20 +124,7 @@ export const getBestServerConnection = async (server, authToken) => {
           resolved = true
           resolve(conn.uri)
         } else {
-          // DNS Rebinding Fallback: If .plex.direct fails locally, try the raw IP
-          if (conn.local && conn.address && conn.port) {
-            const rawIpUri = `http://${conn.address}:${conn.port}`
-            probeLatency(rawIpUri, authToken, 10000).then((rawLatency) => {
-              if (rawLatency !== null && !resolved) {
-                resolved = true
-                resolve(rawIpUri)
-              } else {
-                checkDone()
-              }
-            })
-          } else {
-            checkDone()
-          }
+          checkDone()
         }
       })
     }

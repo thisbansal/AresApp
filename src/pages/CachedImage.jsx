@@ -76,7 +76,7 @@ export function CachedImage({ src, itemId, alt, style, className, loading = 'laz
   )
 }
 
-export function SimpleCachedImage({ src, itemId, style, className, ...props }) {
+export function SimpleCachedImage({ src, itemId, style, className, showFacade = false, ...props }) {
   const [imageSrc, setImageSrc] = useState(src) // Start with original URL
   const [isLoaded, setIsLoaded] = useState(false)
   const [showShimmer, setShowShimmer] = useState(false)
@@ -104,7 +104,7 @@ export function SimpleCachedImage({ src, itemId, style, className, ...props }) {
   // Debounce the shimmer so it doesn't flash on images that are already in browser cache
   useEffect(() => {
     let timer;
-    if (!isLoaded) {
+    if (!isLoaded && showFacade) {
       timer = setTimeout(() => {
         setShowShimmer(true)
       }, 150)
@@ -112,11 +112,11 @@ export function SimpleCachedImage({ src, itemId, style, className, ...props }) {
       setShowShimmer(false)
     }
     return () => clearTimeout(timer)
-  }, [isLoaded])
+  }, [isLoaded, showFacade])
 
   return (
     <div style={{ position: 'relative', width: style?.width || '100%', height: style?.height || '100%', display: 'inline-block' }}>
-      {(!isLoaded && showShimmer) && (
+      {(!isLoaded && showShimmer && showFacade) && (
         <div 
           className="skeleton-shimmer"
           style={{

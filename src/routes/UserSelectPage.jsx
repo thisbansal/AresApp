@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
+import { useServerStore } from '../stores/serverStore'
+import { imageCacheService } from '../services/caching/ImageCacheService'
+import { SimpleCachedImage } from '../pages/CachedImage'
 import { useAppStore } from '../stores/AppStore'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { FiLock, FiDelete } from 'react-icons/fi'
@@ -131,6 +134,14 @@ function UserSelectPage() {
       console.log('[AUTH FLOW] UserSelectPage: Main account token resolved successfully. Calling Plex API...')
       const userList = await getUsers(mainToken)
       console.log(`[AUTH FLOW] UserSelectPage: Discovered ${userList.length} user profile(s):`, userList.map(u => u.name))
+
+      // Preload avatars into memory cache before rendering
+      await Promise.allSettled(
+        userList.map(user => 
+          imageCacheService.getCachedImage(user.avatar, `user_${user.id}`)
+        )
+      )
+
       setUsers(userList)
       localStorage.setItem('cached_users_list', JSON.stringify(userList))
       setLoadingMessage('Loading profiles...')
@@ -282,8 +293,9 @@ function UserSelectPage() {
 
         <div style={styles.pinCard}>
           <div style={styles.pinAvatarWrapper}>
-            <img
+            <SimpleCachedImage
               src={selectedUser.avatar}
+              itemId={`user_${selectedUser.id}`}
               alt={selectedUser.name}
               style={styles.pinAvatar}
             />
@@ -478,8 +490,9 @@ function UserSelectPage() {
             >
               <div style={styles.userCard}>
                 <div style={styles.avatarWrapper}>
-                  <img
+                  <SimpleCachedImage
                     src={user.avatar}
+                    itemId={`user_${user.id}`}
                     alt={user.name}
                     style={styles.avatar}
                     className="user-avatar"

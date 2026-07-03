@@ -17,7 +17,8 @@ export function MediaCard({
   handleRemoveFromOnDeck,
   clickedItemId,
   variant = 'poster',
-  onFocus
+  onFocus,
+  showFacade = false
 }) {
   let isUnwatched = false;
 
@@ -92,6 +93,7 @@ export function MediaCard({
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           loading="lazy"
           decoding="async"
+          showFacade={showFacade}
         />
         {prefix === 'cw' && (
           <div style={{
