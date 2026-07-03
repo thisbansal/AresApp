@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
  * @returns {Object} { showHUD, setShowHUD, triggerHUD }
  */
 export function usePlayerHUD(isLoading, isDragging, isScrolling) {
-  const [showHUD, setShowHUD] = useState(true)
+  const [showHUD, setShowHUD] = useState(false)
   const hudTimeoutRef = useRef(null)
   const hudLockoutRef = useRef(false) // Tracks manual dismissal
 
