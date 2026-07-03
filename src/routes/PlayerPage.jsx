@@ -46,6 +46,13 @@ export default function PlayerPage() {
   const [isSwitchingStream, setIsSwitchingStream] = useState(false)
   const [streamUrl, setStreamUrl] = useState('')
   const [isShakaReady, setIsShakaReady] = useState(false)
+  
+  // Skip Intro State
+  const [activeMarker, setActiveMarker] = useState(null)
+  const [autoSkipCountdown, setAutoSkipCountdown] = useState(null)
+  const [hasStartedFromBeginning, setHasStartedFromBeginning] = useState(false)
+  const [isAutoSkipCancelled, setIsAutoSkipCancelled] = useState(false)
+  const [introButtonVisible, setIntroButtonVisible] = useState(false)
   const [playQueueItemID, setPlayQueueItemID] = useState(null)
   const [serverInfo, serverLoading] = useActiveServer(location.state?.serverInfo, navigate)
   const [availableStreams, setAvailableStreams] = useState([])
@@ -65,6 +72,7 @@ export default function PlayerPage() {
 
   const setSubtitleWeight = useBrowserStore((state) => state.setSubtitleWeight)
   const showSubtitleHUDControls = useBrowserStore((state) => state.showSubtitleHUDControls)
+  const autoSkipIntro = useBrowserStore((state) => state.autoSkipIntro)
 
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
@@ -229,8 +237,13 @@ export default function PlayerPage() {
           duration: metadata.duration,
           partKey: metadata.media?.[0]?.parts?.[0]?.key || '',
           logo: metadata.logo,
-          deepInfo: deepInfo
+          deepInfo: deepInfo,
+          markers: metadata.markers || []
         })
+
+        const startOver = location.state?.startOver;
+        const initialStartSeconds = (!startOver && metadata.viewOffset > 0) ? (metadata.viewOffset / 1000) : 0;
+        setHasStartedFromBeginning(initialStartSeconds < 5);
 
         // Find direct stream key from metadata
         const part = metadata.media?.[0]?.parts?.[0]
@@ -569,6 +582,7 @@ export default function PlayerPage() {
   }, [numberOfStreams])
 
   async function executeSeek(newGlobalTime) {
+    setHasStartedFromBeginning(false);
     const videoEl = videoRef.current || document.querySelector('video')
     if (!videoEl) return false
 
@@ -805,6 +819,8 @@ export default function PlayerPage() {
     setCurrentTime(0)
     setDragTime(0)
     await executeSeek(0)
+    setHasStartedFromBeginning(true)
+    setIsAutoSkipCancelled(false)
     videoEl.play().catch(err => console.error('Restart play failed:', err))
   }
 
@@ -1040,6 +1056,68 @@ export default function PlayerPage() {
     }
   }
 
+
+  // Skip Intro Hooks
+  const hookDisplayTime = isDragging ? dragTime : (streamUrl && streamUrl.includes('protocol=dash') ? currentTime + ((!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0) : currentTime);
+
+  useEffect(() => {
+    if (loading || !metaDetails?.markers || metaDetails.markers.length === 0) return;
+    const currentMarker = metaDetails.markers.find(
+      m => m.type === 'intro' && (hookDisplayTime * 1000) >= m.startTimeOffset && (hookDisplayTime * 1000) <= m.endTimeOffset
+    );
+    if (currentMarker) {
+      if (activeMarker !== currentMarker) {
+        setActiveMarker(currentMarker);
+        if (autoSkipIntro && hasStartedFromBeginning && !isAutoSkipCancelled) {
+          setAutoSkipCountdown(3);
+        } else {
+          setAutoSkipCountdown(null);
+        }
+        setIntroButtonVisible(true);
+      }
+    } else {
+      if (activeMarker) {
+        setActiveMarker(null);
+        setAutoSkipCountdown(null);
+        setIsAutoSkipCancelled(false);
+      }
+    }
+  }, [hookDisplayTime, metaDetails?.markers, activeMarker, autoSkipIntro, hasStartedFromBeginning, isAutoSkipCancelled, loading]);
+
+  useEffect(() => {
+    if (!showHUD) {
+      setIntroButtonVisible(false);
+    }
+  }, [showHUD]);
+
+  useEffect(() => {
+    if (autoSkipCountdown === null) return;
+    if (autoSkipCountdown <= 0) {
+      setAutoSkipCountdown(null);
+      if (activeMarker) {
+        setHasStartedFromBeginning(false);
+        executeSeek(activeMarker.endTimeOffset / 1000).catch(console.error);
+      }
+      return;
+    }
+    const timer = setTimeout(() => {
+      setAutoSkipCountdown(prev => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [autoSkipCountdown, activeMarker]);
+
+  const handleCancelAutoSkip = () => {
+    setIsAutoSkipCancelled(true);
+    setAutoSkipCountdown(null);
+  };
+  
+  const handleSkipIntro = () => {
+    if (activeMarker) {
+      setHasStartedFromBeginning(false);
+      executeSeek(activeMarker.endTimeOffset / 1000).catch(console.error);
+    }
+  };
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -1130,12 +1208,13 @@ export default function PlayerPage() {
       {/* Custom Frameless smart-TV HUD Overlay */}
       <div
         style={{
-          opacity: showHUD ? 1 : 0,
-          transform: showHUD ? 'translateY(0)' : 'translateY(25px)',
-          pointerEvents: showHUD ? 'auto' : 'none'
+          opacity: (showHUD || introButtonVisible) ? 1 : 0,
+          transform: (showHUD || introButtonVisible) ? 'translateY(0)' : 'translateY(25px)',
+          pointerEvents: (showHUD || introButtonVisible) ? 'auto' : 'none'
         }}
         className="player-hud-card player-hud-container"
       >
+        <div style={{ opacity: showHUD ? 1 : 0, transition: 'opacity 0.3s ease' }}>
         {/* Top Row: Meta on the left, Stream controls on the right */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', marginBottom: '8px' }}>
           
@@ -1313,6 +1392,8 @@ export default function PlayerPage() {
         </div>
 
         {/* Playback Buttons Row */}
+        </div>
+
         <div className="player-hud-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
             {/* Capsule-style Restart Button */}
@@ -1373,9 +1454,56 @@ export default function PlayerPage() {
             fontFamily: "'Outfit', 'Inter', sans-serif",
             textShadow: 'none',
             opacity: 0.9,
-            letterSpacing: '0.5px'
+            letterSpacing: '0.5px',
+            pointerEvents: 'auto'
           }}>
-            {metaDetails.deepInfo}
+            {activeMarker ? (
+              autoSkipCountdown !== null ? (
+                <FocusableItem
+                  id="btn-cancel-skip-intro"
+                  rowIndex={2}
+                  colIndex={3}
+                  onClick={handleCancelAutoSkip}
+                  style={{
+                    backgroundColor: '#fff',
+                    color: '#000',
+                    padding: '8px 24px',
+                    borderRadius: '50px',
+                    fontSize: '22px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel Skip ({autoSkipCountdown})
+                </FocusableItem>
+              ) : (
+                <FocusableItem
+                  id="btn-skip-intro"
+                  rowIndex={2}
+                  colIndex={3}
+                  onClick={handleSkipIntro}
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                    color: '#fff',
+                    padding: '8px 24px',
+                    borderRadius: '50px',
+                    fontSize: '22px',
+                    fontWeight: '600',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Skip Intro
+                </FocusableItem>
+              )
+            ) : (
+              metaDetails.deepInfo
+            )}
           </div>
         </div>
       </div>

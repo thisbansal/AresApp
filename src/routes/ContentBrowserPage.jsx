@@ -116,6 +116,7 @@ function ContentBrowserPage() {
   const setShowSubtitleHUDControls = useBrowserStore((state) => state.setShowSubtitleHUDControls)
   const showUnwatchedIndicator = useBrowserStore((state) => state.showUnwatchedIndicator)
   const setShowUnwatchedIndicator = useBrowserStore((state) => state.setShowUnwatchedIndicator)
+  const autoSkipIntro = useBrowserStore((state) => state.autoSkipIntro)
   const enableAudioPassthrough = useBrowserStore((state) => state.enableAudioPassthrough)
   const setEnableAudioPassthrough = useBrowserStore((state) => state.setEnableAudioPassthrough)
 
@@ -1330,6 +1331,27 @@ function ContentBrowserPage() {
                         <FiEyeOff size={48} color="rgba(255, 255, 255, 0.4)" strokeWidth={2.5} />
                       )}
                       <div className="setting-card-title">Seen indicators</div>
+                    </div>
+                  </FocusableItem>
+
+                  {/* Auto Skip Intro Setting */}
+                  <FocusableItem
+                    id="setting-auto-skip-intro"
+                    rowIndex={11}
+                    colIndex={2}
+                    onClick={() => {
+                      const newValue = !autoSkipIntro
+                      preferenceService.savePreferences({ autoSkipIntro: newValue })
+                    }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <div className="setting-card">
+                      {autoSkipIntro ? (
+                        <FiPlay size={48} color="#ffffff" strokeWidth={2.5} />
+                      ) : (
+                        <FiPlay size={48} color="rgba(255, 255, 255, 0.4)" strokeWidth={2.5} />
+                      )}
+                      <div className="setting-card-title">Auto Skip Intro</div>
                     </div>
                   </FocusableItem>
                 </div>

@@ -32,7 +32,8 @@ export const preferenceService = {
         setSubtitleColor,
         setSubtitleSize,
         setShowSubtitleHUDControls,
-        setEnableAudioPassthrough
+        setEnableAudioPassthrough,
+        setAutoSkipIntro
       } = useBrowserStore.getState()
 
       if (prefs.showUnwatchedIndicator !== undefined) setShowUnwatchedIndicator(prefs.showUnwatchedIndicator)
@@ -40,6 +41,7 @@ export const preferenceService = {
       if (prefs.subtitleSize !== undefined) setSubtitleSize(prefs.subtitleSize)
       if (prefs.showSubtitleHUDControls !== undefined) setShowSubtitleHUDControls(prefs.showSubtitleHUDControls)
       if (prefs.enableAudioPassthrough !== undefined) setEnableAudioPassthrough(prefs.enableAudioPassthrough)
+      if (prefs.autoSkipIntro !== undefined) setAutoSkipIntro(prefs.autoSkipIntro)
 
       console.log('[PreferenceService] Preferences successfully loaded & synced:', prefs)
       return prefs
@@ -63,6 +65,7 @@ export const preferenceService = {
       subtitleSize: storeState.subtitleSize,
       showSubtitleHUDControls: storeState.showSubtitleHUDControls,
       enableAudioPassthrough: storeState.enableAudioPassthrough,
+      autoSkipIntro: storeState.autoSkipIntro,
       ...updatedFields
     }
 

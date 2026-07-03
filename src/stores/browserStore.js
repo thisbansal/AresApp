@@ -35,6 +35,9 @@ export const useBrowserStore = create((set) => ({
   showSubtitleHUDControls: false,
   setShowSubtitleHUDControls: (val) => set({ showSubtitleHUDControls: val }),
 
+  autoSkipIntro: false,
+  setAutoSkipIntro: (val) => set({ autoSkipIntro: val }),
+
   enableAudioPassthrough: false,
   setEnableAudioPassthrough: (val) => set({ enableAudioPassthrough: val }),
 }))

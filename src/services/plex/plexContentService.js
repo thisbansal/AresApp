@@ -191,6 +191,11 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
     index: item.index,
     viewOffset: item.viewOffset,
     viewCount: item.viewCount,
+    markers: item.Marker?.map(m => ({
+      type: m.type,
+      startTimeOffset: m.startTimeOffset,
+      endTimeOffset: m.endTimeOffset
+    })) || [],
     media: item.Media?.map(m => ({
       videoResolution: m.videoResolution,
       bitrate: m.bitrate,
