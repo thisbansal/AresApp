@@ -819,10 +819,12 @@ export default function PlayerPage() {
     triggerHUD()
     setCurrentTime(0)
     setDragTime(0)
-    await executeSeek(0)
+    const streamChanged = await executeSeek(0)
     setHasStartedFromBeginning(true)
     setIsAutoSkipCancelled(false)
-    videoEl.play().catch(err => console.error('Restart play failed:', err))
+    if (!streamChanged) {
+      videoEl.play().catch(err => console.error('Restart play failed:', err))
+    }
   }
 
   const handleSeek = (direction) => {
