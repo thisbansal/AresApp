@@ -161,7 +161,7 @@ export const getLibraryItems = async (serverUri, token, libraryId) => {
  * Get detailed metadata for a specific item
  */
 export const getMetadata = async (serverUri, token, ratingKey) => {
-  const response = await plexBridge.request(`/library/metadata/${ratingKey}`, {}, buildServerContext(serverUri, token))
+  const response = await plexBridge.request(`/library/metadata/${ratingKey}?includeMarkers=1`, {}, buildServerContext(serverUri, token))
   const data = await response.json()
   const item = data.MediaContainer.Metadata[0]
 
