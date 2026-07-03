@@ -29,7 +29,7 @@ import { getUsers, verifyUserPin } from '../services/plex/plexAuthService'
 import { resolveMediaNavigation } from '../utils/mediaNavigation'
 import { getMainToken } from '../services/luna/tokenStorage'
 import { useServerManagerStore } from '../stores/serverManagerStore'
-import { FiCheck, FiX, FiLock, FiUnlock, FiUsers, FiEye, FiEyeOff, FiGrid, FiMonitor, FiLogOut, FiSettings, FiType, FiDroplet, FiMaximize, FiSliders, FiDatabase } from 'react-icons/fi'
+import { FiCheck, FiX, FiLock, FiUnlock, FiUsers, FiEye, FiEyeOff, FiGrid, FiMonitor, FiLogOut, FiSettings, FiType, FiDroplet, FiMaximize, FiSliders, FiDatabase, FiPlay } from 'react-icons/fi'
 
 // Module-level cache to persist clicked item ID across route transitions (for back morph animations)
 let globalClickedItemId = null
