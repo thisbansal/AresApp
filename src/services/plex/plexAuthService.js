@@ -51,14 +51,17 @@ export const getUsers = async (authToken) => {
   if (!res.ok) throw new Error(`Failed to fetch users: ${res.status}`)
 
   const data = await res.json()
-  return data.users.map(user => ({
-    id: user.id,
-    name: user.title,
-    avatar: user.thumb,
-    protected: user.protected,
-    admin: user.admin,
-    pin: user.pin
-  }))
+  return data.users.map(user => {
+    console.log(`[PlexAuthService] Fetched profile pic for user "${user.title}": ${user.thumb}`);
+    return {
+      id: user.id,
+      name: user.title,
+      avatar: user.thumb,
+      protected: user.protected,
+      admin: user.admin,
+      pin: user.pin
+    };
+  })
 }
 
 export const verifyUserPin = async (authToken, userId, pin) => {

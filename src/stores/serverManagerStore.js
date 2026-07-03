@@ -99,11 +99,30 @@ export const useServerManagerStore = create((set, get) => ({
         const firstServer = Object.values(updatedServers).find(s => s.owned) || Object.values(updatedServers)[0]
         useServerStore.setState({
           activeServer: {
+            clientIdentifier: firstServer.clientIdentifier,
             uri: firstServer.uri,
             token: firstServer.accessToken,
             owned: firstServer.owned
-          }
+          },
+          isOnline: true // We just discovered it, so it's online
         })
+      } else if (currentActive) {
+        // If we already have an active server, check if its URI was updated during discovery
+        const updatedMatchingServer = updatedServers[currentActive.clientIdentifier]
+        if (updatedMatchingServer && updatedMatchingServer.uri !== currentActive.uri) {
+          console.log(`[SERVER MANAGER] Active server URI changed during discovery. Updating legacy activeServer from ${currentActive.uri} to ${updatedMatchingServer.uri}`)
+          useServerStore.setState({
+            activeServer: {
+              ...currentActive,
+              uri: updatedMatchingServer.uri,
+              token: updatedMatchingServer.accessToken
+            },
+            isOnline: true
+          })
+        } else if (updatedMatchingServer) {
+          // It's still valid, ensure it's marked online
+          useServerStore.setState({ isOnline: true })
+        }
       }
 
     } catch (e) {

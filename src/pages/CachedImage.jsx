@@ -76,11 +76,10 @@ export function CachedImage({ src, itemId, alt, style, className, loading = 'laz
   )
 }
 
-/**
- * Simple cached image that doesn't show loading state
- */
-export function SimpleCachedImage({ src, itemId, ...props }) {
+export function SimpleCachedImage({ src, itemId, style, className, ...props }) {
   const [imageSrc, setImageSrc] = useState(src) // Start with original URL
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [showShimmer, setShowShimmer] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -102,5 +101,42 @@ export function SimpleCachedImage({ src, itemId, ...props }) {
     }
   }, [src, itemId])
 
-  return <img src={imageSrc} {...props} />
+  // Debounce the shimmer so it doesn't flash on images that are already in browser cache
+  useEffect(() => {
+    let timer;
+    if (!isLoaded) {
+      timer = setTimeout(() => {
+        setShowShimmer(true)
+      }, 150)
+    } else {
+      setShowShimmer(false)
+    }
+    return () => clearTimeout(timer)
+  }, [isLoaded])
+
+  return (
+    <div style={{ position: 'relative', width: style?.width || '100%', height: style?.height || '100%', display: 'inline-block' }}>
+      {(!isLoaded && showShimmer) && (
+        <div 
+          className="skeleton-shimmer"
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: '#2a2d31', // Base grey
+            borderRadius: style?.borderRadius || (className === 'media-card-poster' ? '12px' : '0'),
+            overflow: 'hidden',
+            zIndex: 1
+          }}
+        />
+      )}
+      <img 
+        src={imageSrc} 
+        style={{ ...style, opacity: isLoaded ? 1 : 0, transition: 'opacity 0.2s ease-in', position: 'relative', zIndex: 2 }} 
+        className={className}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setIsLoaded(true)} // Don't show shimmer forever on error
+        {...props} 
+      />
+    </div>
+  )
 }

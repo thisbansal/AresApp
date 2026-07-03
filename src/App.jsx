@@ -5,8 +5,10 @@ import { EdgeScrollTriggers } from './components/navigational/EdgeScrollTriggers
 import { KeyboardHandler } from './components/navigational/KeyboardHandler'
 import { ExitDialog } from './components/navigational/ExitDialog'
 import { useServerStore } from './stores/serverStore'
+import { useServerManagerStore } from './stores/serverManagerStore'
 import { useAppStore } from './stores/AppStore'
 import { plexBridge } from './services/plex/plexBridge'
+import { useWebSocketStore } from './stores/webSocketStore'
 import { SpatialNavigationProvider } from './contexts/SpatialNavigationContext'
 
 import AuthRoute from './pages/Auth'
@@ -37,25 +39,45 @@ function App() {
       console.log('[NETWORK] Network interface returned online. Triggering server check...');
       if (isAuthenticated && hasSession) {
         plexBridge.ping()
+        useWebSocketStore.getState().reconnectAll()
       }
     }
     window.addEventListener('online', handleOnline)
     return () => window.removeEventListener('online', handleOnline)
   }, [isAuthenticated, hasSession])
 
-  // Periodic Health Pings check to keep connection state healthy
+  // Handle WebOS standby/resume to fix zombie sockets
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[LIFECYCLE] App resumed from standby. Reconnecting WebSockets...');
+        useWebSocketStore.getState().reconnectAll()
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  const serverCount = useServerManagerStore(state => Object.keys(state.servers).length);
+
+  // Maintain WebSocket connection to all available Servers
+  useEffect(() => {
+    const smStore = useServerManagerStore.getState().servers;
+    Object.values(smStore).forEach(server => {
+      if (server.clientIdentifier && server.uri && server.accessToken) {
+        useWebSocketStore.getState().connectToServer(
+          server.clientIdentifier, 
+          server.uri, 
+          server.accessToken
+        );
+      }
+    });
+  }, [serverCount]);
+
+  // Trigger initial ping once authenticated
   useEffect(() => {
     if (!isAuthenticated || !hasSession || !activeServer?.uri || !activeServer?.token) return
-
-    // Trigger initial ping once authenticated
     plexBridge.ping()
-
-    // 30 seconds interval for network connectivity checking
-    const intervalId = setInterval(() => {
-      plexBridge.ping()
-    }, 30000)
-
-    return () => clearInterval(intervalId)
   }, [isAuthenticated, hasSession, activeServer?.uri, activeServer?.token])
 
   // Show loading state while checking auth

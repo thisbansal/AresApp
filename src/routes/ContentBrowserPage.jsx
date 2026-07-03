@@ -9,6 +9,7 @@ import { MediaCard } from '../components/media/MediaCard'
 import { HeroBanner } from '../components/media/HeroBanner'
 import { SkeletonRow } from '../components/media/SkeletonRow'
 import { EmptyState } from '../components/media/EmptyState'
+import { SimpleCachedImage } from '../pages/CachedImage'
 import { useAppStore } from '../stores/AppStore'
 import { DB_KINDS, getData, setData } from '../services/luna/lunaService'
 import { preferenceService } from '../services/luna/preferenceService'
@@ -120,7 +121,10 @@ function ContentBrowserPage() {
   const selectedLibraries = useAppStore((state) => state.selectedLibraries)
   const isOnline = useServerStore(state => state.isOnline)
   const smStoreServers = useServerManagerStore((state) => state.servers)
-  const allServersOffline = !isOnline && continueWatching.length === 0 && recentMovies.length === 0 && recentTv.length === 0;
+  const isDiscovering = useServerManagerStore((state) => state.isDiscovering)
+  
+  // We only show offline if we are truly offline AND we aren't currently discovering servers
+  const allServersOffline = !isOnline && !isDiscovering && continueWatching.length === 0 && recentMovies.length === 0 && recentTv.length === 0;
 
   const [loading, setLoading] = useState(true)
   const [libraryOffline, setLibraryOffline] = useState(false)
@@ -467,6 +471,7 @@ function ContentBrowserPage() {
   const {
     data: continueWatchingData,
     loading: continueWatchingLoading,
+    revalidate: revalidateContinueWatching,
   } = usePlexQuery(
     ['home_continue_watching', serverInfo?.uri, Object.keys(smStoreServers).length],
     async () => {
@@ -480,6 +485,7 @@ function ContentBrowserPage() {
   const {
     data: recentAddedData,
     loading: recentAddedLoading,
+    revalidate: revalidateRecentAdded,
   } = usePlexQuery(
     ['home_recent_added', serverInfo?.uri, Object.keys(smStoreServers).length],
     async () => {
@@ -525,6 +531,7 @@ function ContentBrowserPage() {
     data: libraryItemsData,
     loading: libraryItemsLoading,
     error: libraryItemsError,
+    revalidate: revalidateLibraryItems,
   } = usePlexQuery(
     ['library_items', activeLibUri, activeLibId],
     async () => {
@@ -545,12 +552,32 @@ function ContentBrowserPage() {
   }, [libraryItemsData, setLibraryContent]);
 
 
+  // Listen to WebSocket events to automatically refresh content
+  useEffect(() => {
+    const handleRemoteUpdate = () => {
+      console.log('[ContentBrowserPage] Received WebSocket update. Revalidating content...');
+      if (activeTab.type === 'home') {
+        revalidateContinueWatching();
+        revalidateRecentAdded();
+      } else if (activeTab.type === 'library') {
+        revalidateLibraryItems();
+      }
+    };
+    
+    window.addEventListener('plex-ws-playback-update', handleRemoteUpdate);
+    window.addEventListener('plex-ws-library-updated', handleRemoteUpdate);
+    
+    return () => {
+      window.removeEventListener('plex-ws-playback-update', handleRemoteUpdate);
+      window.removeEventListener('plex-ws-library-updated', handleRemoteUpdate);
+    };
+  }, [activeTab.type, revalidateContinueWatching, revalidateRecentAdded, revalidateLibraryItems]);
 
   // Set local browser loading & offline state
   useEffect(() => {
     if (activeTab.type === 'home') {
       const hasHomeCache = continueWatching.length > 0 || recentMovies.length > 0 || recentTv.length > 0;
-      if (!serverInfo) {
+      if (!serverInfo || isDiscovering) {
         setLoading(!hasHomeCache);
       } else {
         setLoading((continueWatchingLoading || recentAddedLoading) && !hasHomeCache);
@@ -558,13 +585,13 @@ function ContentBrowserPage() {
       setLibraryOffline(false);
     } else if (activeTab.type === 'library') {
       const hasCache = libraryContent.all && libraryContent.all.length > 0;
-      if (!serverInfo && !activeTab.data?.serverUri) {
+      if ((!serverInfo && !activeTab.data?.serverUri) || isDiscovering) {
         setLoading(!hasCache);
       } else {
         setLoading(libraryItemsLoading);
       }
       // Decouple: show offline error screen if network call errored or offline, and there is no cached content
-      const isLibOffline = activeTab.data?.isOffline || !!libraryItemsError;
+      const isLibOffline = (activeTab.data?.isOffline || !!libraryItemsError) && !isDiscovering;
       setLibraryOffline(isLibOffline && !hasCache);
     } else {
       setLoading(false);
@@ -573,6 +600,7 @@ function ContentBrowserPage() {
   }, [
     activeTab,
     serverInfo,
+    isDiscovering,
     continueWatchingLoading,
     recentAddedLoading,
     libraryItemsLoading,
@@ -773,7 +801,7 @@ function ContentBrowserPage() {
   const renderCard = (item, rowIndex, colIndex, prefix, variant = 'poster') => {
     return (
       <MediaCard
-        key={`${prefix}-${item.id}-${colIndex}`}
+        key={`${prefix}-${item.id}`}
         item={item}
         rowIndex={rowIndex}
         colIndex={colIndex}
@@ -1158,13 +1186,11 @@ function ContentBrowserPage() {
                         <>
                           {/* Left Profile Info Section */}
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, gap: '10px' }}>
-                            <img
+                            <SimpleCachedImage
                               src={usersList.find(u => u.id === currentProfile.userId)?.avatar || ''}
+                              itemId={`user_${currentProfile.userId}`}
                               alt={currentProfile.userName}
                               style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2.5px solid #ffffff' }}
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                              }}
                             />
                             <div style={{ fontSize: '24px', fontWeight: '700', color: '#ffffff', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>
                               {currentProfile.userName}
@@ -1434,9 +1460,9 @@ function ContentBrowserPage() {
                 <div style={styles.exitOverlay} className="exit-overlay">
                   <div style={styles.pinCardSettings}>
                     <div style={styles.pinAvatarWrapper}>
-                      <img
+                      <SimpleCachedImage
                         src={pinDialogUser.avatar}
-                        alt={pinDialogUser.name}
+                        itemId={`user_${pinDialogUser.id}`}
                         style={styles.pinAvatar}
                       />
                       <div style={styles.pinLockBadge}>

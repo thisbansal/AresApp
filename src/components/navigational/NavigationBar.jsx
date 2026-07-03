@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FocusableItem } from './FocusableItem';
-import { FiHome, FiSettings, FiUser, FiArrowLeft } from 'react-icons/fi';
+import { FiHome, FiSettings, FiUser, FiArrowLeft, FiGrid } from 'react-icons/fi';
+import { SimpleCachedImage } from '../../pages/CachedImage';
 import { useSpatialNavigation, FocusLayer } from '../../contexts/SpatialNavigationContext';
 import { useAppStore } from '../../stores/AppStore';
 import { useServerStore } from '../../stores/serverStore';
@@ -101,7 +102,7 @@ export function NavigationBar({ libraries = [], activeTab, onItemClick }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
               <div className="nav-profile">
                 <div className="nav-avatar">
-                  {userProfile?.thumb ? <img src={userProfile.thumb} alt="Avatar" /> : <div className="nav-avatar-initials">{initials}</div>}
+                  {userProfile?.thumb ? <SimpleCachedImage src={userProfile.thumb} itemId={`user_${userProfile.userId}`} alt="Avatar" /> : <div className="nav-avatar-initials">{initials}</div>}
                 </div>
               </div>
               <div className="nav-time">{timeStr}</div>

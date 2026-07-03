@@ -96,7 +96,7 @@ export function HeroBanner({ items = [] }) {
     setShowDescription(false);
     setShowNoDescDialog(false);
   }, [currentIndex]);
-  
+
   const timerRef = useRef(null);
   const goToNextSlideRef = useRef(null);
 
@@ -107,14 +107,11 @@ export function HeroBanner({ items = [] }) {
         setCurrentIndex(0);
       }
 
-      console.log('--- Hero Banner Art Sources ---');
       items.forEach((it, idx) => {
         let artSource = 'None';
         if (it.rawArt) artSource = 'rawArt (art/grandparentArt/parentArt)';
         else if (it.rawThumb) artSource = 'rawThumb (poster)';
-        console.log(`Slide ${idx + 1} (${it.title}): Using ${artSource}`);
       });
-      console.log('-------------------------------');
 
       // Auto-focus play button on load
       const timer = setTimeout(() => {
@@ -464,8 +461,8 @@ export function HeroBanner({ items = [] }) {
   };
 
   return (
-    <div 
-      style={{...styles.container, cursor: 'pointer'}} 
+    <div
+      style={{...styles.container, cursor: 'pointer'}}
       onClick={handleInfo}
     >
       {/* Background with crossfade key mapping */}
@@ -482,17 +479,17 @@ export function HeroBanner({ items = [] }) {
             bgUrl = art;
           }
         }
-        
+
         return (
-          <img 
+          <img
             key={it.id}
-            src={bgUrl} 
+            src={bgUrl}
             style={{
               ...styles.bgImage,
               opacity: currentIndex === idx ? 1 : 0,
               visibility: currentIndex === idx ? 'visible' : 'hidden'
-            }} 
-            alt="" 
+            }}
+            alt=""
           />
         );
       })}
@@ -521,8 +518,8 @@ export function HeroBanner({ items = [] }) {
       </div>
       <div style={styles.bottomBar}>
         <div style={styles.actions}>
-          <FocusableItem 
-            id="hero-play-btn" 
+          <FocusableItem
+            id="hero-play-btn"
             onClick={handlePlay}
             onFocus={handleFocus}
           >
@@ -531,8 +528,8 @@ export function HeroBanner({ items = [] }) {
             </div>
           </FocusableItem>
 
-          <FocusableItem 
-            id="hero-info-btn" 
+          <FocusableItem
+            id="hero-info-btn"
             onClick={handleToggleDescription}
             onFocus={handleFocus}
           >
@@ -541,8 +538,8 @@ export function HeroBanner({ items = [] }) {
             </div>
           </FocusableItem>
 
-          <FocusableItem 
-            id="hero-prev-btn" 
+          <FocusableItem
+            id="hero-prev-btn"
             onClick={handlePrevSlide}
             onFocus={handleFocus}
           >
@@ -551,8 +548,8 @@ export function HeroBanner({ items = [] }) {
             </div>
           </FocusableItem>
 
-          <FocusableItem 
-            id="hero-next-btn" 
+          <FocusableItem
+            id="hero-next-btn"
             onClick={handleNextSlide}
             onFocus={handleFocus}
           >
@@ -571,15 +568,15 @@ export function HeroBanner({ items = [] }) {
               return <div key={idx} style={styles.dot(distance, idx === currentIndex)} />;
             })}
           </div>
-          
+
           <MdKeyboardArrowDown className="scroll-down-arrow" size={48} />
         </div>
       </div>
 
       {showNoDescDialog && (
         <FocusLayer id="no-desc-dialog" isActive={true}>
-          <div 
-            style={styles.exitOverlay} 
+          <div
+            style={styles.exitOverlay}
             className="exit-overlay"
             onClick={(e) => e.stopPropagation()}
           >
