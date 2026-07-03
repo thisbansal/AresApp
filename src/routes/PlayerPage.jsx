@@ -1060,6 +1060,7 @@ export default function PlayerPage() {
 
   // Skip Intro Hooks
   useEffect(() => {
+    console.log('[SkipUI Debug] FULL metaDetails received by PlayerPage:', metaDetails);
     console.log('[SkipUI Debug] activeMarker:', activeMarker);
     console.log('[SkipUI Debug] autoSkipCountdown:', autoSkipCountdown);
     console.log('[SkipUI Debug] introButtonVisible:', introButtonVisible);
