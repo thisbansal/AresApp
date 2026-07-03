@@ -1494,22 +1494,13 @@ export default function PlayerPage() {
                   id="btn-skip-intro"
                   rowIndex={2}
                   colIndex={3}
+                  className="player-hud-btn-capsule"
                   onClick={handleSkipIntro}
-                  style={{
-                    backgroundColor: 'rgba(255,255,255,0.15)',
-                    color: '#fff',
-                    padding: '8px 24px',
-                    borderRadius: '50px',
-                    fontSize: '22px',
-                    fontWeight: '600',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
                 >
-                  Skip Intro
+                  <div className="hud-btn-content">
+                    <FiSkipForward size={32} fill="#fff" color="#fff" />
+                    <span className="capsuleLabel">{activeMarker.type === 'credits' ? 'Skip Credits' : 'Skip Intro'}</span>
+                  </div>
                 </FocusableItem>
               )
             ) : (
