@@ -215,7 +215,7 @@ export default function PlayerPage() {
           ? `${metadata.grandparentTitle} • ${metadata.parentTitle} • Episode ${metadata.index}`
           : ''
 
-        let deepInfo = metadata.title;
+        let deepInfo = '';
         if (metadata.type === 'episode') {
           const s = parseInt(metadata.parentIndex, 10) || metadata.parentIndex;
           const e = parseInt(metadata.index, 10) || metadata.index;
