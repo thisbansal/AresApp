@@ -579,6 +579,7 @@ export default function PlayerPage() {
 
   useEffect (() => {
     console.log(numberOfStreams)
+    console.log("Markers:", metaDetails?.markers)
   }, [numberOfStreams])
 
   async function executeSeek(newGlobalTime) {
@@ -1063,7 +1064,7 @@ export default function PlayerPage() {
   useEffect(() => {
     if (loading || !metaDetails?.markers || metaDetails.markers.length === 0) return;
     const currentMarker = metaDetails.markers.find(
-      m => m.type === 'intro' && (hookDisplayTime * 1000) >= m.startTimeOffset && (hookDisplayTime * 1000) <= m.endTimeOffset
+      m => (m.type === 'intro' || m.type === 'credits') && (hookDisplayTime * 1000) >= m.startTimeOffset && (hookDisplayTime * 1000) <= m.endTimeOffset
     );
     if (currentMarker) {
       if (activeMarker !== currentMarker) {
