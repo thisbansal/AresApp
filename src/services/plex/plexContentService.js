@@ -165,6 +165,8 @@ export const getMetadata = async (serverUri, token, ratingKey) => {
   const data = await response.json()
   const item = data.MediaContainer.Metadata[0]
 
+  console.log("Raw Plex API Item Metadata:", item);
+
   return {
     id: item.ratingKey,
     title: item.title,
