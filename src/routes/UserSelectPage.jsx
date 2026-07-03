@@ -76,7 +76,7 @@ function UserSelectPage() {
           }
           return prev;
         });
-        
+
         // If pin was already empty, allow fallback (e.g. close prompt)
         return pin.length > 0;
       }
@@ -137,7 +137,7 @@ function UserSelectPage() {
 
       // Preload avatars into memory cache before rendering
       await Promise.allSettled(
-        userList.map(user => 
+        userList.map(user =>
           imageCacheService.getCachedImage(user.avatar, `user_${user.id}`)
         )
       )
@@ -299,11 +299,6 @@ function UserSelectPage() {
               alt={selectedUser.name}
               style={styles.pinAvatar}
             />
-            {selectedUser.protected && (
-              <div style={styles.pinLockBadge}>
-                <FiLock size={22} color="#ffffff" strokeWidth={2.5} style={{ display: 'block' }} />
-              </div>
-            )}
           </div>
           <h2 style={styles.pinTitle}>Enter PIN for {selectedUser.name}</h2>
 
@@ -497,11 +492,6 @@ function UserSelectPage() {
                     style={styles.avatar}
                     className="user-avatar"
                   />
-                  {user.protected && (
-                    <div style={styles.lockIcon}>
-                      <FiLock size={26} color={PLEX_YELLOW} strokeWidth={2.5} style={{ display: 'block' }} />
-                    </div>
-                  )}
                 </div>
                 <p style={styles.userName} className="user-name">{user.name}</p>
               </div>
