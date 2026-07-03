@@ -1349,7 +1349,12 @@ function ContentBrowserPage() {
                       {autoSkipIntro ? (
                         <FiPlay size={48} color="#ffffff" strokeWidth={2.5} />
                       ) : (
-                        <FiPlay size={48} color="rgba(255, 255, 255, 0.4)" strokeWidth={2.5} />
+                        <div style={{ position: 'relative', width: 48, height: 48 }}>
+                          <FiPlay size={48} color="rgba(255, 255, 255, 0.4)" strokeWidth={2.5} />
+                          <svg style={{ position: 'absolute', top: 0, left: 0 }} width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="2" y1="2" x2="22" y2="22" stroke="rgba(255, 255, 255, 0.4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
                       )}
                       <div className="setting-card-title">Auto Skip Intro</div>
                     </div>
