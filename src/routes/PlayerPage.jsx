@@ -1102,11 +1102,7 @@ export default function PlayerPage() {
     }
   }, [hookDisplayTime, metaDetails?.markers, activeMarker, autoSkipIntro, hasStartedFromBeginning, isAutoSkipCancelled, loading]);
 
-  useEffect(() => {
-    if (!showHUD) {
-      setIntroButtonVisible(false);
-    }
-  }, [showHUD]);
+
 
   useEffect(() => {
     if (autoSkipCountdown === null) return;
