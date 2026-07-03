@@ -1058,12 +1058,15 @@ export default function PlayerPage() {
   }
 
 
-  // Skip Intro Hooks\n  useEffect(() => {
+  // Skip Intro Hooks
+  useEffect(() => {
     console.log('[SkipUI Debug] activeMarker:', activeMarker);
     console.log('[SkipUI Debug] autoSkipCountdown:', autoSkipCountdown);
     console.log('[SkipUI Debug] introButtonVisible:', introButtonVisible);
     console.log('[SkipUI Debug] hasStartedFromBeginning:', hasStartedFromBeginning);
   }, [activeMarker, autoSkipCountdown, introButtonVisible, hasStartedFromBeginning]);
+
+  const hookDisplayTime = isDragging ? dragTime : (streamUrl && streamUrl.includes('protocol=dash') ? currentTime + ((!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0) : currentTime);
 
   // Log current time vs markers every 5 seconds
   useEffect(() => {
@@ -1073,8 +1076,6 @@ export default function PlayerPage() {
     }, 5000);
     return () => clearInterval(timer);
   }, [hookDisplayTime, metaDetails?.markers]);
-
-  const hookDisplayTime = isDragging ? dragTime : (streamUrl && streamUrl.includes('protocol=dash') ? currentTime + ((!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0) : currentTime);
 
   useEffect(() => {
     if (loading || !metaDetails?.markers || metaDetails.markers.length === 0) return;
