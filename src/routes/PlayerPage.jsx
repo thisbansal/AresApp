@@ -1477,13 +1477,19 @@ export default function PlayerPage() {
                   id="btn-cancel-skip-intro"
                   rowIndex={2}
                   colIndex={3}
-                  className="player-hud-btn-capsule"
                   onClick={handleCancelAutoSkip}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#fff',
+                    padding: '8px 16px',
+                    fontSize: '22px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer'
+                  }}
                 >
-                  <div className="hud-btn-content">
-                    <FiXCircle size={32} fill="#fff" color="#fff" />
-                    <span className="capsuleLabel">Cancel ({autoSkipCountdown})</span>
-                  </div>
+                  Skipping {activeMarker.type === 'credits' ? 'credits' : 'intro'} in {Math.max(0, autoSkipCountdown)}
                 </FocusableItem>
               ) : (
                 <FocusableItem
