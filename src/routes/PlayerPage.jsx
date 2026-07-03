@@ -6,7 +6,7 @@ import { useActiveServer } from '../hooks/useActiveServer'
 import { subtitleConverter } from '../utils/subtitleConverter'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { FocusLayer } from '../contexts/SpatialNavigationContext'
-import { FiTv, FiSliders, FiRewind, FiPause, FiPlay } from 'react-icons/fi'
+import { FiTv, FiSliders, FiRewind, FiPause, FiPlay, FiSkipForward, FiXCircle } from 'react-icons/fi'
 import { MdSubtitles, MdFormatSize, MdFormatBold } from 'react-icons/md'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
 
@@ -1481,20 +1481,13 @@ export default function PlayerPage() {
                   id="btn-cancel-skip-intro"
                   rowIndex={2}
                   colIndex={3}
+                  className="player-hud-btn-capsule"
                   onClick={handleCancelAutoSkip}
-                  style={{
-                    backgroundColor: '#fff',
-                    color: '#000',
-                    padding: '8px 24px',
-                    borderRadius: '50px',
-                    fontSize: '22px',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer'
-                  }}
                 >
-                  Cancel Skip ({autoSkipCountdown})
+                  <div className="hud-btn-content">
+                    <FiXCircle size={32} fill="#fff" color="#fff" />
+                    <span className="capsuleLabel">Cancel ({autoSkipCountdown})</span>
+                  </div>
                 </FocusableItem>
               ) : (
                 <FocusableItem
