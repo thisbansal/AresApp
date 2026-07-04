@@ -1129,7 +1129,7 @@ export default function PlayerPage() {
       if (activeMarker && autoSkipCountdown === 0) {
         setAutoSkipCountdown(-1);
         setHasStartedFromBeginning(false);
-        executeSeek(activeMarker.endTimeOffset / 1000).catch(console.error);
+        executeSeek((activeMarker.endTimeOffset / 1000) + 0.5).catch(console.error);
       }
       return;
     }
@@ -1148,7 +1148,7 @@ export default function PlayerPage() {
   const handleSkipIntro = () => {
     if (activeMarker) {
       setHasStartedFromBeginning(false);
-      executeSeek(activeMarker.endTimeOffset / 1000).catch(console.error);
+      executeSeek((activeMarker.endTimeOffset / 1000) + 0.5).catch(console.error);
     }
   };
 
