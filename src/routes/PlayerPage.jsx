@@ -1384,7 +1384,7 @@ export default function PlayerPage() {
         </div>
 
         {/* Timeline Slider Track */}
-        <div className="player-hud-timeline-row" style={styles.timelineRow}>
+        <div className="player-hud-timeline-row" style={{ ...styles.timelineRow, opacity: showHUD ? 1 : 0, transition: 'opacity 0.3s ease', pointerEvents: showHUD ? 'auto' : 'none' }}>
           {/* Current Time on the left */}
           <span className="player-hud-time" style={styles.timeText}>{formatTime(displayTime)}</span>
 
