@@ -1109,7 +1109,6 @@ export default function PlayerPage() {
         } else {
           setAutoSkipCountdown(null);
         }
-        setIntroButtonVisible(true);
       }
     } else {
       if (activeMarker) {
@@ -1119,6 +1118,18 @@ export default function PlayerPage() {
       }
     }
   }, [hookDisplayTime, metaDetails?.markers, activeMarker, autoSkipIntro, hasStartedFromBeginning, isAutoSkipCancelled, loading]);
+
+  useEffect(() => {
+    let timer;
+    if (activeMarker) {
+      setIntroButtonVisible(true);
+    } else {
+      timer = setTimeout(() => {
+        setIntroButtonVisible(false);
+      }, 5000);
+    }
+    return () => clearTimeout(timer);
+  }, [activeMarker]);
 
 
 
