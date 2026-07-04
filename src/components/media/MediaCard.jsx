@@ -90,7 +90,12 @@ export function MediaCard({
           itemId={item.id}
           alt={item.grandparentTitle || item.title}
           className="media-card-poster"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            objectFit: 'cover',
+            objectPosition: prefix === 'cw' ? '50% 40%' : 'center'
+          }}
           loading="lazy"
           decoding="async"
           showFacade={showFacade}
@@ -104,14 +109,29 @@ export function MediaCard({
             background: 'linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0) 100%)',
             padding: '24px 16px 12px 16px',
             display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-end',
-            alignItems: 'flex-end',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             boxSizing: 'border-box',
             borderBottomLeftRadius: '12px',
             borderBottomRightRadius: '12px',
-            zIndex: 2
+            zIndex: 2,
+            gap: '12px'
           }}>
+            {item.type === 'episode' && item.parentIndex != null && item.index != null && (
+              <div style={{
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: '#fff',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                whiteSpace: 'nowrap',
+                textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+              }}>
+                S{item.parentIndex} E{item.index}
+              </div>
+            )}
             <div style={{ 
               fontSize: '22px', 
               fontWeight: '600', 
@@ -121,7 +141,7 @@ export function MediaCard({
               overflow: 'hidden',
               textShadow: '0 2px 4px rgba(0,0,0,0.5)',
               textAlign: 'right',
-              width: '100%'
+              flex: 1
             }} title={item.title}>
               {item.title}
             </div>

@@ -4,26 +4,32 @@ import { SimpleCachedImage } from '../../pages/CachedImage'
 export function FallbackImage({ src, itemId, alt, style, className, loading, decoding, showFacade = false, ...props }) {
   const [error, setError] = useState(false)
 
-  const getInitials = (name) => {
-    if (!name) return '?'
-    const cleanName = name.replace(/[^a-zA-Z0-9 ]/g, '')
-    const parts = cleanName.split(' ').filter(Boolean)
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase()
+
+
+  // Generate a consistent, vibrant gradient based on the title
+  const getGradient = (str) => {
+    if (!str) return 'linear-gradient(135deg, #2c3e50, #3498db)';
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
-    return name.substring(0, 2).toUpperCase()
+    const h1 = Math.abs(hash) % 360;
+    const h2 = (h1 + 60) % 360;
+    const h3 = (h1 + 120) % 360;
+    return `radial-gradient(circle at 0% 0%, hsl(${h1}, 70%, 40%), transparent 70%), 
+            radial-gradient(circle at 100% 100%, hsl(${h2}, 80%, 30%), transparent 70%), 
+            radial-gradient(circle at 50% 50%, hsl(${h3}, 60%, 20%), #111)`;
   }
 
-  // Determine font size based on the width or height if provided in styles
-  // Default to 24px if size can't be easily determined
-  let fontSize = '24px'
+  // Adjust font size for full text
+  let fontSize = '20px'
   if (style && (style.width || style.height)) {
     const sizeStr = style.width || style.height
     if (typeof sizeStr === 'string' && sizeStr.includes('px')) {
       const size = parseInt(sizeStr, 10)
-      if (size > 200) fontSize = '64px'
-      else if (size > 150) fontSize = '48px'
-      else if (size < 100) fontSize = '16px'
+      if (size > 200) fontSize = '32px'
+      else if (size > 150) fontSize = '24px'
+      else if (size < 100) fontSize = '14px'
     }
   }
 
@@ -35,17 +41,25 @@ export function FallbackImage({ src, itemId, alt, style, className, loading, dec
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#333',
-          color: '#888',
+          background: getGradient(alt),
+          color: '#ffffff',
           fontSize: fontSize,
-          fontWeight: '600',
+          fontWeight: 'bold',
           textAlign: 'center',
-          border: '1px solid #444',
-          boxSizing: 'border-box'
+          padding: '10%',
+          boxSizing: 'border-box',
+          textShadow: '0 2px 4px rgba(0,0,0,0.8)'
         }}
         className={className}
       >
-        {getInitials(alt)}
+        <span style={{ 
+          display: '-webkit-box', 
+          WebkitLineClamp: 3, 
+          WebkitBoxOrient: 'vertical', 
+          overflow: 'hidden' 
+        }}>
+          {alt || 'Unknown'}
+        </span>
       </div>
     )
   }

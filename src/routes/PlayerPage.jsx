@@ -1268,9 +1268,11 @@ export default function PlayerPage() {
             {metaDetails.logo ? (
               <img src={metaDetails.logo} alt={metaDetails.title} style={{ maxHeight: '80px', maxWidth: '300px', objectFit: 'contain' }} />
             ) : (
-              <h1 className="player-hud-title">{metaDetails.title}</h1>
+              <>
+                <h1 className="player-hud-title">{metaDetails.title}</h1>
+                {metaDetails.subtitle && <p className="player-hud-subtitle">{metaDetails.subtitle}</p>}
+              </>
             )}
-            {metaDetails.subtitle && <p className="player-hud-subtitle">{metaDetails.subtitle}</p>}
           </div>
 
           {/* Stream Selection Controls */}
@@ -1515,8 +1517,8 @@ export default function PlayerPage() {
                     <FiSkipForward size={32} fill="#fff" color="#fff" />
                   )}
                   <span className="capsuleLabel">
-                    {autoSkipCountdown !== null 
-                      ? `Cancel ${activeMarker.type === 'credits' ? 'Credits' : 'Intro'} Skip in ${Math.max(0, autoSkipCountdown)}`
+                    {autoSkipCountdown !== null
+                      ? `Cancel ${activeMarker.type === 'credits' ? 'Credits' : 'Intro'} Skip ${Math.max(0, autoSkipCountdown)}`
                       : (activeMarker.type === 'credits' ? 'Skip Credits' : 'Skip Intro')}
                   </span>
                 </div>
