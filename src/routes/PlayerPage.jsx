@@ -1476,22 +1476,22 @@ export default function PlayerPage() {
             pointerEvents: 'auto'
           }}>
             {activeMarker ? (
-              autoSkipCountdown !== null ? (
-                <span>Skipping {activeMarker.type === 'credits' ? 'credits' : 'intro'} in {Math.max(0, autoSkipCountdown)}...</span>
-              ) : (
-                <FocusableItem
-                  id="btn-skip-intro"
-                  rowIndex={2}
-                  colIndex={3}
-                  className="player-hud-btn-capsule"
-                  onClick={handleSkipIntro}
-                >
-                  <div className="hud-btn-content">
-                    <FiSkipForward size={32} fill="#fff" color="#fff" />
-                    <span className="capsuleLabel">{activeMarker.type === 'credits' ? 'Skip Credits' : 'Skip Intro'}</span>
-                  </div>
-                </FocusableItem>
-              )
+              <FocusableItem
+                id="btn-skip-intro"
+                rowIndex={2}
+                colIndex={3}
+                className="player-hud-btn-capsule"
+                onClick={handleSkipIntro}
+              >
+                <div className="hud-btn-content">
+                  <FiSkipForward size={32} fill="#fff" color="#fff" />
+                  <span className="capsuleLabel">
+                    {autoSkipCountdown !== null 
+                      ? `Skipping ${activeMarker.type === 'credits' ? 'credits' : 'intro'} in ${Math.max(0, autoSkipCountdown)}...`
+                      : (activeMarker.type === 'credits' ? 'Skip Credits' : 'Skip Intro')}
+                  </span>
+                </div>
+              </FocusableItem>
             ) : (
               metaDetails.deepInfo
             )}
