@@ -1122,7 +1122,7 @@ export default function PlayerPage() {
       setAutoSkipCountdown(prev => prev - 1);
     }, 1000);
     return () => clearTimeout(timer);
-  }, [autoSkipCountdown, activeMarker, isPlaying, executeSeek]);
+  }, [autoSkipCountdown, activeMarker, isPlaying]);
 
   const handleCancelAutoSkip = () => {
     setIsAutoSkipCancelled(true);
