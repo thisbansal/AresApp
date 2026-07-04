@@ -104,13 +104,6 @@ export default function PlayerPage() {
 
   const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef, hudLockoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
 
-  // Show HUD briefly when video starts
-  useEffect(() => {
-    if (!loading) {
-      triggerHUD()
-    }
-  }, [loading, triggerHUD])
-
   // Auto-focus Skip Intro button
   useEffect(() => {
     if (activeMarker) {
