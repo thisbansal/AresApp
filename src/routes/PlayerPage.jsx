@@ -46,7 +46,7 @@ export default function PlayerPage() {
   const [isSwitchingStream, setIsSwitchingStream] = useState(false)
   const [streamUrl, setStreamUrl] = useState('')
   const [isShakaReady, setIsShakaReady] = useState(false)
-  
+
   // Skip Intro State
   const [activeMarker, setActiveMarker] = useState(null)
   const [autoSkipCountdown, setAutoSkipCountdown] = useState(null)
@@ -121,7 +121,7 @@ export default function PlayerPage() {
   // Automatically spawn the PgsCanvasEngine when a PGS subtitle is selected
   useEffect(() => {
     if (!videoRef.current || !streamCapabilities?.subtitles) return;
-    
+
     const selectedSub = streamCapabilities.subtitles.find(s => s.selected && s.id !== 0);
     const isPgs = selectedSub?.codec === 'pgs';
 
@@ -134,7 +134,7 @@ export default function PlayerPage() {
 
     if (isPgs && metaDetails?.partKey) {
       const offset = Math.floor(videoRef.current.currentTime || (location.state?.startOver ? 0 : (metaDetails.viewOffset || 0) / 1000));
-      
+
       const sidecarUrl = plexStreamBuilder.buildOfficialPgsSidecarUrl(
         serverInfo,
         ratingKey,
@@ -142,17 +142,17 @@ export default function PlayerPage() {
         clientSessionId,
         offset
       );
-      
+
       console.log('[PlayerPage] Spawning PgsCanvasEngine for sidecar stream with session ID:', playbackSessionId);
-      
+
       const isDash = streamUrl && streamUrl.includes('protocol=dash');
       const startSeconds = (!location.state?.startOver && metaDetails?.viewOffset > 0) ? (metaDetails.viewOffset / 1000) : 0;
       // If DASH, video.currentTime starts at 0, so subtract start time from absolute MKV subtitle timestamps
       const timeOffsetMs = isDash ? (startSeconds * 1000) : 0;
-      
+
       const engine = new PgsCanvasEngine(videoRef.current, pgsCanvasRef.current, timeOffsetMs);
       pgsCanvasEngineRef.current = engine;
-      
+
       engine.loadStream(sidecarUrl);
     }
   }, [streamCapabilities, metaDetails, ratingKey, serverInfo, playbackSessionId, clientSessionId, location.state]);
@@ -253,12 +253,12 @@ export default function PlayerPage() {
 
         setPartId(part.id)
         setPartKey(part.key)
-        
+
         // Extract the container format to pass to our stream builder.
         // It's usually on the Part object, or sometimes on the parent Media object.
         const containerFormat = part.container || metadata.Media?.[0]?.container || metadata.media?.[0]?.container || 'mkv'
         setPartContainer(containerFormat)
-        
+
         // Temporarily mutate part to ensure getOptimalStreamUrl has access to the container on first load
         part.container = containerFormat
 
@@ -276,12 +276,12 @@ export default function PlayerPage() {
         // because it will trigger an aggressive video transcode/burn-in unless the user explicitly requested it.
         const subtitleStreams = streams.filter(s => s.streamType === 3)
         const currentlySelectedSub = subtitleStreams.find(s => s.selected)
-        
+
         if (currentlySelectedSub) {
           const codec = (currentlySelectedSub.codec || '').toLowerCase();
           const isTextBased = ['srt', 'subrip', 'vtt', 'webvtt', 'ass', 'ssa', 'mov_text', 'tx3g'].includes(codec);
           const isExternal = !!currentlySelectedSub.key;
-          
+
           if (!isTextBased || !isExternal) {
             console.log(`[PlayerPage] Deselecting Plex's default subtitle track ${currentlySelectedSub.codec} because it requires burn-in.`);
             currentlySelectedSub.selected = false;
@@ -522,19 +522,19 @@ export default function PlayerPage() {
         // Initial load: Tell TV hardware to select the subtitle track if we are Direct Playing MKV
         if (typeof window !== 'undefined' && videoEl.mediaId) {
            const selectedSub = availableStreams.find(s => s.streamType === 3 && s.selected && s.id !== 0);
-           
+
            // Calculate relative 0-based index for embedded subtitles, or -1 for off
            let relativeIndex = -1;
            if (selectedSub && selectedSub.index !== undefined && !selectedSub.key) {
                const embeddedSubs = availableStreams.filter(s => s.streamType === 3 && s.index !== undefined && !s.key);
                relativeIndex = embeddedSubs.findIndex(s => s.id === selectedSub.id);
            }
-           
+
            if (relativeIndex !== -1 || (selectedSub === undefined)) {
                // Only call if we have a valid relative index, or if we explicitly want to turn it off (-1)
                const payload = JSON.stringify({ "mediaId": videoEl.mediaId, "type": "subtitle", "index": relativeIndex });
                console.log(`[PlayerPage] Initial Load: Invoking Luna API selectTrack for relative index: ${relativeIndex}`);
-               
+
                if (window.webOS && window.webOS.service) {
                    window.webOS.service.request("luna://com.webos.media", {
                        method: "selectTrack",
@@ -546,7 +546,7 @@ export default function PlayerPage() {
                }
            }
         }
-        
+
         videoEl.removeEventListener('canplay', playOnCanPlay)
       }
       videoEl.addEventListener('canplay', playOnCanPlay)
@@ -637,11 +637,11 @@ export default function PlayerPage() {
           normalizedTarget
         );
         pgsCanvasEngineRef.current.dispose();
-        
+
         const newTimeOffsetMs = isDash ? (normalizedTarget * 1000) : 0;
         const newEngine = new PgsCanvasEngine(videoEl, pgsCanvasRef.current, newTimeOffsetMs);
         pgsCanvasEngineRef.current = newEngine;
-        
+
         newEngine.loadStream(sidecarUrl);
       }
 
@@ -659,12 +659,12 @@ export default function PlayerPage() {
           newGlobalTime
         );
         pgsCanvasEngineRef.current.dispose();
-        
+
         const isDash = streamUrl && streamUrl.includes('protocol=dash');
         const newTimeOffsetMs = isDash ? (newGlobalTime * 1000) : 0;
         const newEngine = new PgsCanvasEngine(videoEl, pgsCanvasRef.current, newTimeOffsetMs);
         pgsCanvasEngineRef.current = newEngine;
-        
+
         newEngine.loadStream(sidecarUrl);
       }
 
@@ -970,23 +970,23 @@ export default function PlayerPage() {
       // we can skip the hard restart and let the Sidecar engine or Luna API handle it seamlessly.
       if (coreNewUrl === coreOldUrl && (streamType === 3 || streamType === 2)) {
         console.log(`[PlayerPage] Video stream URL unchanged. Seamlessly switching ${streamType === 2 ? 'audio' : 'subtitle'} track natively.`);
-        
-        // If we are on WebOS and we are Direct Playing an MKV, we MUST tell the TV's native media player 
+
+        // If we are on WebOS and we are Direct Playing an MKV, we MUST tell the TV's native media player
         // to switch the embedded subtitle or audio track using the internal Luna API!
         const videoEl = videoRef.current || document.querySelector('video');
-        
+
         console.log(`[PlayerPage] Debugging Luna API Injection:`);
         console.log(`- window.webOS exists:`, typeof window !== 'undefined' && !!window.webOS);
         console.log(`- window.PalmServiceBridge exists:`, typeof window !== 'undefined' && !!window.PalmServiceBridge);
         console.log(`- videoEl exists:`, !!videoEl);
         console.log(`- videoEl.mediaId:`, videoEl ? videoEl.mediaId : 'N/A');
-        
+
         if (typeof window !== 'undefined' && videoEl && videoEl.mediaId) {
           const typeStr = streamType === 2 ? "audio" : "subtitle";
           const streamArray = streamType === 2 ? capabilities.audio : capabilities.subtitles;
           const targetTrack = streamArray.find(s => s.id === streamId);
           console.log(`- targetTrack:`, targetTrack);
-          
+
           let relativeIndex = -1;
           if (streamType === 2) {
              // For audio, we just use the index Plex provides. All audio tracks are multiplexed.
@@ -1004,16 +1004,16 @@ export default function PlayerPage() {
                 relativeIndex = embeddedSubs.findIndex(s => s.id === targetTrack.id);
              }
           }
-          
+
           if (relativeIndex !== -1 || (streamType === 3 && targetTrack && targetTrack.id === 0)) {
              const payload = JSON.stringify({
                  "mediaId": videoEl.mediaId,
                  "type": typeStr,
                  "index": relativeIndex
              });
-             
+
              console.log(`[PlayerPage] Invoking Luna API selectTrack for type: ${typeStr}, mediaId: ${videoEl.mediaId}, relative index: ${relativeIndex}`);
-             
+
              if (window.webOS && window.webOS.service) {
                  window.webOS.service.request("luna://com.webos.media", {
                      method: "selectTrack",
@@ -1036,7 +1036,7 @@ export default function PlayerPage() {
         } else {
           console.log(`[PlayerPage] Cannot invoke Luna API. videoEl or mediaId is missing.`);
         }
-        
+
         // Don't even pause the video. Just return.
         return;
       }
@@ -1127,7 +1127,7 @@ export default function PlayerPage() {
     setIsAutoSkipCancelled(true);
     setAutoSkipCountdown(null);
   };
-  
+
   const handleSkipIntro = () => {
     if (activeMarker) {
       setHasStartedFromBeginning(false);
@@ -1234,7 +1234,7 @@ export default function PlayerPage() {
         <div style={{ opacity: showHUD ? 1 : 0, transition: 'opacity 0.3s ease' }}>
         {/* Top Row: Meta on the left, Stream controls on the right */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', marginBottom: '8px' }}>
-          
+
           {/* Metadata Details */}
           <div className="player-hud-meta" style={{ marginBottom: 0, paddingBottom: '10px' }}>
             {metaDetails.logo ? (
@@ -1288,7 +1288,7 @@ export default function PlayerPage() {
             const activeSub = availableStreams.find(s => s.streamType === 3 && s.selected)
             const isSubtitleBurnedIn = activeSub && !getStreamSupport(3, activeSub.id)?.supported
             if (isSubtitleBurnedIn) return null;
-            
+
             return (
               <>
               {/* HUD Subtitle Size Toggle */}
@@ -1344,7 +1344,7 @@ export default function PlayerPage() {
                   setIsSubtitleVisible={setIsSubtitleVisible}
                   setActiveMenu={setActiveMenu}
                 />
-                
+
                 <AudioMenu
                   availableStreams={availableStreams}
                   activeMenu={activeMenu}
@@ -1352,7 +1352,7 @@ export default function PlayerPage() {
                   getStreamSupport={getStreamSupport}
                   setActiveMenu={setActiveMenu}
                 />
-                
+
                 <VideoMenu
                   availableStreams={availableStreams}
                   activeMenu={activeMenu}
@@ -1370,7 +1370,7 @@ export default function PlayerPage() {
         <div className="player-hud-timeline-row" style={styles.timelineRow}>
           {/* Current Time on the left */}
           <span className="player-hud-time" style={styles.timeText}>{formatTime(displayTime)}</span>
-          
+
           {/* Timeline center */}
           <FocusableItem
             id="player-timeline"
@@ -1386,8 +1386,8 @@ export default function PlayerPage() {
                 style={{ ...styles.timelineFill, width: `${progressPercent}%` }}
               />
             </div>
-            
-            <div 
+
+            <div
               className="player-hud-timeline-knob"
               style={{ ...styles.timelineKnob, left: `${progressPercent}%` }}
             />
@@ -1462,12 +1462,12 @@ export default function PlayerPage() {
               )}
             </FocusableItem>
           </div>
-          
+
           {/* Deep Info Text on the right */}
-          <div style={{ 
-            color: '#ffffff', 
-            fontSize: '24px', 
-            fontWeight: '500', 
+          <div style={{
+            color: '#ffffff',
+            fontSize: '24px',
+            fontWeight: '500',
             fontFamily: "'Outfit', 'Inter', sans-serif",
             textShadow: 'none',
             opacity: 0.9,
@@ -1476,17 +1476,7 @@ export default function PlayerPage() {
           }}>
             {activeMarker ? (
               autoSkipCountdown !== null ? (
-                <FocusableItem
-                  id="btn-cancel-skip-intro"
-                  rowIndex={2}
-                  colIndex={3}
-                  className="player-hud-btn-capsule"
-                  onClick={handleCancelAutoSkip}
-                >
-                  <div className="hud-btn-content">
-                    <span className="capsuleLabel">Skipping {activeMarker.type === 'credits' ? 'credits' : 'intro'} in {Math.max(0, autoSkipCountdown)}</span>
-                  </div>
-                </FocusableItem>
+                <span>Skipping {activeMarker.type === 'credits' ? 'credits' : 'intro'} in {Math.max(0, autoSkipCountdown)}...</span>
               ) : (
                 <FocusableItem
                   id="btn-skip-intro"
