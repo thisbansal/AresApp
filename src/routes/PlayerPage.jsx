@@ -76,8 +76,7 @@ export default function PlayerPage() {
 
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
-  const [showExitDialog, setShowExitDialog] = useState(false)
-  const { playClickSound } = useSound()
+
 
 
 
