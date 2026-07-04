@@ -1487,7 +1487,7 @@ export default function PlayerPage() {
                   <FiSkipForward size={32} fill="#fff" color="#fff" />
                   <span className="capsuleLabel">
                     {autoSkipCountdown !== null 
-                      ? `Skipping ${activeMarker.type === 'credits' ? 'credits' : 'intro'} in ${Math.max(0, autoSkipCountdown)}...`
+                      ? `Skipping ${activeMarker.type === 'credits' ? 'credits' : 'intro'} in ${Math.max(0, autoSkipCountdown)}`
                       : (activeMarker.type === 'credits' ? 'Skip Credits' : 'Skip Intro')}
                   </span>
                 </div>

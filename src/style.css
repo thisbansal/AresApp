@@ -553,7 +553,8 @@ video::-webkit-media-controls-text-track-display {
 }
 
 .player-hud-btn-capsule {
-  width: 240px;
+  min-width: 240px;
+  width: max-content;
   box-sizing: border-box;
   padding: 14px 28px;
   border-radius: 9999px;
