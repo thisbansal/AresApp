@@ -6,7 +6,7 @@ import { useActiveServer } from '../hooks/useActiveServer'
 import { subtitleConverter } from '../utils/subtitleConverter'
 import { FocusableItem } from '../components/navigational/FocusableItem'
 import { FocusLayer } from '../contexts/SpatialNavigationContext'
-import { FiTv, FiSliders, FiRewind, FiPause, FiPlay, FiSkipForward, FiXCircle } from 'react-icons/fi'
+import { FiTv, FiSliders, FiRewind, FiPause, FiPlay, FiSkipForward } from 'react-icons/fi'
 import { MdSubtitles, MdFormatSize, MdFormatBold } from 'react-icons/md'
 import { usePlaybackProgress } from '../hooks/usePlaybackProgress'
 
@@ -1511,9 +1511,7 @@ export default function PlayerPage() {
                 onClick={autoSkipCountdown !== null ? handleCancelAutoSkip : handleSkipIntro}
               >
                 <div className="hud-btn-content">
-                  {autoSkipCountdown !== null ? (
-                    <FiXCircle size={32} color="#fff" />
-                  ) : (
+                  {autoSkipCountdown === null && (
                     <FiSkipForward size={32} fill="#fff" color="#fff" />
                   )}
                   <span className="capsuleLabel">
