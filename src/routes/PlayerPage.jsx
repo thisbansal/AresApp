@@ -1105,7 +1105,7 @@ export default function PlayerPage() {
       if (activeMarker !== currentMarker) {
         setActiveMarker(currentMarker);
         if (autoSkipIntro && hasStartedFromBeginning && !isAutoSkipCancelled) {
-          setAutoSkipCountdown(3);
+          setAutoSkipCountdown(5);
         } else {
           setAutoSkipCountdown(null);
         }
@@ -1508,13 +1508,17 @@ export default function PlayerPage() {
                 rowIndex={2}
                 colIndex={3}
                 className="player-hud-btn-capsule"
-                onClick={handleSkipIntro}
+                onClick={autoSkipCountdown !== null ? handleCancelAutoSkip : handleSkipIntro}
               >
                 <div className="hud-btn-content">
-                  <FiSkipForward size={32} fill="#fff" color="#fff" />
+                  {autoSkipCountdown !== null ? (
+                    <FiXCircle size={32} color="#fff" />
+                  ) : (
+                    <FiSkipForward size={32} fill="#fff" color="#fff" />
+                  )}
                   <span className="capsuleLabel">
                     {autoSkipCountdown !== null 
-                      ? `Skipping ${activeMarker.type === 'credits' ? 'credits' : 'intro'} in ${Math.max(0, autoSkipCountdown)}`
+                      ? `Cancel ${activeMarker.type === 'credits' ? 'Credits' : 'Intro'} Skip in ${Math.max(0, autoSkipCountdown)}`
                       : (activeMarker.type === 'credits' ? 'Skip Credits' : 'Skip Intro')}
                   </span>
                 </div>
