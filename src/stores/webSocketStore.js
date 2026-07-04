@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { PlexWebSocketService } from '../services/plex/plexWebSocketService';
 import { useServerStore } from './serverStore';
 import { useServerManagerStore } from './serverManagerStore';
+import { deleteImage } from '../services/luna/mediaDBService';
 
 export const useWebSocketStore = create((set, get) => ({
   connections: {}, // Map of clientIdentifier -> PlexWebSocketService instance
@@ -110,6 +111,12 @@ export const useWebSocketStore = create((set, get) => ({
     switch (type) {
       case 'playing':
       case 'timeline':
+        // State 9 indicates the media was deleted on the server
+        if (notification.state === 9 && notification.itemID) {
+          console.log(`[WebSocket Store] Media deleted on server (itemID: ${notification.itemID}). Clearing cached images...`);
+          deleteImage(notification.itemID).catch(err => console.error('[WebSocket Store] Error clearing cached image for deleted media:', err));
+        }
+
         // Dispatch custom DOM event so hooks like useToggleWatched or useEpisodes can listen
         window.dispatchEvent(new CustomEvent('plex-ws-playback-update', { 
           detail: { clientIdentifier, notification } 
