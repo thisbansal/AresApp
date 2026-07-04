@@ -1117,11 +1117,12 @@ export default function PlayerPage() {
       }
       return;
     }
+    if (!isPlaying) return; // Pause timer when video is paused
     const timer = setTimeout(() => {
       setAutoSkipCountdown(prev => prev - 1);
     }, 1000);
     return () => clearTimeout(timer);
-  }, [autoSkipCountdown, activeMarker]);
+  }, [autoSkipCountdown, activeMarker, isPlaying, executeSeek]);
 
   const handleCancelAutoSkip = () => {
     setIsAutoSkipCancelled(true);
