@@ -76,6 +76,11 @@ export default function PlayerPage() {
 
   // HUD Visibility & Interaction State
   const [isDragging, setIsDragging] = useState(false)
+  const [showExitDialog, setShowExitDialog] = useState(false)
+  const { playClickSound } = useSound()
+
+
+
   const [isScrolling, setIsScrolling] = useState(false)
   const seekTimeoutRef = useRef(null)
   const lastStreamUrlRef = useRef(null)
@@ -99,6 +104,18 @@ export default function PlayerPage() {
   }, [])
 
   const { showHUD, setShowHUD, triggerHUD, hudTimeoutRef, hudLockoutRef } = usePlayerHUD(loading, isDragging, isScrolling)
+
+  // Auto-focus Skip Intro button
+  useEffect(() => {
+    if (activeMarker) {
+      // Timeout ensures the DOM element has rendered
+      const focusTimer = setTimeout(() => {
+        const btn = document.getElementById('btn-skip-intro');
+        if (btn) btn.focus({ preventScroll: true });
+      }, 50);
+      return () => clearTimeout(focusTimer);
+    }
+  }, [activeMarker, showHUD]);
   const { currentTime, setCurrentTime, duration: videoDuration, isPlaying, isBuffering } = useVideoMediaEvents(
     videoRef, loading, isDragging, isScrolling, isSwitchingStream, setIsSwitchingStream
   )
